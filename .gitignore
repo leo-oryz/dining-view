@@ -31,6 +31,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# sample data files
+/Eat365/
+/Ocard/
+*.docx
+.~*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
