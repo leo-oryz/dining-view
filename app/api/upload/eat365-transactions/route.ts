@@ -42,14 +42,14 @@ export async function POST(request: NextRequest) {
         item_amount: row.item_amount,
         item_quantity: row.item_quantity,
         cost: row.cost,
-        modifier_name: row.modifier_name,
+        modifier_name: row.modifier_name ?? '',
         modifier_value: row.modifier_value,
         source: 'eat365',
       }))
 
       const { error: dbError } = await supabase
         .from('order_items')
-        .upsert(chunk, { onConflict: 'store_id,order_number,item_name,COALESCE(modifier_name, \'\')' })
+        .upsert(chunk, { onConflict: 'store_id,order_number,item_name,modifier_name', ignoreDuplicates: true })
 
       if (dbError) return apiError(dbError.message, 500)
       totalImported += chunk.length

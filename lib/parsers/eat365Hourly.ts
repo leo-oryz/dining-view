@@ -39,8 +39,8 @@ export function parseEat365Hourly(buffer: ArrayBuffer): { data: HourlySalesRow[]
       if (!row || !row[0]) continue
 
       const timeVal = String(row[0]).trim()
-      // Skip "Total" row
-      if (timeVal.toLowerCase() === 'total') continue
+      // Skip header and "Total" rows
+      if (timeVal.toLowerCase() === 'total' || timeVal.toLowerCase() === 'time') continue
 
       const hour = parseHour(timeVal)
       if (hour === null) {

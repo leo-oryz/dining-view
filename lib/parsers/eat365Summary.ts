@@ -50,14 +50,14 @@ export function parseEat365Summary(buffer: ArrayBuffer): { data: DailySalesRow[]
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 })
 
-    // Header at row index 2
-    if (rows.length < 4) {
-      errors.push({ row: 0, field: '', message: 'File has too few rows. Expected header at row 3.' })
+    // Row 0-2: metadata, Row 3: header, Row 4+: data
+    if (rows.length < 5) {
+      errors.push({ row: 0, field: '', message: 'File has too few rows. Expected data at row 5.' })
       return { data, errors }
     }
 
-    // Data rows start at index 3
-    for (let i = 3; i < rows.length; i++) {
+    // Data rows start at index 4
+    for (let i = 4; i < rows.length; i++) {
       const row = rows[i]
       if (!row || !row[0]) continue
 
@@ -69,12 +69,18 @@ export function parseEat365Summary(buffer: ArrayBuffer): { data: DailySalesRow[]
         const parsed = XLSX.SSF.parse_date_code(dateVal)
         dateStr = `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`
       } else {
-        const d = new Date(String(dateVal))
-        if (isNaN(d.getTime())) {
-          errors.push({ row: i + 1, field: 'Date', message: `Invalid date: ${dateVal}` })
-          continue
+        // Format: "2026-03-31 (Tue)" or "2026-03-31"
+        const dateMatch = String(dateVal).match(/(\d{4}-\d{2}-\d{2})/)
+        if (dateMatch) {
+          dateStr = dateMatch[1]
+        } else {
+          const d = new Date(String(dateVal))
+          if (isNaN(d.getTime())) {
+            errors.push({ row: i + 1, field: 'Date', message: `Invalid date: ${dateVal}` })
+            continue
+          }
+          dateStr = d.toISOString().split('T')[0]
         }
-        dateStr = d.toISOString().split('T')[0]
       }
 
       data.push({

@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
       const { error: dbError } = await supabase
         .from('order_items')
-        .upsert(chunk, { onConflict: 'store_id,order_number,item_name,COALESCE(modifier_name, \'\')' })
+        .upsert(chunk, { onConflict: 'store_id,order_number,item_name,modifier_name', ignoreDuplicates: true })
 
       if (dbError) return apiError(dbError.message, 500)
       totalImported += chunk.length

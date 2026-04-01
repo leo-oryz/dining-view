@@ -27,8 +27,14 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient()
 
+    // Deduplicate by product_name (keep last occurrence)
+    const deduped = new Map<string, typeof data[0]>()
+    for (const row of data) {
+      deduped.set(row.product_name, row)
+    }
+
     // Upsert product_sales
-    const salesRows = data.map(row => ({
+    const salesRows = Array.from(deduped.values()).map(row => ({
       store_id: storeId,
       date,
       product_name: row.product_name,
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest) {
     if (salesError) return apiError(salesError.message, 500)
 
     // Upsert product_costs (latest cost data)
-    const costRows = data
+    const costRows = Array.from(deduped.values())
       .filter(row => row.total_cost !== null)
       .map(row => ({
         store_id: storeId,
