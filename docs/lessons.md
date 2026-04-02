@@ -46,3 +46,17 @@
 - GSC `searchanalytics.query` dimensionFilterGroups with `groupType: 'or'` allows matching multiple brand keywords in one request.
 - GA4 dates come as `YYYYMMDD` format from the API — must reformat to `YYYY-MM-DD` before storing.
 - Always deduplicate API response rows before upserting — the same query+date or event+page can appear multiple times.
+
+## Phase 3
+
+### AI / Claude API
+- Claude API responses may wrap JSON in markdown code fences (```json...```). Must strip fences before parsing.
+- Use retry (up to 2 retries) for JSON parse failures — Claude may occasionally return malformed JSON on first attempt.
+- Prompt assembly should use pipe-delimited tables for data context — structured enough for Claude to understand, compact enough to fit in context.
+- Limit product sales to top 50 and margin matrix to top 40 in prompts to avoid exceeding token limits.
+
+### Recharts TypeScript
+- Recharts v3 Tooltip `formatter` prop types are strict. Don't annotate callback parameter types (e.g. `(val: number)`) — use `(val)` and cast with `Number(val)` inside the callback.
+
+### Map Iteration
+- `Map.values()` iterator requires `--downlevelIteration` or ES2015+ target in tsconfig. Wrap with `Array.from()` to avoid build errors.

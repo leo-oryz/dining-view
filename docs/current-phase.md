@@ -1,17 +1,16 @@
-# Current Phase: Phase 3 — Cloudbeds + AI Analysis + Advanced Analytics
+# Current Phase: Phase 4 — Cloudbeds + Advanced Analytics
 
 ## Status: NOT STARTED
 
-## Phase 2 Completed: 2026-04-01
+## Phase 3 Completed: 2026-04-02
 
-## Phase 3 Scope
+## Phase 4 Scope
 1. Cloudbeds API integration (hotel guest data)
 2. Hotel guest → restaurant member matching (hotel_guest_mappings)
 3. Cross-property analytics dashboard
-4. AI analysis reports (Claude API — daily summary, anomaly detection, campaign attribution)
-5. Delivery platform integration (UberEats, foodpanda)
-6. Ad campaign tracking (Meta Ads, TikTok Ads)
-7. Competitor event logging
+4. Competitor event logging UI
+5. Delivery platform API auto-sync (UberEats, foodpanda)
+6. Scheduled AI analysis reports (auto-run via scheduler)
 
 ## Not In Scope (Future)
 - Multi-brand support beyond BE&

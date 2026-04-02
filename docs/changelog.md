@@ -1,5 +1,38 @@
 # Changelog
 
+## [3.0.0] — 2026-04-02 — Phase 3 Complete
+
+### Added
+- **AI Analysis**: Claude API integration with 3 report types: attribution, star products, retire candidates
+- **lib/ai/**: 5 modules — `dataPrep.ts`, `basketAnalysis.ts`, `marginMatrix.ts`, `claudeAnalyzer.ts`, `reportRenderer.ts`
+- **POST /api/ai/analyze**: Trigger AI analysis, saves to `ai_analysis_reports` table
+- **GET /api/ai/reports**: List past reports with optional `report_type` filter
+- **GET /api/ai/reports/[id]**: Fetch single report with full content
+- **GET /api/ai/attribution**: Latest attribution report shortcut
+- **GET /api/ai/star-products**: Latest star products report shortcut
+- **GET /api/ai/retire-candidates**: Latest retire candidates report shortcut
+- **AI Page**: Full UI with report type selector, generate button, history sidebar, and rendered report viewer
+- **AI Components**: `AttributionReport`, `StarProductsReport`, `RetireCandidatesReport`, `ReportHistory`
+- **LINE OA**: Broadcast CRUD with friend trend chart and D+1~D+3 impact visualization
+- **GET/POST /api/line/broadcasts**: List + create broadcasts
+- **PUT/DELETE /api/line/broadcasts/[id]**: Update + delete broadcasts
+- **GET /api/line/friend-trend**: Friend count over time from broadcast records
+- **GET /api/line/broadcast-impact**: Revenue delta D+1~D+3 vs 7-day rolling average
+- **LINE Components**: `BroadcastForm`, `FriendTrendChart`, `BroadcastImpactChart`
+- **Meta Ads**: Ad campaign CRUD with spend vs revenue correlation chart
+- **GET/POST /api/ads/campaigns**: List + create ad campaign records
+- **PUT/DELETE /api/ads/campaigns/[id]**: Update + delete ad campaigns
+- **GET /api/ads/performance**: Spend/clicks/impressions summary with daily revenue correlation
+- **Ads Components**: `AdCampaignForm`, `AdPerformanceChart`
+- **Delivery Page**: Setup instructions for Uber Eats and foodpanda manual CSV upload
+- **Migration**: `003_line_broadcasts.sql` with RLS policies and indexes
+- **Dependency**: `@anthropic-ai/sdk` for Claude API calls
+
+### Changed
+- AI page: replaced placeholder with full analysis UI
+- Sidebar: added LINE 推播, 廣告管理, 外送平台 navigation items
+- `.env.example`: added `ANTHROPIC_API_KEY`
+
 ## [2.0.0] — 2026-04-01 — Phase 2 Complete
 
 ### Added
