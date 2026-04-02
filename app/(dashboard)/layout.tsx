@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Clock,
@@ -14,8 +14,11 @@ import {
   Brain,
   Menu,
   X,
+  LogOut,
+  ChevronDown,
 } from 'lucide-react'
 import clsx from 'clsx'
+import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/dashboard', label: '今日概覽', icon: LayoutDashboard },
@@ -28,13 +31,70 @@ const navItems = [
   { href: '/upload', label: '資料上傳', icon: Upload },
 ]
 
+type UserProfile = {
+  role: string
+  store_id: string | null
+  name: string | null
+  email: string
+}
+
+type Store = {
+  id: string
+  name: string
+}
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [stores, setStores] = useState<Store[]>([])
+  const [activeStore, setActiveStore] = useState<string | null>(null)
+  const [storeDropdownOpen, setStoreDropdownOpen] = useState(false)
+
+  useEffect(() => {
+    async function loadProfile() {
+      const res = await fetch('/api/auth/me')
+      if (!res.ok) {
+        router.push('/login')
+        return
+      }
+      const json = await res.json()
+      if (!json.success) {
+        router.push('/login')
+        return
+      }
+      setProfile(json.data)
+
+      if (json.data.role === 'owner') {
+        const supabase = createClient()
+        const { data: storeList } = await supabase
+          .from('stores')
+          .select('id, name')
+          .order('name')
+        if (storeList && storeList.length > 0) {
+          setStores(storeList)
+          setActiveStore(storeList[0].id)
+        }
+      } else if (json.data.store_id) {
+        setActiveStore(json.data.store_id)
+      }
+    }
+    loadProfile()
+  }, [router])
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
+  const activeStoreName = stores.find((s) => s.id === activeStore)?.name || 'BE& 西門'
 
   return (
     <div className="min-h-screen flex">
@@ -65,6 +125,40 @@ export default function DashboardLayout({
           </button>
         </div>
 
+        {/* Store switcher (owner only) */}
+        {profile?.role === 'owner' && stores.length > 1 && (
+          <div className="px-3 mt-3 relative">
+            <button
+              onClick={() => setStoreDropdownOpen(!storeDropdownOpen)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-slate-700 rounded-lg text-sm text-white hover:bg-slate-600 transition-colors"
+            >
+              <span className="truncate">{activeStoreName}</span>
+              <ChevronDown size={16} className={clsx('transition-transform', storeDropdownOpen && 'rotate-180')} />
+            </button>
+            {storeDropdownOpen && (
+              <div className="absolute left-3 right-3 mt-1 bg-slate-700 rounded-lg shadow-lg z-10 overflow-hidden">
+                {stores.map((store) => (
+                  <button
+                    key={store.id}
+                    onClick={() => {
+                      setActiveStore(store.id)
+                      setStoreDropdownOpen(false)
+                    }}
+                    className={clsx(
+                      'w-full text-left px-3 py-2 text-sm transition-colors',
+                      store.id === activeStore
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-300 hover:bg-slate-600'
+                    )}
+                  >
+                    {store.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <nav className="mt-4 px-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon
@@ -88,8 +182,19 @@ export default function DashboardLayout({
           })}
         </nav>
 
-        <div className="absolute bottom-4 left-0 right-0 px-6">
-          <div className="text-xs text-slate-500">BE& 西門</div>
+        <div className="absolute bottom-4 left-0 right-0 px-3">
+          <div className="flex items-center justify-between px-3 py-2">
+            <div className="text-xs text-slate-500 truncate">
+              {profile?.email || ''}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-slate-500 hover:text-white transition-colors"
+              title="登出"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
       </aside>
 

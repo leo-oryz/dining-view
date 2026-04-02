@@ -37,6 +37,14 @@ yarn-error.log*
 *.docx
 .~*
 
+# sensitive files
+/API Keys/
+*.rtf
+agents/download-agent/downloads/
+agents/download-agent/.env
+agents/download-agent/node_modules/
+scripts/node_modules/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

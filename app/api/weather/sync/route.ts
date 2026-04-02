@@ -1,0 +1,78 @@
+import { NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/server'
+import { fetchDailyWeather } from '@/lib/weather/cwaClient'
+
+export async function POST() {
+  try {
+    const supabase = createServiceClient()
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const dateStr = yesterday.toISOString().slice(0, 10)
+
+    const weather = await fetchDailyWeather(dateStr)
+
+    if (!weather) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: 'Weather data unavailable',
+        timestamp: new Date().toISOString(),
+      })
+    }
+
+    // Get all stores and insert weather for each
+    const { data: stores } = await supabase
+      .from('stores')
+      .select('id')
+      .eq('is_active', true)
+
+    if (!stores || stores.length === 0) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: 'No active stores found',
+        timestamp: new Date().toISOString(),
+      })
+    }
+
+    const rows = stores.map((store) => ({
+      store_id: store.id,
+      date: weather.date,
+      temp_high: weather.temp_high,
+      temp_low: weather.temp_low,
+      humidity: weather.humidity,
+      precipitation: weather.precipitation,
+      weather_code: weather.weather_code,
+      description: weather.description,
+    }))
+
+    const { error: upsertError } = await supabase
+      .from('weather_daily')
+      .upsert(rows, { onConflict: 'store_id,date' })
+
+    if (upsertError) {
+      return NextResponse.json({
+        success: false,
+        data: null,
+        error: upsertError.message,
+        timestamp: new Date().toISOString(),
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { date: dateStr, stores: stores.length },
+      error: null,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (err) {
+    console.error('[Weather Sync]', err)
+    return NextResponse.json({
+      success: false,
+      data: null,
+      error: 'Internal server error',
+      timestamp: new Date().toISOString(),
+    }, { status: 500 })
+  }
+}

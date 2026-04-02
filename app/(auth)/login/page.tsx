@@ -2,28 +2,36 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    // Phase 1: simple client-side password check
-    // Phase 2 will replace with Supabase Auth
-    const stored = process.env.NEXT_PUBLIC_AUTH_PASSWORD || 'fnbpulse2026'
-    if (password === stored) {
-      localStorage.setItem('fnb-pulse-auth', 'true')
-      router.push('/dashboard')
-    } else {
-      setError('密碼錯誤')
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (authError) {
+      setError(authError.message === 'Invalid login credentials'
+        ? '帳號或密碼錯誤'
+        : authError.message)
+      setLoading(false)
+      return
     }
-    setLoading(false)
+
+    router.push('/dashboard')
+    router.refresh()
   }
 
   return (
@@ -37,6 +45,22 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="you@example.com"
+                autoFocus
+                required
+              />
+            </div>
+
+            <div>
               <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
                 密碼
               </label>
@@ -47,7 +71,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="請輸入密碼"
-                autoFocus
+                required
               />
             </div>
 

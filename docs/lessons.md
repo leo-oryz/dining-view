@@ -29,3 +29,20 @@
 - Node 22 has npm compatibility issues on Zeabur. Use Node 18 Alpine in Dockerfile.
 - Next.js needs `output: 'standalone'` in next.config.mjs for Docker deployment.
 - Must have a `public/` directory (even if empty) or Dockerfile COPY fails.
+
+## Phase 2
+
+### Auth
+- Supabase Auth `createServerClient` from `@supabase/ssr` requires async cookies() in Next.js 14. The `setAll` callback must be wrapped in try/catch because it can be called from Server Components where cookies are read-only.
+- Middleware must refresh the session on every request by calling `supabase.auth.getUser()` — using `getSession()` alone won't refresh expired tokens.
+
+### TypeScript / Build
+- Next.js picks up ALL `.ts` files in the project tree for type checking, including agent scripts. Exclude standalone scripts directories (`agents/`, `scripts/`) in `tsconfig.json`.
+- `googleapis` GA4 `runReport` expects `limit` as a string, not number.
+- Lucide React icons should be typed as `LucideIcon`, not `React.ComponentType`.
+- ESLint `no-explicit-any` disable comments must be on the exact line with `any`, not the line before the function declaration.
+
+### Google APIs
+- GSC `searchanalytics.query` dimensionFilterGroups with `groupType: 'or'` allows matching multiple brand keywords in one request.
+- GA4 dates come as `YYYYMMDD` format from the API — must reformat to `YYYY-MM-DD` before storing.
+- Always deduplicate API response rows before upserting — the same query+date or event+page can appear multiple times.
