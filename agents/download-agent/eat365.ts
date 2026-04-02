@@ -8,6 +8,12 @@ export type DownloadedFile = {
   reportType: string
   filePath: string
   fileName: string
+  storeId?: string
+}
+
+export type StoreCredentials = {
+  email: string
+  password: string
 }
 
 async function ensureDownloadDir() {
@@ -16,12 +22,12 @@ async function ensureDownloadDir() {
   }
 }
 
-async function login(page: Page) {
-  const email = process.env.EAT365_LOGIN_EMAIL
-  const password = process.env.EAT365_LOGIN_PASSWORD
+async function login(page: Page, credentials?: StoreCredentials) {
+  const email = credentials?.email || process.env.EAT365_LOGIN_EMAIL
+  const password = credentials?.password || process.env.EAT365_LOGIN_PASSWORD
 
   if (!email || !password) {
-    throw new Error('EAT365_LOGIN_EMAIL and EAT365_LOGIN_PASSWORD required')
+    throw new Error('EAT365 login credentials required (via store config or env vars)')
   }
 
   await page.goto('https://backend.eat365.com.tw/login')
@@ -41,7 +47,7 @@ function getYesterday(): string {
  * Download all 4 eat365 reports for yesterday.
  * This is a template — actual selectors need to be adapted to the eat365 backend UI.
  */
-export async function downloadEat365Reports(): Promise<DownloadedFile[]> {
+export async function downloadEat365Reports(options?: { storeId?: string; credentials?: StoreCredentials }): Promise<DownloadedFile[]> {
   await ensureDownloadDir()
   const yesterday = getYesterday()
   const files: DownloadedFile[] = []
@@ -52,7 +58,7 @@ export async function downloadEat365Reports(): Promise<DownloadedFile[]> {
     const context = await browser.newContext({ acceptDownloads: true })
     const page = await context.newPage()
 
-    await login(page)
+    await login(page, options?.credentials)
 
     // Report configurations — selectors are placeholders to be adapted
     const reports = [
@@ -93,7 +99,7 @@ export async function downloadEat365Reports(): Promise<DownloadedFile[]> {
         const filePath = path.join(DOWNLOAD_DIR, fileName)
         await download.saveAs(filePath)
 
-        files.push({ reportType: report.type, filePath, fileName })
+        files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId })
         console.log(`[eat365] Downloaded: ${fileName}`)
       } catch (err) {
         console.error(`[eat365] Failed to download ${report.type}:`, err)

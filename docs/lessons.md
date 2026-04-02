@@ -60,3 +60,34 @@
 
 ### Map Iteration
 - `Map.values()` iterator requires `--downlevelIteration` or ES2015+ target in tsconfig. Wrap with `Array.from()` to avoid build errors.
+
+## Phase 4
+
+### @react-pdf/renderer
+- `renderToBuffer()` returns a Node `Buffer`. The Web `Response` constructor does not accept `Buffer` directly — wrap with `new Uint8Array(buffer)`.
+- `renderToBuffer()` expects `ReactElement<DocumentProps>`. When the component returns a `Document`, TypeScript may reject due to prop mismatch. Use `as any` with inline ESLint disable on the same line.
+- `@react-pdf/renderer` depends on `yoga-layout` (native module). In Next.js standalone mode, it causes React error #185 at runtime because the bundler can't properly trace native dependencies. Fix: add `@react-pdf/renderer`, `@react-pdf/layout`, `@react-pdf/pdfkit`, and `@react-pdf/font` to `experimental.serverComponentsExternalPackages` in `next.config.mjs`. This makes Next.js copy them into the standalone output without bundling.
+
+### ESLint Reminder
+- ESLint `no-explicit-any` disable comments must be on the exact same line as the `any` keyword, not on the line above. Confirmed again in Phase 4 (same lesson from Phase 2).
+
+## Phase 5
+
+### Multi-store Architecture
+- Per-store credentials stored in JSONB column on `stores` table. Service role only — never exposed to client via RLS.
+- Download agent fetches store configs from API on startup, falls back to env vars for backward compatibility.
+- Uploader passes `store_id` in FormData so upload endpoints can route data to the correct store.
+
+### TikTok Business API
+- TikTok API v1.3 uses `Access-Token` header (not Bearer token like Meta).
+- Campaign list and reporting are separate endpoints — must fetch campaign names first, then join with report data by campaign_id.
+- Report endpoint uses `dimensions` and `metrics` as JSON-encoded query params.
+
+### Anomaly Detection
+- Use 7-day rolling average as baseline, require at least 3 days of data to avoid false positives on new stores.
+- Detection runs on yesterday's data (not today) due to POS data ingestion delay.
+- UNIQUE constraint on `(store_id, alert_type, created_at::date)` prevents duplicate alerts per day using a cast expression — requires parenthesized expression in the constraint.
+
+### Cloudbeds API
+- `hotel_guest_mappings` table needed a UNIQUE constraint on `(store_id, hotel_booking_id)` for upsert — was missing in Phase 1 schema, added in migration 006.
+- Phone normalization critical: Taiwan mobile numbers may come as +886, 886, or 09xx — normalize to 09xx format for matching.

@@ -21,7 +21,8 @@ const REPORT_ENDPOINTS: Record<string, string> = {
 
 export async function uploadFile(
   reportType: string,
-  filePath: string
+  filePath: string,
+  storeId?: string
 ): Promise<UploadResult> {
   const baseUrl = process.env.AGENT_UPLOAD_BASE_URL
   if (!baseUrl) {
@@ -39,6 +40,9 @@ export async function uploadFile(
 
     const formData = new FormData()
     formData.append('file', new Blob([fileBuffer]), fileName)
+    if (storeId) {
+      formData.append('store_id', storeId)
+    }
 
     const url = `${baseUrl}${endpoint}`
     console.log(`[upload] POST ${url} (${fileName})`)

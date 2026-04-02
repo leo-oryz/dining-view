@@ -3,59 +3,132 @@ import { downloadEat365Reports } from './eat365'
 import { downloadOcardReports } from './ocard'
 import { uploadFile } from './uploader'
 
-async function run() {
-  const isDryRun = process.env.DRY_RUN === 'true'
-  console.log(`[agent] Starting download agent${isDryRun ? ' (DRY RUN)' : ''}`)
-  console.log(`[agent] Date: ${new Date().toISOString()}`)
+interface StoreConfig {
+  id: string
+  name: string
+  credentials: {
+    eat365?: { email: string; password: string }
+    ocard?: { email: string; password: string }
+  }
+}
 
+async function fetchStoreConfigs(): Promise<StoreConfig[]> {
+  const baseUrl = process.env.AGENT_UPLOAD_BASE_URL || 'http://localhost:3000'
+  try {
+    const res = await fetch(`${baseUrl}/api/stores`)
+    const json = await res.json()
+    if (!json.success || !json.data) return []
+    return json.data.map((s: { id: string; name: string; credentials?: StoreConfig['credentials'] }) => ({
+      id: s.id,
+      name: s.name,
+      credentials: s.credentials || {},
+    }))
+  } catch (err) {
+    console.warn('[agent] Failed to fetch store configs, falling back to default store')
+    return []
+  }
+}
+
+async function runForStore(store: StoreConfig, isDryRun: boolean) {
+  console.log(`\n[agent] === Processing store: ${store.name} (${store.id}) ===`)
   const allFiles = []
   const errors: string[] = []
 
   // Download eat365 reports
-  try {
-    console.log('[agent] Downloading eat365 reports...')
-    const eat365Files = await downloadEat365Reports()
-    allFiles.push(...eat365Files)
-    console.log(`[agent] eat365: ${eat365Files.length} files downloaded`)
-  } catch (err: any) {
-    const msg = `[agent] eat365 download failed: ${err.message}`
-    console.error(msg)
-    errors.push(msg)
+  const eat365Creds = store.credentials.eat365
+  const hasEat365 = eat365Creds?.email || process.env.EAT365_LOGIN_EMAIL
+  if (hasEat365) {
+    try {
+      console.log(`[agent] [${store.name}] Downloading eat365 reports...`)
+      const eat365Files = await downloadEat365Reports({
+        storeId: store.id,
+        credentials: eat365Creds,
+      })
+      allFiles.push(...eat365Files)
+      console.log(`[agent] [${store.name}] eat365: ${eat365Files.length} files downloaded`)
+    } catch (err: any) {
+      const msg = `[agent] [${store.name}] eat365 download failed: ${err.message}`
+      console.error(msg)
+      errors.push(msg)
+    }
+  } else {
+    console.log(`[agent] [${store.name}] Skipping eat365 (no credentials)`)
   }
 
   // Download Ocard reports
-  try {
-    console.log('[agent] Downloading Ocard reports...')
-    const ocardFiles = await downloadOcardReports()
-    allFiles.push(...ocardFiles)
-    console.log(`[agent] Ocard: ${ocardFiles.length} files downloaded`)
-  } catch (err: any) {
-    const msg = `[agent] Ocard download failed: ${err.message}`
-    console.error(msg)
-    errors.push(msg)
+  const ocardCreds = store.credentials.ocard
+  const hasOcard = ocardCreds?.email || process.env.OCARD_LOGIN_EMAIL
+  if (hasOcard) {
+    try {
+      console.log(`[agent] [${store.name}] Downloading Ocard reports...`)
+      const ocardFiles = await downloadOcardReports({
+        storeId: store.id,
+        credentials: ocardCreds,
+      })
+      allFiles.push(...ocardFiles)
+      console.log(`[agent] [${store.name}] Ocard: ${ocardFiles.length} files downloaded`)
+    } catch (err: any) {
+      const msg = `[agent] [${store.name}] Ocard download failed: ${err.message}`
+      console.error(msg)
+      errors.push(msg)
+    }
+  } else {
+    console.log(`[agent] [${store.name}] Skipping Ocard (no credentials)`)
   }
 
   // Upload all files to API
   if (!isDryRun) {
-    console.log(`[agent] Uploading ${allFiles.length} files...`)
+    console.log(`[agent] [${store.name}] Uploading ${allFiles.length} files...`)
     for (const file of allFiles) {
-      const result = await uploadFile(file.reportType, file.filePath)
+      const result = await uploadFile(file.reportType, file.filePath, file.storeId)
       if (!result.success) {
-        const msg = `[agent] Upload failed for ${file.reportType}: ${result.error}`
+        const msg = `[agent] [${store.name}] Upload failed for ${file.reportType}: ${result.error}`
         console.error(msg)
         errors.push(msg)
       }
     }
   } else {
-    console.log('[agent] DRY RUN — skipping uploads')
+    console.log(`[agent] [${store.name}] DRY RUN — skipping uploads`)
+  }
+
+  return { files: allFiles.length, errors }
+}
+
+async function run() {
+  const isDryRun = process.env.DRY_RUN === 'true'
+  console.log(`[agent] Starting download agent${isDryRun ? ' (DRY RUN)' : ''}`)
+  console.log(`[agent] Date: ${new Date().toISOString()}`)
+
+  // Fetch all store configs from API
+  let stores = await fetchStoreConfigs()
+
+  // Fallback: if no stores from API, use default with env credentials
+  if (stores.length === 0) {
+    stores = [{
+      id: '00000000-0000-0000-0000-000000000001',
+      name: 'BE& 西門',
+      credentials: {},
+    }]
+  }
+
+  console.log(`[agent] Processing ${stores.length} store(s)`)
+
+  let totalFiles = 0
+  const allErrors: string[] = []
+
+  for (const store of stores) {
+    const result = await runForStore(store, isDryRun)
+    totalFiles += result.files
+    allErrors.push(...result.errors)
   }
 
   // Summary
   console.log('\n[agent] === Summary ===')
-  console.log(`[agent] Files downloaded: ${allFiles.length}`)
-  console.log(`[agent] Errors: ${errors.length}`)
-  if (errors.length > 0) {
-    errors.forEach((e) => console.error(e))
+  console.log(`[agent] Stores processed: ${stores.length}`)
+  console.log(`[agent] Files downloaded: ${totalFiles}`)
+  console.log(`[agent] Errors: ${allErrors.length}`)
+  if (allErrors.length > 0) {
+    allErrors.forEach((e) => console.error(e))
   }
   console.log('[agent] Done.')
 }

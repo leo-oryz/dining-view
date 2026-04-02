@@ -8,6 +8,12 @@ export type DownloadedFile = {
   reportType: string
   filePath: string
   fileName: string
+  storeId?: string
+}
+
+export type StoreCredentials = {
+  email: string
+  password: string
 }
 
 async function ensureDownloadDir() {
@@ -16,12 +22,12 @@ async function ensureDownloadDir() {
   }
 }
 
-async function login(page: Page) {
-  const email = process.env.OCARD_LOGIN_EMAIL
-  const password = process.env.OCARD_LOGIN_PASSWORD
+async function login(page: Page, credentials?: StoreCredentials) {
+  const email = credentials?.email || process.env.OCARD_LOGIN_EMAIL
+  const password = credentials?.password || process.env.OCARD_LOGIN_PASSWORD
 
   if (!email || !password) {
-    throw new Error('OCARD_LOGIN_EMAIL and OCARD_LOGIN_PASSWORD required')
+    throw new Error('Ocard login credentials required (via store config or env vars)')
   }
 
   await page.goto('https://business.ocard.co/login')
@@ -41,7 +47,7 @@ function getYesterday(): string {
  * Download all Ocard reports for yesterday.
  * Selectors are placeholders — adapt to actual Ocard backend UI.
  */
-export async function downloadOcardReports(): Promise<DownloadedFile[]> {
+export async function downloadOcardReports(options?: { storeId?: string; credentials?: StoreCredentials }): Promise<DownloadedFile[]> {
   await ensureDownloadDir()
   const yesterday = getYesterday()
   const files: DownloadedFile[] = []
@@ -52,7 +58,7 @@ export async function downloadOcardReports(): Promise<DownloadedFile[]> {
     const context = await browser.newContext({ acceptDownloads: true })
     const page = await context.newPage()
 
-    await login(page)
+    await login(page, options?.credentials)
 
     const reports = [
       { type: 'ocard-dashboard', nav: '儀表板', ext: '.xlsx' },
@@ -92,7 +98,7 @@ export async function downloadOcardReports(): Promise<DownloadedFile[]> {
         const filePath = path.join(DOWNLOAD_DIR, fileName)
         await download.saveAs(filePath)
 
-        files.push({ reportType: report.type, filePath, fileName })
+        files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId })
         console.log(`[ocard] Downloaded: ${fileName}`)
       } catch (err) {
         console.error(`[ocard] Failed to download ${report.type}:`, err)

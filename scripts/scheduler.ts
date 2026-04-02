@@ -45,9 +45,41 @@ cron.schedule('0 2 * * *', async () => {
   }
 }, { timezone: 'Asia/Taipei' })
 
+// TikTok Ads sync: 02:45 daily
+cron.schedule('45 2 * * *', async () => {
+  console.log(`[scheduler] ${new Date().toISOString()} — Running TikTok Ads sync`)
+  try {
+    const res = await fetch(`${BASE_URL}/api/sync/tiktok-ads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    const json = await res.json()
+    console.log('[scheduler] TikTok Ads sync result:', json)
+  } catch (err) {
+    console.error('[scheduler] TikTok Ads sync failed:', err)
+  }
+}, { timezone: 'Asia/Taipei' })
+
+// Anomaly detection: 03:00 daily
+cron.schedule('0 3 * * *', async () => {
+  console.log(`[scheduler] ${new Date().toISOString()} — Running anomaly detection`)
+  try {
+    const res = await fetch(`${BASE_URL}/api/alerts/detect`, {
+      method: 'POST',
+    })
+    const json = await res.json()
+    console.log('[scheduler] Anomaly detection result:', json)
+  } catch (err) {
+    console.error('[scheduler] Anomaly detection failed:', err)
+  }
+}, { timezone: 'Asia/Taipei' })
+
 console.log('[scheduler] Started. Schedules:')
 console.log('  00:30 — Download agent (eat365 + Ocard)')
 console.log('  01:00 — Weather sync (CWA)')
 console.log('  02:00 — Google sync (GSC + GA4)')
+console.log('  02:45 — TikTok Ads sync')
+console.log('  03:00 — Anomaly detection + LINE alerts')
 console.log(`  Base URL: ${BASE_URL}`)
 console.log(`  Timezone: Asia/Taipei`)

@@ -1,18 +1,19 @@
-# Current Phase: Phase 4 — Cloudbeds + Advanced Analytics
+# Current Phase: Phase 6 — Advanced Analytics + Automation
 
 ## Status: NOT STARTED
 
-## Phase 3 Completed: 2026-04-02
+## Phase 5 Completed: 2026-04-02
 
-## Phase 4 Scope
-1. Cloudbeds API integration (hotel guest data)
-2. Hotel guest → restaurant member matching (hotel_guest_mappings)
-3. Cross-property analytics dashboard
-4. Competitor event logging UI
-5. Delivery platform API auto-sync (UberEats, foodpanda)
-6. Scheduled AI analysis reports (auto-run via scheduler)
+## Phase 6 Scope
+1. Scheduled AI analysis reports (auto-run via scheduler)
+2. foodpanda CSV parser + upload
+3. Competitor event logging UI
+4. Cross-property analytics dashboard (multi-store trends)
+5. Advanced anomaly detection (seasonal patterns, ML-based)
+6. Custom alert thresholds configuration UI
+7. Multi-brand support beyond BE&
 
 ## Not In Scope (Future)
-- Multi-brand support beyond BE&
 - White-label dashboard
 - Mobile app
+- Real-time POS integration

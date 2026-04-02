@@ -1,5 +1,66 @@
 # Changelog
 
+## [5.0.0] — 2026-04-02 — Phase 5 Complete
+
+### Added
+- **Second Store Support**: Settings page with owner-only Store Management (add store with name, location, credentials)
+- **GET/POST /api/stores**: List and create stores with per-store credentials (JSONB)
+- **Multi-store Download Agent**: Agent loops through all active stores, using per-store eat365/Ocard credentials from DB
+- **TikTok Ads**: `lib/ads/tiktokClient.ts` wrapper for TikTok Business API v1.3 with exponential backoff retry
+- **POST /api/sync/tiktok-ads**: Manual trigger for TikTok Ads campaign sync
+- **Anomaly Alerts**: Automated detection of revenue drops, cost spikes, member churn, delivery drops
+- **lib/alerts/anomalyDetector.ts**: Checks 4 conditions against 7-day rolling averages across all stores
+- **lib/alerts/lineNotifier.ts**: LINE Messaging API push message sender for alert notifications
+- **GET /api/alerts**: List recent alerts (last 30 days, paginated)
+- **POST /api/alerts/test**: Send test LINE push notification
+- **POST /api/alerts/detect**: Trigger anomaly detection (called by scheduler)
+- **Alerts Page**: `/alerts` with alert summary cards, history list, severity badges, and test notification button
+- **Cloudbeds Hotel**: `lib/hotel/cloudbedsClient.ts` API wrapper (conditional on CLOUDBEDS_API_KEY)
+- **lib/hotel/guestMatcher.ts**: Phone-based matching of hotel guests to Ocard members
+- **POST /api/hotel/sync**: Trigger Cloudbeds sync + guest matching
+- **GET /api/hotel/conversion**: Hotel guest conversion rate, avg spend, recent mappings
+- **Members Hotel Tab**: Conditional "住客轉換" tab with KPIs and guest matching table
+- **Migration**: `005_anomaly_alerts.sql` — anomaly_alerts table with RLS policies
+- **Migration**: `006_store_credentials.sql` — credentials JSONB on stores, hotel_guest_mappings unique constraint
+
+### Changed
+- Ads page: added platform filter tabs (All / Meta / TikTok), separate sync buttons for Meta and TikTok
+- Members page: added conditional Hotel Guests tab (visible only if Cloudbeds configured)
+- Download agent: refactored to loop all active stores from DB with per-store credentials
+- eat365.ts / ocard.ts: accept optional `{ storeId, credentials }` parameter
+- uploader.ts: passes `store_id` in form data for multi-store upload
+- Scheduler: added TikTok sync at 02:45, anomaly detection at 03:00
+- Sidebar: added Alerts and Settings (owner-only) navigation items
+- `.env.example`: added TikTok Ads, LINE Alerts, Cloudbeds env vars
+
+## [4.0.0] — 2026-04-02 — Phase 4 Complete
+
+### Added
+- **Uber Eats Delivery**: CSV parser (`lib/parsers/uberEats.ts`), upload API, delivery summary API with dine-in comparison
+- **POST /api/upload/uber-eats**: Upload and parse Uber Eats CSV export
+- **GET /api/delivery/summary**: Delivery KPIs + dine-in vs delivery comparison data
+- **Delivery Page**: Full dashboard with gross/net revenue trend, order count, cancellation rate, platform rating, dine-in vs delivery stacked bar chart
+- **Meta Ads API**: `lib/ads/metaClient.ts` wrapper for Meta Marketing API v18.0 with exponential backoff retry
+- **POST /api/sync/meta-ads**: Manual trigger for Meta Ads campaign sync
+- **Ads Page**: "Sync from Meta" button with last synced timestamp
+- **RFM Dashboard**: New RFM tab on members page with trend chart, R/F/M distribution bar charts, dormant alert banner
+- **GET /api/members/rfm**: Fetch all RFM snapshots for a store ordered by date
+- **RFM Components**: `RFMTrendChart`, `RFMDistributionChart`, `DormantAlert`
+- **Cross-store Compare**: Owner-only `/compare` page with side-by-side KPI table and vs-last-period deltas
+- **GET /api/sales/compare**: Multi-store KPI aggregation with previous period comparison
+- **Investor Report**: Owner-only `/reports` page with one-click PDF generation
+- **POST /api/reports/investor**: Server-side PDF generation via `@react-pdf/renderer`
+- **PDF sections**: Monthly revenue trend, member growth, top 10 products, gross margin, key KPIs
+- **Migration**: `004_phase4_columns.sql` — adds gross_revenue, commission_rate, cancellation_rate, platform_rating, data_source to delivery_sales; campaign_id, reach, cpa, data_source to ad_campaigns
+- **Dependency**: `@react-pdf/renderer` for server-side PDF
+
+### Changed
+- Delivery page: replaced setup instructions with real charts and CSV upload
+- Ads page: added Meta sync button + last synced indicator
+- Members page: added RFM analysis tab alongside existing overview
+- Sidebar: added Compare and Reports links (owner only)
+- `.env.example`: added Meta Ads API env vars
+
 ## [3.0.0] — 2026-04-02 — Phase 3 Complete
 
 ### Added

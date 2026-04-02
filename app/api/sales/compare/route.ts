@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     const { data: prevSalesData } = await supabase
       .from('daily_sales')
-      .select('store_id, net_sales, guests, avg_spending, table_turnover_rate, new_members, member_visits')
+      .select('store_id, net_sales, guests, avg_spending, table_turnover_rate, new_members, member_visits, total_members')
       .gte('date', prevStartStr)
       .lte('date', prevEndStr)
 

@@ -34,6 +34,8 @@ const platformLabels: Record<string, string> = {
   other: '其他',
 }
 
+type PlatformFilter = 'all' | 'meta' | 'tiktok'
+
 export default function AdsPage() {
   const [campaigns, setCampaigns] = useState<AdCampaign[]>([])
   const [correlation, setCorrelation] = useState<CorrelationRow[]>([])
@@ -42,6 +44,7 @@ export default function AdsPage() {
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<string | null>(null)
   const [lastSynced, setLastSynced] = useState<string | null>(null)
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all')
 
   const fetchData = async () => {
     try {
@@ -63,21 +66,26 @@ export default function AdsPage() {
     fetchData()
   }, [])
 
-  // Aggregate KPIs
-  const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
-  const totalClicks = campaigns.reduce((sum, c) => sum + (c.clicks || 0), 0)
-  const totalImpressions = campaigns.reduce((sum, c) => sum + (c.impressions || 0), 0)
+  // Filter campaigns by platform
+  const filteredCampaigns = platformFilter === 'all'
+    ? campaigns
+    : campaigns.filter(c => c.platform === platformFilter)
+
+  // Aggregate KPIs from filtered campaigns
+  const totalSpend = filteredCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
+  const totalClicks = filteredCampaigns.reduce((sum, c) => sum + (c.clicks || 0), 0)
+  const totalImpressions = filteredCampaigns.reduce((sum, c) => sum + (c.impressions || 0), 0)
   const avgCtr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100) : 0
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <BarChart3 size={20} className="text-indigo-600" />
           <h3 className="text-base font-semibold text-slate-900">廣告管理</h3>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={async () => {
               setSyncing(true)
@@ -90,10 +98,10 @@ export default function AdsPage() {
                   setLastSynced(new Date().toISOString())
                   fetchData()
                 } else {
-                  setSyncResult(`同步失敗：${json.error}`)
+                  setSyncResult(`Meta 同步失敗：${json.error}`)
                 }
               } catch {
-                setSyncResult('同步失敗')
+                setSyncResult('Meta 同步失敗')
               }
               setSyncing(false)
             }}
@@ -101,7 +109,32 @@ export default function AdsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-            {syncing ? '同步中...' : 'Sync from Meta'}
+            {syncing ? '同步中...' : 'Sync Meta'}
+          </button>
+          <button
+            onClick={async () => {
+              setSyncing(true)
+              setSyncResult(null)
+              try {
+                const res = await fetch('/api/sync/tiktok-ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+                const json = await res.json()
+                if (json.success) {
+                  setSyncResult(`TikTok 同步完成：${json.data.synced} 筆 (${json.data.date})`)
+                  setLastSynced(new Date().toISOString())
+                  fetchData()
+                } else {
+                  setSyncResult(`TikTok 同步失敗：${json.error}`)
+                }
+              } catch {
+                setSyncResult('TikTok 同步失敗')
+              }
+              setSyncing(false)
+            }}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+            {syncing ? '同步中...' : 'Sync TikTok'}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
@@ -110,6 +143,23 @@ export default function AdsPage() {
             {showForm ? '取消' : '新增廣告紀錄'}
           </button>
         </div>
+      </div>
+
+      {/* Platform filter */}
+      <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+        {(['all', 'meta', 'tiktok'] as const).map(p => (
+          <button
+            key={p}
+            onClick={() => setPlatformFilter(p)}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              platformFilter === p
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {p === 'all' ? '全部' : platformLabels[p] || p}
+          </button>
+        ))}
       </div>
 
       {/* Sync status */}
@@ -158,7 +208,7 @@ export default function AdsPage() {
         </div>
         {loading ? (
           <div className="p-8 text-center text-slate-400 text-sm">載入中...</div>
-        ) : campaigns.length === 0 ? (
+        ) : filteredCampaigns.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-sm">尚無廣告紀錄</div>
         ) : (
           <div className="overflow-x-auto">
@@ -175,7 +225,7 @@ export default function AdsPage() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.map((c) => (
+                {filteredCampaigns.map((c) => (
                   <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
                     <td className="py-3 px-4 text-slate-500">
                       {format(new Date(c.date), 'yyyy/M/d')}

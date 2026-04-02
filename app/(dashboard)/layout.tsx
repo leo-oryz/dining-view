@@ -19,6 +19,10 @@ import {
   X,
   LogOut,
   ChevronDown,
+  GitCompareArrows,
+  FileText,
+  Bell,
+  Settings,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { createClient } from '@/lib/supabase/client'
@@ -33,8 +37,12 @@ const navItems = [
   { href: '/line', label: 'LINE 推播', icon: MessageSquare },
   { href: '/ads', label: '廣告管理', icon: BarChart3 },
   { href: '/delivery', label: '外送平台', icon: Truck },
+  { href: '/compare', label: '跨店對比', icon: GitCompareArrows, ownerOnly: true },
+  { href: '/reports', label: '投資人報告', icon: FileText, ownerOnly: true },
+  { href: '/alerts', label: '異常警報', icon: Bell },
   { href: '/campaigns', label: '活動管理', icon: Megaphone },
   { href: '/upload', label: '資料上傳', icon: Upload },
+  { href: '/settings', label: '系統設定', icon: Settings, ownerOnly: true },
 ]
 
 type UserProfile = {
@@ -166,26 +174,28 @@ export default function DashboardLayout({
         )}
 
         <nav className="mt-4 px-3 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                )}
-              >
-                <Icon size={18} />
-                {item.label}
-              </Link>
-            )
-          })}
+          {navItems
+            .filter((item) => !item.ownerOnly || profile?.role === 'owner')
+            .map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={clsx(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                  )}
+                >
+                  <Icon size={18} />
+                  {item.label}
+                </Link>
+              )
+            })}
         </nav>
 
         <div className="absolute bottom-4 left-0 right-0 px-3">
