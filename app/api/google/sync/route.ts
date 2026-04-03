@@ -31,7 +31,7 @@ export async function POST() {
     const gscEnd = new Date(today)
     gscEnd.setDate(gscEnd.getDate() - 3)
     const gscStart = new Date(gscEnd)
-    gscStart.setDate(gscStart.getDate() - 7)
+    gscStart.setDate(gscStart.getDate() - 30)
 
     try {
       const gscRows = await fetchBrandSearch(
@@ -108,11 +108,23 @@ export async function POST() {
           return true
         })
 
-        const { error } = await supabase
+        // Delete existing rows for the date range, then insert fresh
+        const dates = [...new Set(deduped.map((r) => r.date))].sort()
+        const { error: delErr } = await supabase
           .from('ga4_events')
-          .upsert(deduped, { onConflict: 'store_id,date,event_name,page_path' })
+          .delete()
+          .eq('store_id', storeId)
+          .gte('date', dates[0])
+          .lte('date', dates[dates.length - 1])
 
-        results.ga4 = error ? `Error: ${error.message}` : `${deduped.length} rows synced`
+        if (delErr) {
+          results.ga4 = `Error: ${delErr.message}`
+        } else {
+          const { error: insErr } = await supabase
+            .from('ga4_events')
+            .insert(deduped)
+          results.ga4 = insErr ? `Error: ${insErr.message}` : `${deduped.length} rows synced`
+        }
 
         // Collect unique dates for conversion recalculation
         deduped.forEach((row) => {

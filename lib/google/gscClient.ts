@@ -31,7 +31,6 @@ export type GscRow = {
 export async function fetchBrandSearch(
   startDate: string,
   endDate: string,
-  brandKeywords: string[] = ['be&', 'be and', 'be& 西門']
 ): Promise<GscRow[]> {
   const siteUrl = process.env.GSC_SITE_URL
   if (!siteUrl) throw new Error('GSC_SITE_URL not configured')
@@ -50,16 +49,6 @@ export async function fetchBrandSearch(
           startDate,
           endDate,
           dimensions: ['query', 'date'],
-          dimensionFilterGroups: [
-            {
-              filters: brandKeywords.map((kw) => ({
-                dimension: 'query',
-                operator: 'contains',
-                expression: kw,
-              })),
-              groupType: 'or',
-            },
-          ],
           rowLimit: 5000,
         },
       })
