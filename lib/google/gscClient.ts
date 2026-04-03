@@ -49,7 +49,7 @@ export async function fetchBrandSearch(
           startDate,
           endDate,
           dimensions: ['query', 'date'],
-          rowLimit: 5000,
+          rowLimit: 25000,
         },
       })
 

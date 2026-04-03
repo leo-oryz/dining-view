@@ -73,7 +73,7 @@ export async function fetchEvents(
             { name: 'sessions' },
           ],
           dimensionFilter,
-          limit: '10000',
+          limit: '100000',
         },
       })
 

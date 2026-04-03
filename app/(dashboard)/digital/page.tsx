@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { TrendingUp, Search, MousePointerClick, Users, ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
@@ -54,38 +54,48 @@ function KpiCard({ title, value, icon: Icon, change }: {
   )
 }
 
+const RANGE_OPTIONS = [
+  { label: '近 7 天', days: 7 },
+  { label: '近 30 天', days: 30 },
+  { label: '近 90 天', days: 90 },
+  { label: '近 180 天', days: 180 },
+] as const
+
 export default function DigitalPage() {
   const [gscData, setGscData] = useState<GscRow[]>([])
   const [ga4Data, setGa4Data] = useState<Ga4Row[]>([])
   const [conversionData, setConversionData] = useState<ConversionRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [rangeDays, setRangeDays] = useState(30)
+
+  const loadData = useCallback(async (days: number) => {
+    setLoading(true)
+    const end = new Date()
+    end.setDate(end.getDate() - 3)
+    const start = new Date(end)
+    start.setDate(start.getDate() - days)
+    const startStr = start.toISOString().slice(0, 10)
+    const endStr = end.toISOString().slice(0, 10)
+
+    const [gscRes, ga4Res, convRes] = await Promise.all([
+      fetch(`/api/google/gsc/brand-search?start_date=${startStr}&end_date=${endStr}`),
+      fetch(`/api/google/ga4/events?start_date=${startStr}&end_date=${endStr}`),
+      fetch(`/api/google/conversion?start_date=${startStr}&end_date=${endStr}`),
+    ])
+
+    const [gscJson, ga4Json, convJson] = await Promise.all([
+      gscRes.json(), ga4Res.json(), convRes.json(),
+    ])
+
+    if (gscJson.success) setGscData(gscJson.data || [])
+    if (ga4Json.success) setGa4Data(ga4Json.data || [])
+    if (convJson.success) setConversionData(convJson.data || [])
+    setLoading(false)
+  }, [])
 
   useEffect(() => {
-    async function load() {
-      const end = new Date()
-      end.setDate(end.getDate() - 3)
-      const start = new Date(end)
-      start.setDate(start.getDate() - 30)
-      const startStr = start.toISOString().slice(0, 10)
-      const endStr = end.toISOString().slice(0, 10)
-
-      const [gscRes, ga4Res, convRes] = await Promise.all([
-        fetch(`/api/google/gsc/brand-search?start_date=${startStr}&end_date=${endStr}`),
-        fetch(`/api/google/ga4/events?start_date=${startStr}&end_date=${endStr}`),
-        fetch(`/api/google/conversion?start_date=${startStr}&end_date=${endStr}`),
-      ])
-
-      const [gscJson, ga4Json, convJson] = await Promise.all([
-        gscRes.json(), ga4Res.json(), convRes.json(),
-      ])
-
-      if (gscJson.success) setGscData(gscJson.data || [])
-      if (ga4Json.success) setGa4Data(ga4Json.data || [])
-      if (convJson.success) setConversionData(convJson.data || [])
-      setLoading(false)
-    }
-    load()
-  }, [])
+    loadData(rangeDays)
+  }, [rangeDays, loadData])
 
   // Aggregate GSC data by date for chart
   const gscByDate = gscData.reduce<Record<string, { clicks: number; impressions: number }>>((acc, row) => {
@@ -155,6 +165,23 @@ export default function DigitalPage() {
 
   return (
     <div className="space-y-6">
+      {/* Date Range Selector */}
+      <div className="flex items-center gap-2">
+        {RANGE_OPTIONS.map((opt) => (
+          <button
+            key={opt.days}
+            onClick={() => setRangeDays(opt.days)}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              rangeDays === opt.days
+                ? 'bg-blue-600 text-white'
+                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="品牌搜尋點擊" value={totalClicks.toLocaleString()} icon={MousePointerClick} />

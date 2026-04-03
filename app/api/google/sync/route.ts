@@ -27,11 +27,11 @@ export async function POST() {
 
     const storeId = stores[0].id
 
-    // GSC: fetch data up to 3 days ago
+    // GSC: fetch data up to 3 days ago, 180 days back
     const gscEnd = new Date(today)
     gscEnd.setDate(gscEnd.getDate() - 3)
     const gscStart = new Date(gscEnd)
-    gscStart.setDate(gscStart.getDate() - 30)
+    gscStart.setDate(gscStart.getDate() - 180)
 
     try {
       const gscRows = await fetchBrandSearch(
@@ -71,11 +71,11 @@ export async function POST() {
       results.gsc = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
     }
 
-    // GA4: fetch data up to 1 day ago
+    // GA4: fetch data up to 1 day ago, 180 days back
     const ga4End = new Date(today)
     ga4End.setDate(ga4End.getDate() - 1)
     const ga4Start = new Date(ga4End)
-    ga4Start.setDate(ga4Start.getDate() - 7)
+    ga4Start.setDate(ga4Start.getDate() - 180)
 
     const affectedDates: string[] = []
 
