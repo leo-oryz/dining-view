@@ -7,6 +7,8 @@
 - Sales Summary date format is "2026-03-31 (Tue)" — must regex extract the date portion.
 - Sales By Item xls has header at row 1. Row 0 is a period label.
 - Sales By Item may have duplicate product names — must deduplicate before upsert or Postgres throws "ON CONFLICT DO UPDATE command cannot affect row a second time".
+- Sales By Item xls contains header rows (SKU Name, Category) and total rows (Total, Grand Total) in the data range — parser must skip these.
+- Product ranking API must aggregate by product_name across dates (SUM quantity/revenue/cost, recompute margin from totals) — returning raw rows causes duplicates when querying multi-day ranges.
 - Transaction Report CSV mixes order-level rows with item-level rows. Must filter by Item Type.
 - Hourly Sales has a "Total" row at the end and a "Time" header row that both must be excluded.
 
