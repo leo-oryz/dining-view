@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withStoreFilter, applyStoreFilter } from '@/lib/auth/withStoreFilter'
 import { createServerSupabase } from '@/lib/supabase/server'
+import { paginatedFetch } from '@/lib/supabase/paginatedFetch'
 
 export async function GET(request: NextRequest) {
   const filter = await withStoreFilter()
@@ -17,27 +18,20 @@ export async function GET(request: NextRequest) {
   const endDate = searchParams.get('end_date')
 
   const supabase = await createServerSupabase()
-  let query = supabase
-    .from('member_conversion_daily')
-    .select('*')
-    .order('date', { ascending: false })
 
-  if (startDate) query = query.gte('date', startDate)
-  if (endDate) query = query.lte('date', endDate)
-
-  query = applyStoreFilter(query, filter.storeIds, storeId)
-  if (!query) {
-    return NextResponse.json(
-      { success: false, data: null, error: 'Store access denied', timestamp: new Date().toISOString() },
-      { status: 403 }
-    )
-  }
-
-  const { data, error } = await query.limit(10000)
+  const { data, error } = await paginatedFetch(supabase, 'member_conversion_daily', {
+    order: { column: 'date', ascending: false },
+    filters: (q) => {
+      if (startDate) q = q.gte('date', startDate)
+      if (endDate) q = q.lte('date', endDate)
+      const result = applyStoreFilter(q, filter.storeIds, storeId)
+      return result || q
+    },
+  })
 
   if (error) {
     return NextResponse.json(
-      { success: false, data: null, error: error.message, timestamp: new Date().toISOString() },
+      { success: false, data: null, error, timestamp: new Date().toISOString() },
       { status: 500 }
     )
   }
