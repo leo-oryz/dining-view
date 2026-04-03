@@ -6,12 +6,15 @@ const PAGE_SIZE = 1000
  * Fetch all rows from a Supabase query using pagination,
  * bypassing the PostgREST default max_rows (1000) limit.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type QueryBuilder = any
+
 export async function paginatedFetch<T = Record<string, unknown>>(
   supabase: SupabaseClient,
   table: string,
   options: {
     select?: string
-    filters?: (query: ReturnType<SupabaseClient['from']>) => ReturnType<SupabaseClient['from']>
+    filters?: (query: QueryBuilder) => QueryBuilder
     order?: { column: string; ascending?: boolean }
   } = {}
 ): Promise<{ data: T[]; error: string | null }> {
