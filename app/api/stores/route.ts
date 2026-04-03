@@ -2,13 +2,16 @@ import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError } from '@/lib/api-utils'
 
+const STORE_SELECT_FIELDS = 'id, name, location, timezone, is_active, created_at, phone, business_hours, opened_date, google_maps_url, google_place_id, seat_count, manager_name, manager_email'
+
 export async function GET() {
   try {
     const supabase = createServiceClient()
 
     const { data, error } = await supabase
       .from('stores')
-      .select('id, name, location, timezone, is_active, created_at')
+      .select(STORE_SELECT_FIELDS)
+      .order('is_active', { ascending: false })
       .order('name')
 
     if (error) return apiError(error.message, 500)
@@ -35,12 +38,20 @@ export async function POST(request: NextRequest) {
       timezone: body.timezone || 'Asia/Taipei',
       is_active: true,
       credentials: body.credentials || {},
+      phone: body.phone || null,
+      business_hours: body.business_hours || null,
+      opened_date: body.opened_date || null,
+      google_maps_url: body.google_maps_url || null,
+      google_place_id: body.google_place_id || null,
+      seat_count: body.seat_count || null,
+      manager_name: body.manager_name || null,
+      manager_email: body.manager_email || null,
     }
 
     const { data, error } = await supabase
       .from('stores')
       .insert(row)
-      .select('id, name, location, timezone, is_active, created_at')
+      .select(STORE_SELECT_FIELDS)
       .single()
 
     if (error) return apiError(error.message, 500)

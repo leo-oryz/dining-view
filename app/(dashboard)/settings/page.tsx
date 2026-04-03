@@ -1,7 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus, Shield, Edit2, Ban, RotateCcw } from 'lucide-react'
+import {
+  Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
+  Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
+  ExternalLink, User, Power, PowerOff,
+} from 'lucide-react'
 
 interface StoreInfo {
   id: string
@@ -10,6 +14,14 @@ interface StoreInfo {
   timezone: string
   is_active: boolean
   created_at: string
+  phone: string | null
+  business_hours: string | null
+  opened_date: string | null
+  google_maps_url: string | null
+  google_place_id: string | null
+  seat_count: number | null
+  manager_name: string | null
+  manager_email: string | null
 }
 
 interface TeamMember {
@@ -31,11 +43,35 @@ interface UserMe {
   role: string
 }
 
+interface StoreFormData {
+  name: string
+  location: string
+  timezone: string
+  phone: string
+  business_hours: string
+  opened_date: string
+  seat_count: string
+  google_maps_url: string
+  google_place_id: string
+  manager_name: string
+  manager_email: string
+  eat365_email: string
+  eat365_password: string
+  ocard_email: string
+  ocard_password: string
+}
+
+const emptyForm: StoreFormData = {
+  name: '', location: '', timezone: 'Asia/Taipei',
+  phone: '', business_hours: '', opened_date: '', seat_count: '',
+  google_maps_url: '', google_place_id: '',
+  manager_name: '', manager_email: '',
+  eat365_email: '', eat365_password: '',
+  ocard_email: '', ocard_password: '',
+}
+
 const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
-  manager: 'Manager',
-  marketing: 'Marketing',
-  investor: 'Investor',
+  owner: 'Owner', manager: 'Manager', marketing: 'Marketing', investor: 'Investor',
 }
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
@@ -52,21 +88,238 @@ const ROLE_COLORS: Record<string, string> = {
   investor: 'bg-amber-100 text-amber-700',
 }
 
+// ─── Store Form Component ───────────────────────────────────────────
+function StoreForm({
+  form, onChange, onSubmit, onCancel, saving, submitLabel,
+}: {
+  form: StoreFormData
+  onChange: (f: StoreFormData) => void
+  onSubmit: (e: React.FormEvent) => void
+  onCancel: () => void
+  saving: boolean
+  submitLabel: string
+}) {
+  const set = (field: keyof StoreFormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    onChange({ ...form, [field]: e.target.value })
+
+  const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+  const labelCls = 'block text-xs font-medium text-slate-700 mb-1'
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-5">
+      {/* 基本資訊 */}
+      <div>
+        <h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">基本資訊</h5>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>門市名稱 *</label>
+            <input type="text" value={form.name} onChange={set('name')} placeholder="例：BE& 信義" required className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>地址</label>
+            <input type="text" value={form.location} onChange={set('location')} placeholder="例：台北市信義區..." className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>電話</label>
+            <input type="text" value={form.phone} onChange={set('phone')} placeholder="例：02-2345-6789" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>時區</label>
+            <select value={form.timezone} onChange={set('timezone')} className={inputCls}>
+              <option value="Asia/Taipei">Asia/Taipei (UTC+8)</option>
+              <option value="Asia/Tokyo">Asia/Tokyo (UTC+9)</option>
+              <option value="Asia/Hong_Kong">Asia/Hong_Kong (UTC+8)</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>開業日期</label>
+            <input type="date" value={form.opened_date} onChange={set('opened_date')} className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>營業時間</label>
+            <input type="text" value={form.business_hours} onChange={set('business_hours')} placeholder="08:00–19:00" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>座位數</label>
+            <input type="number" value={form.seat_count} onChange={set('seat_count')} placeholder="例：50" min="0" className={inputCls} />
+          </div>
+        </div>
+      </div>
+
+      {/* Google 評論整合 */}
+      <div className="border-t border-slate-200 pt-4">
+        <h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Google 評論整合</h5>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Google Maps 連結</label>
+            <input type="url" value={form.google_maps_url} onChange={set('google_maps_url')} placeholder="https://maps.google.com/..." className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Google Place ID</label>
+            <input type="text" value={form.google_place_id} onChange={set('google_place_id')} placeholder="ChIJxxxxxxxx" className={inputCls} />
+            <p className="mt-1 text-xs text-slate-400">
+              用於自動抓取 Google 評論。
+              <a
+                href="https://developers.google.com/maps/documentation/places/web-service/place-id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:underline ml-1"
+              >
+                如何找到 Place ID？
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 營運負責人 */}
+      <div className="border-t border-slate-200 pt-4">
+        <h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">營運負責人</h5>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>店長姓名</label>
+            <input type="text" value={form.manager_name} onChange={set('manager_name')} placeholder="例：王小明" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>店長 Email</label>
+            <input type="email" value={form.manager_email} onChange={set('manager_email')} placeholder="manager@example.com" className={inputCls} />
+          </div>
+        </div>
+      </div>
+
+      {/* 系統整合 */}
+      <div className="border-t border-slate-200 pt-4">
+        <h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">系統整合</h5>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs text-slate-600 mb-2">eat365 登入憑證（選填，Playwright Agent 用）</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <input type="email" value={form.eat365_email} onChange={set('eat365_email')} placeholder="eat365 Email" className={inputCls} />
+              <input type="password" value={form.eat365_password} onChange={set('eat365_password')} placeholder={submitLabel === '儲存' ? '••••••••（不修改請留空）' : 'eat365 密碼'} className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-slate-600 mb-2">Ocard 登入憑證（選填，Playwright Agent 用）</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <input type="email" value={form.ocard_email} onChange={set('ocard_email')} placeholder="Ocard Email" className={inputCls} />
+              <input type="password" value={form.ocard_password} onChange={set('ocard_password')} placeholder={submitLabel === '儲存' ? '••••••••（不修改請留空）' : 'Ocard 密碼'} className={inputCls} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-2">
+        <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+          {saving ? '儲存中...' : submitLabel}
+        </button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">
+          取消
+        </button>
+      </div>
+    </form>
+  )
+}
+
+// ─── Store Card Component ───────────────────────────────────────────
+function StoreCard({
+  store, isOwner, onEdit, onToggleActive,
+}: {
+  store: StoreInfo
+  isOwner: boolean
+  onEdit: () => void
+  onToggleActive: () => void
+}) {
+  return (
+    <div className={`p-5 rounded-xl border ${store.is_active ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">{store.name}</p>
+          {store.is_active ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+              <CheckCircle size={12} /> 啟用
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-500 rounded-full">
+              <XCircle size={12} /> 停用
+            </span>
+          )}
+        </div>
+        {isOwner && (
+          <div className="flex items-center gap-1">
+            <button onClick={onEdit} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="編輯">
+              <Edit2 size={14} />
+            </button>
+            <button
+              onClick={onToggleActive}
+              className={`p-1.5 rounded-lg transition-colors ${
+                store.is_active
+                  ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                  : 'text-slate-400 hover:text-green-600 hover:bg-green-50'
+              }`}
+              title={store.is_active ? '停用' : '啟用'}
+            >
+              {store.is_active ? <PowerOff size={14} /> : <Power size={14} />}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-slate-600">
+        {store.location && (
+          <div className="flex items-center gap-1.5">
+            <MapPin size={12} className="text-slate-400 shrink-0" />
+            <span className="truncate">{store.location}</span>
+          </div>
+        )}
+        {store.phone && (
+          <div className="flex items-center gap-1.5">
+            <Phone size={12} className="text-slate-400 shrink-0" />
+            <span>{store.phone}</span>
+          </div>
+        )}
+        {store.opened_date && (
+          <div className="flex items-center gap-1.5">
+            <Calendar size={12} className="text-slate-400 shrink-0" />
+            <span>開業：{store.opened_date}</span>
+          </div>
+        )}
+        {store.seat_count != null && (
+          <div className="flex items-center gap-1.5">
+            <Armchair size={12} className="text-slate-400 shrink-0" />
+            <span>{store.seat_count} 座</span>
+          </div>
+        )}
+        {store.manager_name && (
+          <div className="flex items-center gap-1.5">
+            <User size={12} className="text-slate-400 shrink-0" />
+            <span>店長：{store.manager_name}</span>
+          </div>
+        )}
+        {store.google_place_id && (
+          <div className="flex items-center gap-1.5">
+            <ExternalLink size={12} className="text-slate-400 shrink-0" />
+            <span className="truncate font-mono text-[11px]">{store.google_place_id}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────
 export default function SettingsPage() {
   const [stores, setStores] = useState<StoreInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [form, setForm] = useState<StoreFormData>({ ...emptyForm })
 
-  // Store form state
-  const [formName, setFormName] = useState('')
-  const [formLocation, setFormLocation] = useState('')
-  const [formTimezone, setFormTimezone] = useState('Asia/Taipei')
-  const [formEat365Email, setFormEat365Email] = useState('')
-  const [formEat365Password, setFormEat365Password] = useState('')
-  const [formOcardEmail, setFormOcardEmail] = useState('')
-  const [formOcardPassword, setFormOcardPassword] = useState('')
+  // Edit state
+  const [editStoreId, setEditStoreId] = useState<string | null>(null)
+
+  // Deactivate confirmation dialog
+  const [confirmStore, setConfirmStore] = useState<StoreInfo | null>(null)
 
   // Team state
   const [currentUser, setCurrentUser] = useState<UserMe | null>(null)
@@ -82,12 +335,12 @@ export default function SettingsPage() {
   const [inviteDisplayName, setInviteDisplayName] = useState('')
   const [inviting, setInviting] = useState(false)
 
-  // Edit modal state
+  // Edit member modal state
   const [editMember, setEditMember] = useState<TeamMember | null>(null)
-  const [editRole, setEditRole] = useState('')
-  const [editStoreId, setEditStoreId] = useState('')
-  const [editDisplayName, setEditDisplayName] = useState('')
-  const [editSaving, setEditSaving] = useState(false)
+  const [editMemberRole, setEditMemberRole] = useState('')
+  const [editMemberStoreId, setEditMemberStoreId] = useState('')
+  const [editMemberDisplayName, setEditMemberDisplayName] = useState('')
+  const [editMemberSaving, setEditMemberSaving] = useState(false)
 
   const isOwner = currentUser?.role === 'owner'
 
@@ -111,10 +364,7 @@ export default function SettingsPage() {
   }
 
   const fetchMembers = useCallback(() => {
-    if (!isOwner) {
-      setTeamLoading(false)
-      return
-    }
+    if (!isOwner) { setTeamLoading(false); return }
     fetch('/api/team')
       .then(r => r.json())
       .then(json => {
@@ -124,69 +374,177 @@ export default function SettingsPage() {
       .finally(() => setTeamLoading(false))
   }, [isOwner])
 
-  useEffect(() => {
-    fetchStores()
-    fetchCurrentUser()
-  }, [])
+  useEffect(() => { fetchStores(); fetchCurrentUser() }, [])
+  useEffect(() => { if (currentUser) fetchMembers() }, [currentUser, fetchMembers])
 
-  useEffect(() => {
-    if (currentUser) fetchMembers()
-  }, [currentUser, fetchMembers])
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ── Store create ──
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formName.trim()) return
-
+    if (!form.name.trim()) return
     setSaving(true)
     setMessage(null)
 
-    try {
-      const credentials: Record<string, Record<string, string>> = {}
-      if (formEat365Email && formEat365Password) {
-        credentials.eat365 = { email: formEat365Email, password: formEat365Password }
-      }
-      if (formOcardEmail && formOcardPassword) {
-        credentials.ocard = { email: formOcardEmail, password: formOcardPassword }
-      }
+    const credentials: Record<string, Record<string, string>> = {}
+    if (form.eat365_email && form.eat365_password) {
+      credentials.eat365 = { email: form.eat365_email, password: form.eat365_password }
+    }
+    if (form.ocard_email && form.ocard_password) {
+      credentials.ocard = { email: form.ocard_email, password: form.ocard_password }
+    }
 
+    try {
       const res = await fetch('/api/stores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formName.trim(),
-          location: formLocation.trim() || null,
-          timezone: formTimezone,
+          name: form.name.trim(),
+          location: form.location.trim() || null,
+          timezone: form.timezone,
+          phone: form.phone.trim() || null,
+          business_hours: form.business_hours.trim() || null,
+          opened_date: form.opened_date || null,
+          seat_count: form.seat_count ? parseInt(form.seat_count) : null,
+          google_maps_url: form.google_maps_url.trim() || null,
+          google_place_id: form.google_place_id.trim() || null,
+          manager_name: form.manager_name.trim() || null,
+          manager_email: form.manager_email.trim() || null,
           credentials,
         }),
       })
       const json = await res.json()
-
       if (json.success) {
-        setMessage(`門市「${formName}」已新增`)
+        setMessage({ text: `門市「${form.name}」已新增`, type: 'success' })
         setShowForm(false)
-        setFormName('')
-        setFormLocation('')
-        setFormEat365Email('')
-        setFormEat365Password('')
-        setFormOcardEmail('')
-        setFormOcardPassword('')
+        setForm({ ...emptyForm })
         fetchStores()
       } else {
-        setMessage(`新增失敗：${json.error}`)
+        setMessage({ text: `新增失敗：${json.error}`, type: 'error' })
       }
     } catch {
-      setMessage('新增失敗')
+      setMessage({ text: '新增失敗', type: 'error' })
     }
     setSaving(false)
   }
 
+  // ── Store edit ──
+  const startEdit = (store: StoreInfo) => {
+    setEditStoreId(store.id)
+    setShowForm(false)
+    setForm({
+      name: store.name,
+      location: store.location || '',
+      timezone: store.timezone,
+      phone: store.phone || '',
+      business_hours: store.business_hours || '',
+      opened_date: store.opened_date || '',
+      seat_count: store.seat_count != null ? String(store.seat_count) : '',
+      google_maps_url: store.google_maps_url || '',
+      google_place_id: store.google_place_id || '',
+      manager_name: store.manager_name || '',
+      manager_email: store.manager_email || '',
+      eat365_email: '',
+      eat365_password: '',
+      ocard_email: '',
+      ocard_password: '',
+    })
+  }
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editStoreId || !form.name.trim()) return
+    setSaving(true)
+    setMessage(null)
+
+    const credentials: Record<string, Record<string, string>> = {}
+    if (form.eat365_email || form.eat365_password) {
+      credentials.eat365 = {}
+      if (form.eat365_email) credentials.eat365.email = form.eat365_email
+      if (form.eat365_password) credentials.eat365.password = form.eat365_password
+    }
+    if (form.ocard_email || form.ocard_password) {
+      credentials.ocard = {}
+      if (form.ocard_email) credentials.ocard.email = form.ocard_email
+      if (form.ocard_password) credentials.ocard.password = form.ocard_password
+    }
+
+    try {
+      const body: Record<string, unknown> = {
+        name: form.name.trim(),
+        location: form.location.trim() || null,
+        timezone: form.timezone,
+        phone: form.phone.trim() || null,
+        business_hours: form.business_hours.trim() || null,
+        opened_date: form.opened_date || null,
+        seat_count: form.seat_count ? parseInt(form.seat_count) : null,
+        google_maps_url: form.google_maps_url.trim() || null,
+        google_place_id: form.google_place_id.trim() || null,
+        manager_name: form.manager_name.trim() || null,
+        manager_email: form.manager_email.trim() || null,
+      }
+      if (Object.keys(credentials).length > 0) {
+        body.credentials = credentials
+      }
+
+      const res = await fetch(`/api/stores/${editStoreId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setMessage({ text: `門市「${form.name}」已更新`, type: 'success' })
+        setEditStoreId(null)
+        setForm({ ...emptyForm })
+        fetchStores()
+      } else {
+        setMessage({ text: `更新失敗：${json.error}`, type: 'error' })
+      }
+    } catch {
+      setMessage({ text: '更新失敗', type: 'error' })
+    }
+    setSaving(false)
+  }
+
+  const cancelEdit = () => {
+    setEditStoreId(null)
+    setForm({ ...emptyForm })
+  }
+
+  // ── Store toggle active ──
+  const handleToggleActive = async (store: StoreInfo) => {
+    if (store.is_active) {
+      // Show confirmation dialog for deactivation
+      setConfirmStore(store)
+      return
+    }
+    // Direct activation — no dialog
+    await doToggle(store.id)
+  }
+
+  const doToggle = async (storeId: string) => {
+    setMessage(null)
+    try {
+      const res = await fetch(`/api/stores/${storeId}/toggle-active`, { method: 'PUT' })
+      const json = await res.json()
+      if (json.success) {
+        const action = json.data.is_active ? '啟用' : '停用'
+        setMessage({ text: `已${action}「${json.data.name}」`, type: 'success' })
+        fetchStores()
+      } else {
+        setMessage({ text: `操作失敗：${json.error}`, type: 'error' })
+      }
+    } catch {
+      setMessage({ text: '操作失敗', type: 'error' })
+    }
+    setConfirmStore(null)
+  }
+
+  // ── Team handlers ──
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inviteEmail.trim()) return
-
     setInviting(true)
     setTeamMessage(null)
-
     try {
       const res = await fetch('/api/team/invite', {
         method: 'POST',
@@ -199,14 +557,10 @@ export default function SettingsPage() {
         }),
       })
       const json = await res.json()
-
       if (json.success) {
         setTeamMessage({ text: `已發送邀請信至 ${inviteEmail}`, type: 'success' })
         setShowInvite(false)
-        setInviteEmail('')
-        setInviteRole('manager')
-        setInviteStoreId('')
-        setInviteDisplayName('')
+        setInviteEmail(''); setInviteRole('manager'); setInviteStoreId(''); setInviteDisplayName('')
         fetchMembers()
       } else {
         setTeamMessage({ text: `邀請失敗：${json.error}`, type: 'error' })
@@ -217,23 +571,21 @@ export default function SettingsPage() {
     setInviting(false)
   }
 
-  const handleEditSave = async () => {
+  const handleEditMemberSave = async () => {
     if (!editMember) return
-    setEditSaving(true)
+    setEditMemberSaving(true)
     setTeamMessage(null)
-
     try {
       const res = await fetch(`/api/team/${editMember.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: editRole,
-          store_id: editRole === 'manager' ? editStoreId : null,
-          display_name: editDisplayName.trim() || null,
+          role: editMemberRole,
+          store_id: editMemberRole === 'manager' ? editMemberStoreId : null,
+          display_name: editMemberDisplayName.trim() || null,
         }),
       })
       const json = await res.json()
-
       if (json.success) {
         setTeamMessage({ text: `已更新 ${editMember.email} 的資料`, type: 'success' })
         setEditMember(null)
@@ -244,25 +596,19 @@ export default function SettingsPage() {
     } catch {
       setTeamMessage({ text: '更新失敗', type: 'error' })
     }
-    setEditSaving(false)
+    setEditMemberSaving(false)
   }
 
-  const handleToggleActive = async (member: TeamMember) => {
+  const handleToggleMemberActive = async (member: TeamMember) => {
     const action = member.is_active ? 'disable' : 'enable'
     const confirmMsg = member.is_active
       ? `確定要停用 ${member.email} 的帳號？停用後該成員將無法登入。`
       : `確定要重新啟用 ${member.email} 的帳號？`
-
     if (!window.confirm(confirmMsg)) return
-
     setTeamMessage(null)
-
     try {
-      const res = await fetch(`/api/team/${member.id}/${action}`, {
-        method: 'PUT',
-      })
+      const res = await fetch(`/api/team/${member.id}/${action}`, { method: 'PUT' })
       const json = await res.json()
-
       if (json.success) {
         setTeamMessage({
           text: member.is_active ? `已停用 ${member.email}` : `已重新啟用 ${member.email}`,
@@ -277,21 +623,19 @@ export default function SettingsPage() {
     }
   }
 
-  const openEdit = (member: TeamMember) => {
+  const openEditMember = (member: TeamMember) => {
     setEditMember(member)
-    setEditRole(member.role)
-    setEditStoreId(member.store_id || '')
-    setEditDisplayName(member.display_name || member.name || '')
+    setEditMemberRole(member.role)
+    setEditMemberStoreId(member.store_id || '')
+    setEditMemberDisplayName(member.display_name || member.name || '')
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Settings size={20} className="text-slate-600" />
-          <h3 className="text-base font-semibold text-slate-900">系統設定</h3>
-        </div>
+      <div className="flex items-center gap-2">
+        <Settings size={20} className="text-slate-600" />
+        <h3 className="text-base font-semibold text-slate-900">系統設定</h3>
       </div>
 
       {/* Store Management */}
@@ -301,119 +645,36 @@ export default function SettingsPage() {
             <Store size={16} className="text-slate-500" />
             <h4 className="text-sm font-semibold text-slate-900">門市管理</h4>
           </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={14} />
-            新增門市
-          </button>
+          {isOwner && (
+            <button
+              onClick={() => { setShowForm(!showForm); setEditStoreId(null); setForm({ ...emptyForm }) }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus size={14} />
+              新增門市
+            </button>
+          )}
         </div>
 
         {/* Message */}
         {message && (
-          <div className={`mx-5 mt-3 text-sm px-4 py-2 rounded-lg ${message.includes('已新增') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-            {message}
+          <div className={`mx-5 mt-3 text-sm px-4 py-2 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            {message.text}
           </div>
         )}
 
         {/* Add store form */}
-        {showForm && (
-          <form onSubmit={handleSubmit} className="p-5 border-b border-slate-200 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">門市名稱 *</label>
-                <input
-                  type="text"
-                  value={formName}
-                  onChange={e => setFormName(e.target.value)}
-                  placeholder="例：BE& 信義"
-                  required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">地址</label>
-                <input
-                  type="text"
-                  value={formLocation}
-                  onChange={e => setFormLocation(e.target.value)}
-                  placeholder="例：台北市信義區..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">時區</label>
-              <select
-                value={formTimezone}
-                onChange={e => setFormTimezone(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Asia/Taipei">Asia/Taipei (UTC+8)</option>
-                <option value="Asia/Tokyo">Asia/Tokyo (UTC+9)</option>
-                <option value="Asia/Hong_Kong">Asia/Hong_Kong (UTC+8)</option>
-              </select>
-            </div>
-
-            <div className="border-t border-slate-200 pt-4">
-              <p className="text-xs font-medium text-slate-700 mb-3">eat365 登入憑證（可選）</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  type="email"
-                  value={formEat365Email}
-                  onChange={e => setFormEat365Email(e.target.value)}
-                  placeholder="eat365 Email"
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="password"
-                  value={formEat365Password}
-                  onChange={e => setFormEat365Password(e.target.value)}
-                  placeholder="eat365 密碼"
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="border-t border-slate-200 pt-4">
-              <p className="text-xs font-medium text-slate-700 mb-3">Ocard 登入憑證（可選）</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <input
-                  type="email"
-                  value={formOcardEmail}
-                  onChange={e => setFormOcardEmail(e.target.value)}
-                  placeholder="Ocard Email"
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="password"
-                  value={formOcardPassword}
-                  onChange={e => setFormOcardPassword(e.target.value)}
-                  placeholder="Ocard 密碼"
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {saving ? '儲存中...' : '新增門市'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                取消
-              </button>
-            </div>
-          </form>
+        {showForm && !editStoreId && (
+          <div className="p-5 border-b border-slate-200">
+            <StoreForm
+              form={form}
+              onChange={setForm}
+              onSubmit={handleCreate}
+              onCancel={() => { setShowForm(false); setForm({ ...emptyForm }) }}
+              saving={saving}
+              submitLabel="新增門市"
+            />
+          </div>
         )}
 
         {/* Store list */}
@@ -422,28 +683,61 @@ export default function SettingsPage() {
         ) : stores.length === 0 ? (
           <div className="p-8 text-center text-slate-400 text-sm">尚無門市</div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="p-4 space-y-3">
             {stores.map(store => (
-              <div key={store.id} className="px-5 py-4 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-900">{store.name}</p>
-                    {store.is_active ? (
-                      <CheckCircle size={14} className="text-green-500" />
-                    ) : (
-                      <XCircle size={14} className="text-slate-400" />
-                    )}
+              <div key={store.id}>
+                {editStoreId === store.id ? (
+                  <div className="p-5 rounded-xl border-2 border-blue-300 bg-blue-50/30">
+                    <h5 className="text-sm font-semibold text-slate-900 mb-4">編輯門市 — {store.name}</h5>
+                    <StoreForm
+                      form={form}
+                      onChange={setForm}
+                      onSubmit={handleEdit}
+                      onCancel={cancelEdit}
+                      saving={saving}
+                      submitLabel="儲存"
+                    />
                   </div>
-                  {store.location && (
-                    <p className="text-xs text-slate-500 mt-0.5">{store.location}</p>
-                  )}
-                </div>
-                <span className="text-xs text-slate-400">{store.timezone}</span>
+                ) : (
+                  <StoreCard
+                    store={store}
+                    isOwner={isOwner}
+                    onEdit={() => startEdit(store)}
+                    onToggleActive={() => handleToggleActive(store)}
+                  />
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Deactivation Confirmation Dialog */}
+      {confirmStore && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <h4 className="text-sm font-semibold text-slate-900">確認停用門市</h4>
+            <p className="text-sm text-slate-600">
+              停用後該門市的歷史數據仍會保留，Playwright Agent 將不再為此門市下載報表。
+              確定要停用「{confirmStore.name}」嗎？
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => doToggle(confirmStore.id)}
+                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+              >
+                確定停用
+              </button>
+              <button
+                onClick={() => setConfirmStore(null)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Team Management — Owner only */}
       {isOwner && (
@@ -462,7 +756,6 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Team message */}
           {teamMessage && (
             <div className={`mx-5 mt-3 text-sm px-4 py-2 rounded-lg ${teamMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
               {teamMessage.text}
@@ -475,35 +768,18 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Email *</label>
-                  <input
-                    type="email"
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                    placeholder="member@example.com"
-                    required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="member@example.com" required className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">顯示名稱</label>
-                  <input
-                    type="text"
-                    value={inviteDisplayName}
-                    onChange={e => setInviteDisplayName(e.target.value)}
-                    placeholder="例：王小明"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <input type="text" value={inviteDisplayName} onChange={e => setInviteDisplayName(e.target.value)} placeholder="例：王小明" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">角色 *</label>
-                  <select
-                    value={inviteRole}
-                    onChange={e => setInviteRole(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
+                  <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="manager">Manager</option>
                     <option value="owner">Owner</option>
                     <option value="marketing">Marketing</option>
@@ -513,12 +789,7 @@ export default function SettingsPage() {
                 {inviteRole === 'manager' && (
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">綁定分店 *</label>
-                    <select
-                      value={inviteStoreId}
-                      onChange={e => setInviteStoreId(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
+                    <select value={inviteStoreId} onChange={e => setInviteStoreId(e.target.value)} required className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">選擇分店</option>
                       {stores.filter(s => s.is_active).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
@@ -528,7 +799,6 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              {/* Role descriptions */}
               <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Shield size={14} className="text-slate-500" />
@@ -536,27 +806,17 @@ export default function SettingsPage() {
                 </div>
                 {Object.entries(ROLE_DESCRIPTIONS).map(([role, desc]) => (
                   <div key={role} className="flex items-start gap-2 text-xs">
-                    <span className={`px-1.5 py-0.5 rounded font-medium ${ROLE_COLORS[role]}`}>
-                      {ROLE_LABELS[role]}
-                    </span>
+                    <span className={`px-1.5 py-0.5 rounded font-medium ${ROLE_COLORS[role]}`}>{ROLE_LABELS[role]}</span>
                     <span className="text-slate-600 pt-0.5">{desc}</span>
                   </div>
                 ))}
               </div>
 
               <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={inviting}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
+                <button type="submit" disabled={inviting} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
                   {inviting ? '發送中...' : '發送邀請'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowInvite(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors"
-                >
+                <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">
                   取消
                 </button>
               </div>
@@ -582,9 +842,7 @@ export default function SettingsPage() {
                           {ROLE_LABELS[member.role] || member.role}
                         </span>
                         {!member.is_active && (
-                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
-                            已停用
-                          </span>
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">已停用</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
@@ -594,21 +852,13 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-3">
-                      <button
-                        onClick={() => openEdit(member)}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="編輯角色"
-                      >
+                      <button onClick={() => openEditMember(member)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="編輯角色">
                         <Edit2 size={14} />
                       </button>
                       {member.role !== 'owner' || members.filter(m => m.role === 'owner' && m.is_active).length > 1 ? (
                         <button
-                          onClick={() => handleToggleActive(member)}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            member.is_active
-                              ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                              : 'text-slate-400 hover:text-green-600 hover:bg-green-50'
-                          }`}
+                          onClick={() => handleToggleMemberActive(member)}
+                          className={`p-1.5 rounded-lg transition-colors ${member.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
                           title={member.is_active ? '停用帳號' : '重新啟用'}
                         >
                           {member.is_active ? <Ban size={14} /> : <RotateCcw size={14} />}
@@ -621,46 +871,28 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Edit Modal */}
+          {/* Edit Member Modal */}
           {editMember && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
-                <h4 className="text-sm font-semibold text-slate-900">
-                  編輯成員 — {editMember.email}
-                </h4>
-
+                <h4 className="text-sm font-semibold text-slate-900">編輯成員 — {editMember.email}</h4>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">顯示名稱</label>
-                  <input
-                    type="text"
-                    value={editDisplayName}
-                    onChange={e => setEditDisplayName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <input type="text" value={editMemberDisplayName} onChange={e => setEditMemberDisplayName(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
-
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">角色</label>
-                  <select
-                    value={editRole}
-                    onChange={e => setEditRole(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
+                  <select value={editMemberRole} onChange={e => setEditMemberRole(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="manager">Manager</option>
                     <option value="owner">Owner</option>
                     <option value="marketing">Marketing</option>
                     <option value="investor">Investor</option>
                   </select>
                 </div>
-
-                {editRole === 'manager' && (
+                {editMemberRole === 'manager' && (
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">綁定分店 *</label>
-                    <select
-                      value={editStoreId}
-                      onChange={e => setEditStoreId(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
+                    <select value={editMemberStoreId} onChange={e => setEditMemberStoreId(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">選擇分店</option>
                       {stores.filter(s => s.is_active).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
@@ -668,19 +900,11 @@ export default function SettingsPage() {
                     </select>
                   </div>
                 )}
-
                 <div className="flex gap-2 pt-2">
-                  <button
-                    onClick={handleEditSave}
-                    disabled={editSaving || (editRole === 'manager' && !editStoreId)}
-                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {editSaving ? '儲存中...' : '儲存'}
+                  <button onClick={handleEditMemberSave} disabled={editMemberSaving || (editMemberRole === 'manager' && !editMemberStoreId)} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+                    {editMemberSaving ? '儲存中...' : '儲存'}
                   </button>
-                  <button
-                    onClick={() => setEditMember(null)}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors"
-                  >
+                  <button onClick={() => setEditMember(null)} className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">
                     取消
                   </button>
                 </div>

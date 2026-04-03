@@ -8,15 +8,15 @@ export async function POST(request: Request) {
     const { searchParams } = new URL(request.url)
     const storeId = getStoreId(searchParams)
 
-    // Get place ID from store credentials
+    // Get place ID from store record
     const supabase = createServiceClient()
     const { data: store } = await supabase
       .from('stores')
-      .select('credentials')
+      .select('google_place_id')
       .eq('id', storeId)
       .single()
 
-    const placeId = store?.credentials?.google_place_id || process.env.GOOGLE_PLACE_ID
+    const placeId = store?.google_place_id || process.env.GOOGLE_PLACE_ID
     if (!placeId) {
       return apiError('GOOGLE_PLACE_ID not configured for this store', 400)
     }

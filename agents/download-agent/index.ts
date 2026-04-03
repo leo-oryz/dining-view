@@ -6,6 +6,7 @@ import { uploadFile } from './uploader'
 interface StoreConfig {
   id: string
   name: string
+  is_active: boolean
   credentials: {
     eat365?: { email: string; password: string }
     ocard?: { email: string; password: string }
@@ -18,11 +19,14 @@ async function fetchStoreConfigs(): Promise<StoreConfig[]> {
     const res = await fetch(`${baseUrl}/api/stores`)
     const json = await res.json()
     if (!json.success || !json.data) return []
-    return json.data.map((s: { id: string; name: string; credentials?: StoreConfig['credentials'] }) => ({
-      id: s.id,
-      name: s.name,
-      credentials: s.credentials || {},
-    }))
+    return json.data
+      .filter((s: { is_active: boolean }) => s.is_active)
+      .map((s: { id: string; name: string; is_active: boolean; credentials?: StoreConfig['credentials'] }) => ({
+        id: s.id,
+        name: s.name,
+        is_active: s.is_active,
+        credentials: s.credentials || {},
+      }))
   } catch (err) {
     console.warn('[agent] Failed to fetch store configs, falling back to default store')
     return []
