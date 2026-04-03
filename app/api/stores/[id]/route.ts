@@ -96,6 +96,12 @@ export async function DELETE(
   try {
     const supabase = createServiceClient()
 
+    // Detach users linked to this store before deleting
+    await supabase
+      .from('users')
+      .update({ store_id: null })
+      .eq('store_id', id)
+
     const { error } = await supabase
       .from('stores')
       .delete()
