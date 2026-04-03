@@ -111,7 +111,7 @@ async function run() {
   // Fallback: if no stores from API, use default with env credentials
   if (stores.length === 0) {
     stores = [{
-      id: '00000000-0000-0000-0000-000000000001',
+      id: '36d016c4-7584-4c0f-a3e8-9562089d57f8',
       name: 'BE& 西門',
       credentials: {},
     }]

@@ -3,7 +3,7 @@ import { downloadEat365Reports } from './eat365'
 import { downloadOcardReports } from './ocard'
 import { uploadFile } from './uploader'
 
-const DEFAULT_STORE_ID = '00000000-0000-0000-0000-000000000001'
+const DEFAULT_STORE_ID = '36d016c4-7584-4c0f-a3e8-9562089d57f8'
 
 function getDateRange(startStr: string, endStr: string): string[] {
   const dates: string[] = []
