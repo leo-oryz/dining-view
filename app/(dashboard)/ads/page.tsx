@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
-import { BarChart3, RefreshCw } from 'lucide-react'
+import { format, subDays } from 'date-fns'
+import { BarChart3, RefreshCw, Calendar } from 'lucide-react'
 import AdCampaignForm from '@/components/ads/AdCampaignForm'
 import AdPerformanceChart from '@/components/ads/AdPerformanceChart'
 
@@ -36,6 +36,13 @@ const platformLabels: Record<string, string> = {
 
 type PlatformFilter = 'all' | 'meta' | 'tiktok'
 
+const RANGE_PRESETS = [
+  { label: '近 7 天', days: 7 },
+  { label: '近 14 天', days: 14 },
+  { label: '近 30 天', days: 30 },
+  { label: '近 90 天', days: 90 },
+] as const
+
 export default function AdsPage() {
   const [campaigns, setCampaigns] = useState<AdCampaign[]>([])
   const [correlation, setCorrelation] = useState<CorrelationRow[]>([])
@@ -43,14 +50,19 @@ export default function AdsPage() {
   const [showForm, setShowForm] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<string | null>(null)
-  const [lastSynced, setLastSynced] = useState<string | null>(null)
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all')
 
+  // Date range state — default last 30 days
+  const [startDate, setStartDate] = useState(() => format(subDays(new Date(), 30), 'yyyy-MM-dd'))
+  const [endDate, setEndDate] = useState(() => format(subDays(new Date(), 1), 'yyyy-MM-dd'))
+
   const fetchData = async () => {
+    setLoading(true)
     try {
+      const params = new URLSearchParams({ start_date: startDate, end_date: endDate })
       const [campRes, perfRes] = await Promise.all([
-        fetch('/api/ads/campaigns'),
-        fetch('/api/ads/performance'),
+        fetch(`/api/ads/campaigns?${params}`),
+        fetch(`/api/ads/performance?${params}`),
       ])
       const [campJson, perfJson] = await Promise.all([campRes.json(), perfRes.json()])
       if (campJson.success) setCampaigns(campJson.data || [])
@@ -64,7 +76,56 @@ export default function AdsPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
+
+  const applyPreset = (days: number) => {
+    setStartDate(format(subDays(new Date(), days), 'yyyy-MM-dd'))
+    setEndDate(format(subDays(new Date(), 1), 'yyyy-MM-dd'))
+  }
+
+  const handleSyncMeta = async () => {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await fetch('/api/sync/meta-ads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start_date: startDate, end_date: endDate }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setSyncResult(`Meta 同步完成：${json.data.synced} 筆（${json.data.days} 天）`)
+        fetchData()
+      } else {
+        setSyncResult(`Meta 同步失敗：${json.error}`)
+      }
+    } catch {
+      setSyncResult('Meta 同步失敗')
+    }
+    setSyncing(false)
+  }
+
+  const handleSyncTiktok = async () => {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await fetch('/api/sync/tiktok-ads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start_date: startDate, end_date: endDate }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setSyncResult(`TikTok 同步完成：${json.data.synced} 筆 (${json.data.date || json.data.days + ' 天'})`)
+        fetchData()
+      } else {
+        setSyncResult(`TikTok 同步失敗：${json.error}`)
+      }
+    } catch {
+      setSyncResult('TikTok 同步失敗')
+    }
+    setSyncing(false)
+  }
 
   // Filter campaigns by platform
   const filteredCampaigns = platformFilter === 'all'
@@ -87,24 +148,7 @@ export default function AdsPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={async () => {
-              setSyncing(true)
-              setSyncResult(null)
-              try {
-                const res = await fetch('/api/sync/meta-ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-                const json = await res.json()
-                if (json.success) {
-                  setSyncResult(`Meta 同步完成：${json.data.synced} 筆 (${json.data.date})`)
-                  setLastSynced(new Date().toISOString())
-                  fetchData()
-                } else {
-                  setSyncResult(`Meta 同步失敗：${json.error}`)
-                }
-              } catch {
-                setSyncResult('Meta 同步失敗')
-              }
-              setSyncing(false)
-            }}
+            onClick={handleSyncMeta}
             disabled={syncing}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
@@ -112,24 +156,7 @@ export default function AdsPage() {
             {syncing ? '同步中...' : 'Sync Meta'}
           </button>
           <button
-            onClick={async () => {
-              setSyncing(true)
-              setSyncResult(null)
-              try {
-                const res = await fetch('/api/sync/tiktok-ads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-                const json = await res.json()
-                if (json.success) {
-                  setSyncResult(`TikTok 同步完成：${json.data.synced} 筆 (${json.data.date})`)
-                  setLastSynced(new Date().toISOString())
-                  fetchData()
-                } else {
-                  setSyncResult(`TikTok 同步失敗：${json.error}`)
-                }
-              } catch {
-                setSyncResult('TikTok 同步失敗')
-              }
-              setSyncing(false)
-            }}
+            onClick={handleSyncTiktok}
             disabled={syncing}
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50"
           >
@@ -142,6 +169,42 @@ export default function AdsPage() {
           >
             {showForm ? '取消' : '新增廣告紀錄'}
           </button>
+        </div>
+      </div>
+
+      {/* Date range picker */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar size={16} className="text-slate-400" />
+          <span className="text-sm font-medium text-slate-700">資料區間</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <span className="text-slate-400 text-sm">~</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="flex gap-1">
+            {RANGE_PRESETS.map(p => (
+              <button
+                key={p.days}
+                onClick={() => applyPreset(p.days)}
+                className="px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -167,9 +230,6 @@ export default function AdsPage() {
         <div className={`text-sm px-4 py-2 rounded-lg ${syncResult.includes('完成') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
           {syncResult}
         </div>
-      )}
-      {lastSynced && (
-        <p className="text-xs text-slate-400">上次同步：{format(new Date(lastSynced), 'yyyy/M/d HH:mm')}</p>
       )}
 
       {/* Form */}
@@ -209,7 +269,7 @@ export default function AdsPage() {
         {loading ? (
           <div className="p-8 text-center text-slate-400 text-sm">載入中...</div>
         ) : filteredCampaigns.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">尚無廣告紀錄</div>
+          <div className="p-8 text-center text-slate-400 text-sm">此區間無廣告紀錄</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

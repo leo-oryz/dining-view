@@ -9,12 +9,20 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServiceClient()
 
-    const { data, error } = await supabase
+    const startDate = searchParams.get('start_date')
+    const endDate = searchParams.get('end_date')
+
+    let query = supabase
       .from('ad_campaigns')
       .select('*')
       .eq('store_id', storeId)
       .order('date', { ascending: false })
-      .limit(50)
+      .limit(200)
+
+    if (startDate) query = query.gte('date', startDate)
+    if (endDate) query = query.lte('date', endDate)
+
+    const { data, error } = await query
 
     if (error) return apiError(error.message, 500)
 
