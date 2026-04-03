@@ -5,8 +5,8 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { WeekdayHeatmap } from '@/components/charts/WeekdayHeatmap'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
-import { DollarSign, Users, ShoppingCart, Target, TrendingUp, Pencil, X, Check } from 'lucide-react'
-import { format, subDays, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns'
+import { DollarSign, Users, ShoppingCart, Target, TrendingUp } from 'lucide-react'
+import { format, subDays, startOfMonth, endOfMonth, getDaysInMonth, differenceInCalendarDays, parseISO } from 'date-fns'
 
 type RangeKey = '7d' | '30d' | '90d' | 'custom'
 type Metric = 'net_sales' | 'guests' | 'orders'
@@ -30,17 +30,62 @@ interface MonthlyTarget {
   revenue_target: number
 }
 
+// Calculate the pro-rated target for a date range across multiple months
+function calcRangeTarget(targets: MonthlyTarget[], rangeStart: string, rangeEnd: string): number | null {
+  if (targets.length === 0) return null
+
+  const targetMap: Record<string, number> = {}
+  for (const t of targets) {
+    // month is stored as YYYY-MM-DD (first of month)
+    const key = t.month.slice(0, 7) // "2026-04"
+    targetMap[key] = t.revenue_target
+  }
+
+  let total = 0
+  let hasAny = false
+  const start = parseISO(rangeStart)
+  const end = parseISO(rangeEnd)
+
+  // Iterate each month that overlaps the range
+  let cursor = startOfMonth(start)
+  while (cursor <= end) {
+    const monthKey = format(cursor, 'yyyy-MM')
+    const monthTarget = targetMap[monthKey]
+
+    if (monthTarget != null && monthTarget > 0) {
+      const monthStart = startOfMonth(cursor)
+      const monthEnd = endOfMonth(cursor)
+      const daysInThisMonth = getDaysInMonth(cursor)
+
+      // Overlap: max(rangeStart, monthStart) to min(rangeEnd, monthEnd)
+      const overlapStart = start > monthStart ? start : monthStart
+      const overlapEnd = end < monthEnd ? end : monthEnd
+      const overlapDays = differenceInCalendarDays(overlapEnd, overlapStart) + 1
+
+      if (overlapDays > 0) {
+        total += (monthTarget / daysInThisMonth) * overlapDays
+        hasAny = true
+      }
+    }
+
+    // Move to next month
+    const nextMonth = new Date(cursor)
+    nextMonth.setMonth(nextMonth.getMonth() + 1)
+    cursor = nextMonth
+  }
+
+  return hasAny ? total : null
+}
+
 export default function TrendsPage() {
   const [data, setData] = useState<DailySales[]>([])
   const [hourlyData, setHourlyData] = useState<HourlyRecord[]>([])
+  const [targets, setTargets] = useState<MonthlyTarget[]>([])
   const [loading, setLoading] = useState(true)
   const [rangeKey, setRangeKey] = useState<RangeKey>('30d')
   const [metric, setMetric] = useState<Metric>('net_sales')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
-  const [monthlyTarget, setMonthlyTarget] = useState<MonthlyTarget | null>(null)
-  const [editingTarget, setEditingTarget] = useState(false)
-  const [targetInput, setTargetInput] = useState('')
 
   const { startDate, endDate } = useMemo(() => {
     if (rangeKey === 'custom' && customStart && customEnd) {
@@ -53,36 +98,27 @@ export default function TrendsPage() {
     }
   }, [rangeKey, customStart, customEnd])
 
-  // Fetch daily sales
+  // Fetch daily + hourly + targets for the range
   useEffect(() => {
     setLoading(true)
     const params = `start_date=${startDate}&end_date=${endDate}`
+    // Target months: need to cover all months in range
+    const tStartMonth = format(startOfMonth(parseISO(startDate)), 'yyyy-MM-dd')
+    const tEndMonth = format(startOfMonth(parseISO(endDate)), 'yyyy-MM-dd')
+
     Promise.all([
       fetch(`/api/sales/daily?${params}`).then((r) => r.json()),
       fetch(`/api/sales/hourly?${params}`).then((r) => r.json()),
+      fetch(`/api/targets?start_month=${tStartMonth}&end_month=${tEndMonth}`).then((r) => r.json()),
     ])
-      .then(([dailyJson, hourlyJson]) => {
+      .then(([dailyJson, hourlyJson, targetsJson]) => {
         if (dailyJson.success) setData(dailyJson.data || [])
         if (hourlyJson.success) setHourlyData(hourlyJson.data || [])
+        if (targetsJson.success) setTargets(targetsJson.data || [])
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [startDate, endDate])
-
-  // Fetch monthly target for current month
-  useEffect(() => {
-    const monthStr = format(startOfMonth(new Date()), 'yyyy-MM-dd')
-    fetch(`/api/targets?month=${monthStr}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success && json.data?.length > 0) {
-          setMonthlyTarget(json.data[0])
-        } else {
-          setMonthlyTarget(null)
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   // Compute KPIs
   const totalRevenue = data.reduce((sum, d) => sum + (d.net_sales ?? 0), 0)
@@ -91,26 +127,13 @@ export default function TrendsPage() {
   const daysWithData = data.filter((d) => d.net_sales != null).length
   const avgDaily = daysWithData > 0 ? totalRevenue / daysWithData : 0
 
-  // Monthly target progress (only for current month data)
-  const now = new Date()
-  const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
-  const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
-  const thisMonthData = data.filter((d) => d.date >= monthStart && d.date <= monthEnd)
-  const thisMonthRevenue = thisMonthData.reduce((sum, d) => sum + (d.net_sales ?? 0), 0)
-  const daysInMonth = getDaysInMonth(now)
-  const dayOfMonth = now.getDate()
-  const targetAmount = monthlyTarget?.revenue_target ?? null
+  // Target achievement for the selected range
+  const rangeTarget = calcRangeTarget(targets, startDate, endDate)
+  const achievementPct = rangeTarget != null && rangeTarget > 0 ? (totalRevenue / rangeTarget) * 100 : null
 
-  // Daily target = monthly target / days in month
-  const dailyTarget = targetAmount != null ? targetAmount / daysInMonth : null
-
-  // Expected progress (linear) vs actual
-  const expectedProgress = targetAmount != null ? (dayOfMonth / daysInMonth) * targetAmount : null
-  const progressPct = targetAmount != null && targetAmount > 0 ? (thisMonthRevenue / targetAmount) * 100 : null
-  const vsExpected =
-    expectedProgress != null && expectedProgress > 0
-      ? ((thisMonthRevenue - expectedProgress) / expectedProgress) * 100
-      : null
+  // Daily target for chart reference line (weighted average from targets in range)
+  const totalDaysInRange = differenceInCalendarDays(parseISO(endDate), parseISO(startDate)) + 1
+  const dailyTarget = rangeTarget != null && totalDaysInRange > 0 ? rangeTarget / totalDaysInRange : null
 
   // WoW comparison
   const halfLen = Math.floor(data.length / 2)
@@ -119,26 +142,6 @@ export default function TrendsPage() {
   const recentAvg = recentHalf.length > 0 ? recentHalf.reduce((s, d) => s + (d.net_sales ?? 0), 0) / recentHalf.length : 0
   const olderAvg = olderHalf.length > 0 ? olderHalf.reduce((s, d) => s + (d.net_sales ?? 0), 0) / olderHalf.length : 0
   const periodChange = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : null
-
-  const handleSaveTarget = async () => {
-    const value = parseFloat(targetInput)
-    if (isNaN(value) || value < 0) return
-    const monthStr = format(startOfMonth(new Date()), 'yyyy-MM-dd')
-    const res = await fetch('/api/targets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        store_id: '00000000-0000-0000-0000-000000000001',
-        month: monthStr,
-        revenue_target: value,
-      }),
-    })
-    const json = await res.json()
-    if (json.success) {
-      setMonthlyTarget({ month: monthStr, revenue_target: value })
-      setEditingTarget(false)
-    }
-  }
 
   const rangeOptions: { key: RangeKey; label: string }[] = [
     { key: '7d', label: '7 天' },
@@ -234,100 +237,62 @@ export default function TrendsPage() {
         />
       </div>
 
-      {/* Monthly Target Card */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+      {/* Target Achievement Card */}
+      {rangeTarget != null && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <div className="flex items-center gap-2 mb-4">
             <Target size={18} className="text-red-500" />
-            <h2 className="text-sm font-semibold text-slate-900">
-              {format(now, 'yyyy 年 M 月')}營收目標
-            </h2>
+            <h2 className="text-sm font-semibold text-slate-900">目標達成率</h2>
+            <span className="text-xs text-slate-400">
+              {startDate} ~ {endDate}
+            </span>
           </div>
-          {!editingTarget && (
-            <button
-              onClick={() => {
-                setTargetInput(targetAmount?.toString() ?? '')
-                setEditingTarget(true)
-              }}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-            >
-              <Pencil size={14} />
-              {targetAmount != null ? '修改目標' : '設定目標'}
-            </button>
-          )}
-        </div>
-
-        {editingTarget ? (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-500">NT$</span>
-            <input
-              type="number"
-              value={targetInput}
-              onChange={(e) => setTargetInput(e.target.value)}
-              placeholder="例如 500000"
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              autoFocus
-            />
-            <button
-              onClick={handleSaveTarget}
-              className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-            >
-              <Check size={18} />
-            </button>
-            <button
-              onClick={() => setEditingTarget(false)}
-              className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        ) : targetAmount != null ? (
           <div className="space-y-3">
             <div className="flex items-end justify-between">
-              <div>
-                <p className="text-2xl font-bold text-slate-900">
-                  NT${thisMonthRevenue.toLocaleString()}
-                  <span className="text-sm font-normal text-slate-400 ml-2">
-                    / NT${targetAmount.toLocaleString()}
-                  </span>
-                </p>
-              </div>
-              <div className="text-right">
-                <p className={`text-lg font-semibold ${progressPct != null && progressPct >= 100 ? 'text-green-600' : 'text-blue-600'}`}>
-                  {progressPct != null ? `${progressPct.toFixed(1)}%` : '--'}
-                </p>
-                {vsExpected != null && (
-                  <p className={`text-xs ${vsExpected >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                    {vsExpected >= 0 ? '超前' : '落後'}預期 {Math.abs(vsExpected).toFixed(1)}%
-                  </p>
-                )}
-              </div>
+              <p className="text-2xl font-bold text-slate-900">
+                NT${totalRevenue.toLocaleString()}
+                <span className="text-sm font-normal text-slate-400 ml-2">
+                  / NT${Math.round(rangeTarget).toLocaleString()}
+                </span>
+              </p>
+              <p className={`text-lg font-semibold ${achievementPct != null && achievementPct >= 100 ? 'text-green-600' : 'text-blue-600'}`}>
+                {achievementPct != null ? `${achievementPct.toFixed(1)}%` : '--'}
+              </p>
             </div>
             {/* Progress bar */}
             <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
-              {/* Expected progress marker */}
-              <div
-                className="absolute top-0 h-full w-0.5 bg-slate-400 z-10"
-                style={{ left: `${Math.min((dayOfMonth / daysInMonth) * 100, 100)}%` }}
-                title={`預期進度 ${((dayOfMonth / daysInMonth) * 100).toFixed(0)}%`}
-              />
-              {/* Actual progress */}
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  progressPct != null && progressPct >= 100 ? 'bg-green-500' : 'bg-blue-500'
+                  achievementPct != null && achievementPct >= 100 ? 'bg-green-500' : 'bg-blue-500'
                 }`}
-                style={{ width: `${Math.min(progressPct ?? 0, 100)}%` }}
+                style={{ width: `${Math.min(achievementPct ?? 0, 100)}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-slate-400">
-              <span>第 {dayOfMonth} 天 / {daysInMonth} 天</span>
-              <span>日均目標 NT${dailyTarget != null ? Math.round(dailyTarget).toLocaleString() : '--'}</span>
-            </div>
+            <p className="text-xs text-slate-400">
+              日均目標 NT${dailyTarget != null ? Math.round(dailyTarget).toLocaleString() : '--'}
+              {' · '}
+              日均實際 NT${Math.round(avgDaily).toLocaleString()}
+              {dailyTarget != null && dailyTarget > 0 && (
+                <span className={avgDaily >= dailyTarget ? ' text-green-600' : ' text-red-500'}>
+                  {' '}({avgDaily >= dailyTarget ? '+' : ''}{((avgDaily - dailyTarget) / dailyTarget * 100).toFixed(1)}%)
+                </span>
+              )}
+            </p>
           </div>
-        ) : (
-          <p className="text-sm text-slate-400">尚未設定本月營收目標，點擊右上角設定</p>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* No target hint */}
+      {rangeTarget == null && (
+        <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-4 text-center">
+          <Target size={20} className="text-slate-400 mx-auto mb-1" />
+          <p className="text-sm text-slate-500">
+            尚未設定此區間的營收目標，請至
+            <a href="/settings" className="text-blue-600 hover:underline mx-1">系統設定</a>
+            設定年度目標
+          </p>
+        </div>
+      )}
 
       {/* Trend Chart */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">

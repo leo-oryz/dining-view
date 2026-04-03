@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
   Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
-  ExternalLink, User, Power, PowerOff, Trash2,
+  ExternalLink, User, Power, PowerOff, Trash2, Target, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
 interface StoreInfo {
@@ -307,6 +307,212 @@ function StoreCard({
           <div className="flex items-center gap-1.5">
             <ExternalLink size={12} className="text-slate-400 shrink-0" />
             <span className="truncate font-mono text-[11px]">{store.google_place_id}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Yearly Targets Component ──────────────────────────────────────
+function YearlyTargets({ stores }: { stores: StoreInfo[] }) {
+  const activeStores = stores.filter((s) => s.is_active)
+  const [selectedStoreId, setSelectedStoreId] = useState<string>('')
+  const [year, setYear] = useState(new Date().getFullYear())
+  const [targets, setTargets] = useState<Record<number, string>>({}) // month(0-11) → input value
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [annualInput, setAnnualInput] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  // Set default store
+  useEffect(() => {
+    if (activeStores.length > 0 && !selectedStoreId) {
+      setSelectedStoreId(activeStores[0].id)
+    }
+  }, [activeStores, selectedStoreId])
+
+  // Fetch existing targets when store or year changes
+  useEffect(() => {
+    if (!selectedStoreId) return
+    setLoading(true)
+    const startMonth = `${year}-01-01`
+    const endMonth = `${year}-12-01`
+    fetch(`/api/targets?store_id=${selectedStoreId}&start_month=${startMonth}&end_month=${endMonth}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data) {
+          const map: Record<number, string> = {}
+          for (const row of json.data) {
+            const m = new Date(row.month).getMonth()
+            map[m] = String(row.revenue_target)
+          }
+          setTargets(map)
+        } else {
+          setTargets({})
+        }
+      })
+      .catch(() => setTargets({}))
+      .finally(() => setLoading(false))
+  }, [selectedStoreId, year])
+
+  const handleDistribute = () => {
+    const total = parseFloat(annualInput)
+    if (isNaN(total) || total <= 0) return
+    const monthly = Math.round(total / 12)
+    const map: Record<number, string> = {}
+    for (let m = 0; m < 12; m++) {
+      map[m] = String(monthly)
+    }
+    setTargets(map)
+  }
+
+  const handleSave = async () => {
+    if (!selectedStoreId) return
+    setSaving(true)
+    setMessage(null)
+
+    const rows = []
+    for (let m = 0; m < 12; m++) {
+      const val = parseFloat(targets[m] || '')
+      if (!isNaN(val) && val >= 0) {
+        const monthStr = `${year}-${String(m + 1).padStart(2, '0')}-01`
+        rows.push({ month: monthStr, revenue_target: val })
+      }
+    }
+
+    if (rows.length === 0) {
+      setMessage({ text: '請至少填入一個月的目標', type: 'error' })
+      setSaving(false)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/targets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ store_id: selectedStoreId, targets: rows }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setMessage({ text: `${year} 年度目標已儲存（${rows.length} 個月）`, type: 'success' })
+      } else {
+        setMessage({ text: `儲存失敗：${json.error}`, type: 'error' })
+      }
+    } catch {
+      setMessage({ text: '儲存失敗', type: 'error' })
+    }
+    setSaving(false)
+  }
+
+  const annualTotal = Object.values(targets).reduce((sum, v) => {
+    const n = parseFloat(v)
+    return sum + (isNaN(n) ? 0 : n)
+  }, 0)
+
+  const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+  const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right'
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200">
+      <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Target size={16} className="text-red-500" />
+          <h4 className="text-sm font-semibold text-slate-900">年度營收目標</h4>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-5">
+        {/* Store + Year selector */}
+        <div className="flex flex-wrap items-center gap-3">
+          {activeStores.length > 1 && (
+            <select
+              value={selectedStoreId}
+              onChange={(e) => setSelectedStoreId(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {activeStores.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          )}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setYear(year - 1)}
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{year} 年</span>
+            <button
+              onClick={() => setYear(year + 1)}
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick distribute */}
+        <div className="flex items-center gap-2 bg-slate-50 rounded-lg p-3">
+          <span className="text-xs text-slate-600 whitespace-nowrap">快速填入：年度總目標</span>
+          <span className="text-xs text-slate-400">NT$</span>
+          <input
+            type="number"
+            value={annualInput}
+            onChange={(e) => setAnnualInput(e.target.value)}
+            placeholder="例如 6000000"
+            className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          />
+          <button
+            onClick={handleDistribute}
+            className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+          >
+            平均分配
+          </button>
+        </div>
+
+        {/* Monthly grid */}
+        {loading ? (
+          <div className="text-center text-slate-400 text-sm py-4">載入中...</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {MONTH_LABELS.map((label, idx) => (
+              <div key={idx}>
+                <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">NT$</span>
+                  <input
+                    type="number"
+                    value={targets[idx] || ''}
+                    onChange={(e) => setTargets({ ...targets, [idx]: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                    className={`${inputCls} pl-10`}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Annual total + Save */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+          <p className="text-sm text-slate-600">
+            年度合計：<span className="font-semibold text-slate-900">NT${annualTotal.toLocaleString()}</span>
+          </p>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            {saving ? '儲存中...' : '儲存目標'}
+          </button>
+        </div>
+
+        {message && (
+          <div className={`text-sm px-4 py-2 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            {message.text}
           </div>
         )}
       </div>
@@ -794,6 +1000,9 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Yearly Revenue Targets — Owner only */}
+      {isOwner && <YearlyTargets stores={stores} />}
 
       {/* Team Management — Owner only */}
       {isOwner && (
