@@ -34,6 +34,7 @@ export default function CampaignsPage() {
     recurrence_days: [] as number[],
   })
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchCampaigns = () => {
     fetch('/api/campaigns')
@@ -61,6 +62,7 @@ export default function CampaignsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
+    setError(null)
 
     try {
       const res = await fetch('/api/campaigns', {
@@ -80,9 +82,11 @@ export default function CampaignsPage() {
           recurrence_type: 'once', recurrence_days: [],
         })
         fetchCampaigns()
+      } else {
+        setError(json.error || '建立活動失敗，請稍後再試')
       }
     } catch {
-      // handle silently
+      setError('網路錯誤，請檢查連線後再試')
     } finally {
       setSubmitting(false)
     }
@@ -240,6 +244,11 @@ export default function CampaignsPage() {
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          {error && (
+            <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {error}
+            </div>
+          )}
           <button
             type="submit"
             disabled={submitting || (form.recurrence_type === 'weekly' && form.recurrence_days.length === 0)}
