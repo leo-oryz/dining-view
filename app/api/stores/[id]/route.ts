@@ -82,3 +82,29 @@ export async function PUT(
     return apiError('Internal server error', 500)
   }
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const profile = await getSession()
+  if (!profile) return apiError('Not authenticated', 401)
+  if (profile.role !== 'owner') return apiError('Forbidden', 403)
+
+  const { id } = await params
+
+  try {
+    const supabase = createServiceClient()
+
+    const { error } = await supabase
+      .from('stores')
+      .delete()
+      .eq('id', id)
+
+    if (error) return apiError(error.message, 500)
+
+    return apiSuccess({ deleted: id })
+  } catch {
+    return apiError('Internal server error', 500)
+  }
+}

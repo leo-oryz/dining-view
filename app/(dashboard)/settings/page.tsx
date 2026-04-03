@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
   Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
-  ExternalLink, User, Power, PowerOff,
+  ExternalLink, User, Power, PowerOff, Trash2,
 } from 'lucide-react'
 
 interface StoreInfo {
@@ -222,12 +222,13 @@ function StoreForm({
 
 // ─── Store Card Component ───────────────────────────────────────────
 function StoreCard({
-  store, isOwner, onEdit, onToggleActive,
+  store, isOwner, onEdit, onToggleActive, onDelete,
 }: {
   store: StoreInfo
   isOwner: boolean
   onEdit: () => void
   onToggleActive: () => void
+  onDelete: () => void
 }) {
   return (
     <div className={`p-5 rounded-xl border ${store.is_active ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
@@ -259,6 +260,13 @@ function StoreCard({
               title={store.is_active ? '停用' : '啟用'}
             >
               {store.is_active ? <PowerOff size={14} /> : <Power size={14} />}
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="刪除"
+            >
+              <Trash2 size={14} />
             </button>
           </div>
         )}
@@ -320,6 +328,9 @@ export default function SettingsPage() {
 
   // Deactivate confirmation dialog
   const [confirmStore, setConfirmStore] = useState<StoreInfo | null>(null)
+
+  // Delete confirmation dialog
+  const [deleteStore, setDeleteStore] = useState<StoreInfo | null>(null)
 
   // Team state
   const [currentUser, setCurrentUser] = useState<UserMe | null>(null)
@@ -539,6 +550,24 @@ export default function SettingsPage() {
     setConfirmStore(null)
   }
 
+  // ── Store delete ──
+  const doDelete = async (storeId: string) => {
+    setMessage(null)
+    try {
+      const res = await fetch(`/api/stores/${storeId}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (json.success) {
+        setMessage({ text: `已刪除門市`, type: 'success' })
+        fetchStores()
+      } else {
+        setMessage({ text: `刪除失敗：${json.error}`, type: 'error' })
+      }
+    } catch {
+      setMessage({ text: '刪除失敗', type: 'error' })
+    }
+    setDeleteStore(null)
+  }
+
   // ── Team handlers ──
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -704,6 +733,7 @@ export default function SettingsPage() {
                     isOwner={isOwner}
                     onEdit={() => startEdit(store)}
                     onToggleActive={() => handleToggleActive(store)}
+                    onDelete={() => setDeleteStore(store)}
                   />
                 )}
               </div>
@@ -730,6 +760,32 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={() => setConfirmStore(null)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteStore && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <h4 className="text-sm font-semibold text-red-600">確認刪除門市</h4>
+            <p className="text-sm text-slate-600">
+              刪除後該門市的所有歷史數據將會一併移除，此操作無法復原。確定要刪除「{deleteStore.name}」嗎？
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => doDelete(deleteStore.id)}
+                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+              >
+                確定刪除
+              </button>
+              <button
+                onClick={() => setDeleteStore(null)}
                 className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors"
               >
                 取消
