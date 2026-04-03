@@ -109,7 +109,7 @@ export async function POST() {
         })
 
         // Delete existing rows for the date range, then insert fresh
-        const dates = [...new Set(deduped.map((r) => r.date))].sort()
+        const dates = Array.from(new Set(deduped.map((r) => r.date))).sort()
         const { error: delErr } = await supabase
           .from('ga4_events')
           .delete()
