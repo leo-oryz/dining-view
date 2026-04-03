@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "npx tsx index.ts",
-    "dry-run": "DRY_RUN=true npx tsx index.ts"
+    "dry-run": "DRY_RUN=true npx tsx index.ts",
+    "backfill": "npx tsx backfill.ts"
   },
   "dependencies": {
     "playwright": "^1.42.0",

@@ -91,9 +91,13 @@ async function setDateRange(page: Page, dateStr: string) {
   }
 }
 
-export async function downloadOcardReports(options?: { storeId?: string; credentials?: StoreCredentials }): Promise<DownloadedFile[]> {
+export async function downloadOcardReports(options?: {
+  storeId?: string
+  credentials?: StoreCredentials
+  targetDate?: string // YYYY-MM-DD, defaults to yesterday
+}): Promise<DownloadedFile[]> {
   await ensureDownloadDir()
-  const yesterday = getYesterday()
+  const dateStr = options?.targetDate || getYesterday()
   const files: DownloadedFile[] = []
   let browser: Browser | null = null
 
@@ -126,7 +130,7 @@ export async function downloadOcardReports(options?: { storeId?: string; credent
 
         // Set date range if applicable
         if (report.hasDateRange) {
-          await setDateRange(page, yesterday)
+          await setDateRange(page, dateStr)
         }
 
         // Try to find and click download/export button
@@ -141,7 +145,7 @@ export async function downloadOcardReports(options?: { storeId?: string; credent
             ])
             const suggestedName = download.suggestedFilename()
             const ext = path.extname(suggestedName) || '.xlsx'
-            const fileName = `${report.type}_${yesterday}${ext}`
+            const fileName = `${report.type}_${dateStr}${ext}`
             const filePath = path.join(DOWNLOAD_DIR, fileName)
             await download.saveAs(filePath)
             files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId })
@@ -173,7 +177,7 @@ export async function downloadOcardReports(options?: { storeId?: string; credent
                 ])
                 const suggestedName = download.suggestedFilename()
                 const ext = path.extname(suggestedName) || '.csv'
-                const fileName = `${report.type}_${yesterday}${ext}`
+                const fileName = `${report.type}_${dateStr}${ext}`
                 const filePath = path.join(DOWNLOAD_DIR, fileName)
                 await download.saveAs(filePath)
                 files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId })

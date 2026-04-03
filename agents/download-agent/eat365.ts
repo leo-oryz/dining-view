@@ -47,51 +47,42 @@ async function createContext(browser: Browser): Promise<BrowserContext> {
   })
 }
 
-export async function downloadEat365Reports(options?: { storeId?: string; credentials?: StoreCredentials }): Promise<DownloadedFile[]> {
+// Note: eat365-transactions (Transaction Report) is protected by Cloudflare
+// Turnstile and cannot be automated. Must be downloaded manually.
+const EAT365_REPORTS = [
+  { type: 'eat365-summary', path: '/v2/report/sales_summary' },
+  { type: 'eat365-hourly', path: '/v2/report/sales/hourly_sales_report' },
+  { type: 'eat365-items', path: '/v2/report/sales/sales_by_items' },
+]
+
+export async function downloadEat365Reports(options?: {
+  storeId?: string
+  credentials?: StoreCredentials
+  targetDate?: string // YYYY-MM-DD, defaults to yesterday
+}): Promise<DownloadedFile[]> {
   await ensureDownloadDir()
-  const yesterday = getYesterday()
+  const dateStr = options?.targetDate || getYesterday()
   const files: DownloadedFile[] = []
   let browser: Browser | null = null
-
-  // Note: eat365-transactions (Transaction Report) is protected by Cloudflare
-  // Turnstile and cannot be automated. Must be downloaded manually.
-  const reports = [
-    { type: 'eat365-summary', path: '/v2/report/sales_summary' },
-    { type: 'eat365-hourly', path: '/v2/report/sales/hourly_sales_report' },
-    { type: 'eat365-items', path: '/v2/report/sales/sales_by_items' },
-  ]
 
   try {
     browser = await chromium.launch({ headless: true })
     const context = await createContext(browser)
     const page = await context.newPage()
 
-    for (const report of reports) {
+    for (const report of EAT365_REPORTS) {
       try {
-        const url = `${BASE_URL}${report.path}?${RESTAURANT_PARAMS}&startDate=${yesterday}+00:00&endDate=${yesterday}+23:59`
-        console.log(`[eat365] Loading ${report.type}...`)
+        const url = `${BASE_URL}${report.path}?${RESTAURANT_PARAMS}&startDate=${dateStr}+00:00&endDate=${dateStr}+23:59`
+        console.log(`[eat365] Loading ${report.type} for ${dateStr}...`)
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
         await page.waitForLoadState('networkidle').catch(() => {})
 
-        // Check if redirected to login (session expired)
         if (page.url().includes('/sign-in')) {
           throw new Error('Session expired — please re-run _save_session.ts to refresh MFA')
         }
 
-        // Wait for data to load
         await page.waitForTimeout(3000)
 
-        // Some reports (e.g. Transaction Report) need a Submit button click first
-        const submitBtn = page.locator('button:has-text("Submit")')
-        if (await submitBtn.count() > 0 && await submitBtn.isVisible().catch(() => false)) {
-          // Wait for any loading overlay to disappear
-          await page.locator('.vl-background').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {})
-          await submitBtn.click({ force: true })
-          await page.waitForTimeout(5000)
-          await page.waitForLoadState('networkidle').catch(() => {})
-        }
-
-        // Click Export button
         const exportBtn = page.locator('button:has-text("Export")')
         if (await exportBtn.count() === 0) {
           console.warn(`[eat365] No Export button found for ${report.type}`)
@@ -105,7 +96,7 @@ export async function downloadEat365Reports(options?: { storeId?: string; creden
 
         const suggestedName = download.suggestedFilename()
         const ext = path.extname(suggestedName) || '.xlsx'
-        const fileName = `${report.type}_${yesterday}${ext}`
+        const fileName = `${report.type}_${dateStr}${ext}`
         const filePath = path.join(DOWNLOAD_DIR, fileName)
         await download.saveAs(filePath)
 

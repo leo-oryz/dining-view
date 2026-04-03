@@ -33,8 +33,8 @@ async function fetchStoreConfigs(): Promise<StoreConfig[]> {
   }
 }
 
-async function runForStore(store: StoreConfig, isDryRun: boolean) {
-  console.log(`\n[agent] === Processing store: ${store.name} (${store.id}) ===`)
+async function runForStore(store: StoreConfig, isDryRun: boolean, targetDate?: string) {
+  console.log(`\n[agent] === Processing store: ${store.name} (${store.id})${targetDate ? ` date=${targetDate}` : ''} ===`)
   const allFiles = []
   const errors: string[] = []
 
@@ -47,6 +47,7 @@ async function runForStore(store: StoreConfig, isDryRun: boolean) {
       const eat365Files = await downloadEat365Reports({
         storeId: store.id,
         credentials: eat365Creds,
+        targetDate,
       })
       allFiles.push(...eat365Files)
       console.log(`[agent] [${store.name}] eat365: ${eat365Files.length} files downloaded`)
@@ -68,6 +69,7 @@ async function runForStore(store: StoreConfig, isDryRun: boolean) {
       const ocardFiles = await downloadOcardReports({
         storeId: store.id,
         credentials: ocardCreds,
+        targetDate,
       })
       allFiles.push(...ocardFiles)
       console.log(`[agent] [${store.name}] Ocard: ${ocardFiles.length} files downloaded`)
@@ -120,8 +122,11 @@ async function run() {
   let totalFiles = 0
   const allErrors: string[] = []
 
+  // Support single date via CLI arg: npx tsx index.ts 2026-04-02
+  const targetDate = process.argv[2] || undefined
+
   for (const store of stores) {
-    const result = await runForStore(store, isDryRun)
+    const result = await runForStore(store, isDryRun, targetDate)
     totalFiles += result.files
     allErrors.push(...result.errors)
   }
