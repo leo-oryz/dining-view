@@ -207,8 +207,25 @@ function buildPrompt(
   // Campaigns
   if (ctx.campaigns.length > 0) {
     sections.push('\n## 活動')
+    const dayLabels = ['日', '一', '二', '三', '四', '五', '六']
     for (const c of ctx.campaigns) {
-      sections.push(`- ${c.name} (${c.type || '未分類'}) ${c.start_date || '?'}~${c.end_date || '?'} 狀態:${c.status} 預算:${c.budget ?? '-'}`)
+      if (c.recurrence_type === 'weekly' && c.recurrence_days) {
+        const days = c.recurrence_days.map((d) => dayLabels[d]).join('、')
+        // Find which dates in the analysis period match the recurrence days
+        const matchingDates: string[] = []
+        const start = new Date(Math.max(new Date(ctx.periodStart).getTime(), new Date(c.start_date || ctx.periodStart).getTime()))
+        const end = c.end_date
+          ? new Date(Math.min(new Date(ctx.periodEnd).getTime(), new Date(c.end_date).getTime()))
+          : new Date(ctx.periodEnd)
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          if (c.recurrence_days.includes(d.getDay())) {
+            matchingDates.push(d.toISOString().slice(0, 10))
+          }
+        }
+        sections.push(`- ${c.name} (${c.type || '未分類'}) 週期:每週${days} 生效:${c.start_date || '?'}~ 狀態:${c.status} 預算:${c.budget ?? '-'} 本期適用日:${matchingDates.join(',')}`)
+      } else {
+        sections.push(`- ${c.name} (${c.type || '未分類'}) ${c.start_date || '?'}~${c.end_date || '?'} 狀態:${c.status} 預算:${c.budget ?? '-'}`)
+      }
     }
   }
 

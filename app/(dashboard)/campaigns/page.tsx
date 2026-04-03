@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 
+const DAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
+
 interface Campaign {
   id: string
   name: string
@@ -12,6 +14,8 @@ interface Campaign {
   description: string | null
   budget: number | null
   status: string
+  recurrence_type: string
+  recurrence_days: number[] | null
   created_at: string
 }
 
@@ -26,6 +30,8 @@ export default function CampaignsPage() {
     end_date: '',
     description: '',
     budget: '',
+    recurrence_type: 'once' as 'once' | 'weekly',
+    recurrence_days: [] as number[],
   })
   const [submitting, setSubmitting] = useState(false)
 
@@ -43,6 +49,15 @@ export default function CampaignsPage() {
     fetchCampaigns()
   }, [])
 
+  const toggleDay = (day: number) => {
+    setForm((prev) => ({
+      ...prev,
+      recurrence_days: prev.recurrence_days.includes(day)
+        ? prev.recurrence_days.filter((d) => d !== day)
+        : [...prev.recurrence_days, day].sort(),
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
@@ -54,12 +69,16 @@ export default function CampaignsPage() {
         body: JSON.stringify({
           ...form,
           budget: form.budget ? Number(form.budget) : null,
+          recurrence_days: form.recurrence_type === 'weekly' ? form.recurrence_days : null,
         }),
       })
       const json = await res.json()
       if (json.success) {
         setShowForm(false)
-        setForm({ name: '', type: '', start_date: '', end_date: '', description: '', budget: '' })
+        setForm({
+          name: '', type: '', start_date: '', end_date: '', description: '', budget: '',
+          recurrence_type: 'once', recurrence_days: [],
+        })
         fetchCampaigns()
       }
     } catch {
@@ -74,6 +93,16 @@ export default function CampaignsPage() {
     active: 'bg-emerald-100 text-emerald-800',
     completed: 'bg-slate-100 text-slate-800',
     cancelled: 'bg-red-100 text-red-800',
+  }
+
+  const formatDateColumn = (c: Campaign) => {
+    if (c.recurrence_type === 'weekly' && c.recurrence_days) {
+      const days = c.recurrence_days.map((d) => DAY_LABELS[d]).join('、')
+      return `每週${days}`
+    }
+    const start = c.start_date ? format(new Date(c.start_date), 'yyyy/M/d') : '-'
+    const end = c.end_date ? ` ~ ${format(new Date(c.end_date), 'M/d')}` : ''
+    return `${start}${end}`
   }
 
   return (
@@ -91,6 +120,35 @@ export default function CampaignsPage() {
       {/* Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+          {/* Recurrence type radio */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">活動類型</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="recurrence_type"
+                  value="once"
+                  checked={form.recurrence_type === 'once'}
+                  onChange={() => setForm({ ...form, recurrence_type: 'once', recurrence_days: [] })}
+                  className="text-blue-600"
+                />
+                <span className="text-sm text-slate-700">一次性活動</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="recurrence_type"
+                  value="weekly"
+                  checked={form.recurrence_type === 'weekly'}
+                  onChange={() => setForm({ ...form, recurrence_type: 'weekly' })}
+                  className="text-blue-600"
+                />
+                <span className="text-sm text-slate-700">週期性活動</span>
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">活動名稱 *</label>
@@ -117,8 +175,34 @@ export default function CampaignsPage() {
                 <option value="other">其他</option>
               </select>
             </div>
+
+            {/* Weekly: day-of-week checkboxes */}
+            {form.recurrence_type === 'weekly' && (
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">重複星期 *</label>
+                <div className="flex gap-2">
+                  {DAY_LABELS.map((label, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => toggleDay(idx)}
+                      className={`w-10 h-10 rounded-lg text-sm font-medium border transition-colors ${
+                        form.recurrence_days.includes(idx)
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">開始日期</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {form.recurrence_type === 'weekly' ? '生效開始日期' : '開始日期'}
+              </label>
               <input
                 type="date"
                 value={form.start_date}
@@ -127,7 +211,9 @@ export default function CampaignsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">結束日期</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {form.recurrence_type === 'weekly' ? '生效結束日期（選填）' : '結束日期'}
+              </label>
               <input
                 type="date"
                 value={form.end_date}
@@ -156,7 +242,7 @@ export default function CampaignsPage() {
           </div>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (form.recurrence_type === 'weekly' && form.recurrence_days.length === 0)}
             className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             {submitting ? '建立中...' : '建立活動'}
@@ -184,12 +270,16 @@ export default function CampaignsPage() {
               <tbody>
                 {campaigns.map((c) => (
                   <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
-                    <td className="py-3 px-4 font-medium text-slate-900">{c.name}</td>
-                    <td className="py-3 px-4 text-slate-500 hidden sm:table-cell">{c.type || '-'}</td>
-                    <td className="py-3 px-4 text-slate-500">
-                      {c.start_date ? format(new Date(c.start_date), 'yyyy/M/d') : '-'}
-                      {c.end_date ? ` ~ ${format(new Date(c.end_date), 'M/d')}` : ''}
+                    <td className="py-3 px-4">
+                      <span className="font-medium text-slate-900">{c.name}</span>
+                      {c.recurrence_type === 'weekly' ? (
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">週期</span>
+                      ) : (
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">單次</span>
+                      )}
                     </td>
+                    <td className="py-3 px-4 text-slate-500 hidden sm:table-cell">{c.type || '-'}</td>
+                    <td className="py-3 px-4 text-slate-500">{formatDateColumn(c)}</td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[c.status] || ''}`}>
                         {c.status}

@@ -30,10 +30,10 @@ async function login(page: Page, credentials?: StoreCredentials) {
     throw new Error('EAT365 login credentials required (via store config or env vars)')
   }
 
-  await page.goto('https://backend.eat365.com.tw/login')
-  await page.fill('input[type="email"], input[name="email"]', email)
-  await page.fill('input[type="password"], input[name="password"]', password)
-  await page.click('button[type="submit"]')
+  await page.goto('https://mpphk.eats365pos.com/sign-in', { waitUntil: 'networkidle' })
+  await page.fill('#username', email)
+  await page.fill('#password', password)
+  await page.click('div.sign-in-btn')
   await page.waitForNavigation({ waitUntil: 'networkidle' })
 }
 

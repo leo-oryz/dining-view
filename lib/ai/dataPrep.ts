@@ -39,6 +39,8 @@ interface CampaignRow {
   end_date: string | null
   status: string
   budget: number | null
+  recurrence_type: string
+  recurrence_days: number[] | null
 }
 
 interface WeatherRow {
@@ -97,9 +99,9 @@ export async function prepareAnalysisContext(
       .order('revenue', { ascending: false }),
     supabase
       .from('campaigns')
-      .select('name, type, start_date, end_date, status, budget')
+      .select('name, type, start_date, end_date, status, budget, recurrence_type, recurrence_days')
       .eq('store_id', storeId)
-      .or(`start_date.lte.${periodEnd},end_date.gte.${periodStart}`)
+      .or(`and(recurrence_type.eq.once,start_date.lte.${periodEnd},end_date.gte.${periodStart}),and(recurrence_type.eq.weekly,start_date.lte.${periodEnd},or(end_date.is.null,end_date.gte.${periodStart}))`)
       .order('start_date'),
     supabase
       .from('weather_daily')

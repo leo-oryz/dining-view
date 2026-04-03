@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, type, start_date, end_date, description, budget, store_id } = body
+    const { name, type, start_date, end_date, description, budget, store_id, recurrence_type, recurrence_days } = body
 
     if (!name) return apiError('Campaign name is required', 400)
 
@@ -44,6 +44,8 @@ export async function POST(request: NextRequest) {
         description: description || null,
         budget: budget || null,
         status: 'planned',
+        recurrence_type: recurrence_type || 'once',
+        recurrence_days: recurrence_type === 'weekly' ? recurrence_days : null,
       })
       .select()
       .single()
