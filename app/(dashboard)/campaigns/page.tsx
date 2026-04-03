@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
+import { Pencil, Trash2 } from 'lucide-react'
 
 const DAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -19,20 +20,29 @@ interface Campaign {
   created_at: string
 }
 
+type FormState = {
+  name: string
+  type: string
+  start_date: string
+  end_date: string
+  description: string
+  budget: string
+  status: string
+  recurrence_type: 'once' | 'weekly'
+  recurrence_days: number[]
+}
+
+const emptyForm: FormState = {
+  name: '', type: '', start_date: '', end_date: '', description: '', budget: '', status: 'planned',
+  recurrence_type: 'once', recurrence_days: [],
+}
+
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({
-    name: '',
-    type: '',
-    start_date: '',
-    end_date: '',
-    description: '',
-    budget: '',
-    recurrence_type: 'once' as 'once' | 'weekly',
-    recurrence_days: [] as number[],
-  })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState<FormState>({ ...emptyForm })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -59,36 +69,79 @@ export default function CampaignsPage() {
     }))
   }
 
+  const openCreate = () => {
+    setEditingId(null)
+    setForm({ ...emptyForm })
+    setShowForm(true)
+    setError(null)
+  }
+
+  const openEdit = (c: Campaign) => {
+    setEditingId(c.id)
+    setForm({
+      name: c.name,
+      type: c.type || '',
+      start_date: c.start_date || '',
+      end_date: c.end_date || '',
+      description: c.description || '',
+      budget: c.budget != null ? String(c.budget) : '',
+      status: c.status,
+      recurrence_type: (c.recurrence_type as 'once' | 'weekly') || 'once',
+      recurrence_days: c.recurrence_days || [],
+    })
+    setShowForm(true)
+    setError(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
 
+    const payload = {
+      ...form,
+      budget: form.budget ? Number(form.budget) : null,
+      recurrence_days: form.recurrence_type === 'weekly' ? form.recurrence_days : null,
+    }
+
     try {
-      const res = await fetch('/api/campaigns', {
-        method: 'POST',
+      const url = editingId ? `/api/campaigns/${editingId}` : '/api/campaigns'
+      const method = editingId ? 'PUT' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          budget: form.budget ? Number(form.budget) : null,
-          recurrence_days: form.recurrence_type === 'weekly' ? form.recurrence_days : null,
-        }),
+        body: JSON.stringify(payload),
       })
       const json = await res.json()
       if (json.success) {
         setShowForm(false)
-        setForm({
-          name: '', type: '', start_date: '', end_date: '', description: '', budget: '',
-          recurrence_type: 'once', recurrence_days: [],
-        })
+        setEditingId(null)
+        setForm({ ...emptyForm })
         fetchCampaigns()
       } else {
-        setError(json.error || '建立活動失敗，請稍後再試')
+        setError(json.error || (editingId ? '更新失敗' : '建立活動失敗，請稍後再試'))
       }
     } catch {
       setError('網路錯誤，請檢查連線後再試')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (c: Campaign) => {
+    if (!window.confirm(`確定要刪除活動「${c.name}」？此操作無法復原。`)) return
+
+    try {
+      const res = await fetch(`/api/campaigns/${c.id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (json.success) {
+        fetchCampaigns()
+      } else {
+        alert(`刪除失敗：${json.error}`)
+      }
+    } catch {
+      alert('刪除失敗')
     }
   }
 
@@ -114,7 +167,7 @@ export default function CampaignsPage() {
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-slate-900">活動列表</h3>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => showForm ? (setShowForm(false), setEditingId(null)) : openCreate()}
           className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
         >
           {showForm ? '取消' : '新增活動'}
@@ -124,6 +177,10 @@ export default function CampaignsPage() {
       {/* Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+          <h4 className="text-sm font-semibold text-slate-900">
+            {editingId ? '編輯活動' : '新增活動'}
+          </h4>
+
           {/* Recurrence type radio */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">活動類型</label>
@@ -234,6 +291,23 @@ export default function CampaignsPage() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+
+            {/* Status selector — only show when editing */}
+            {editingId && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">狀態</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="planned">Planned</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">說明</label>
@@ -249,13 +323,22 @@ export default function CampaignsPage() {
               {error}
             </div>
           )}
-          <button
-            type="submit"
-            disabled={submitting || (form.recurrence_type === 'weekly' && form.recurrence_days.length === 0)}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {submitting ? '建立中...' : '建立活動'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={submitting || (form.recurrence_type === 'weekly' && form.recurrence_days.length === 0)}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {submitting ? (editingId ? '更新中...' : '建立中...') : (editingId ? '更新活動' : '建立活動')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowForm(false); setEditingId(null) }}
+              className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              取消
+            </button>
+          </div>
         </form>
       )}
 
@@ -274,6 +357,7 @@ export default function CampaignsPage() {
                   <th className="text-left py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">類型</th>
                   <th className="text-left py-3 px-4 text-slate-500 font-medium">日期</th>
                   <th className="text-left py-3 px-4 text-slate-500 font-medium">狀態</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -293,6 +377,24 @@ export default function CampaignsPage() {
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[c.status] || ''}`}>
                         {c.status}
                       </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEdit(c)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="編輯"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="刪除"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
