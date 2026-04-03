@@ -3,7 +3,7 @@ import { apiError } from '@/lib/api-utils'
 
 export function parseExportParams(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const storeId = searchParams.get('store_id') || '00000000-0000-0000-0000-000000000001'
+  const storeId = searchParams.get('store_id') || '36d016c4-7584-4c0f-a3e8-9562089d57f8'
   const from = searchParams.get('from')
   const to = searchParams.get('to')
 

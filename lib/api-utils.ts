@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-const DEFAULT_STORE_ID = '00000000-0000-0000-0000-000000000001'
+const DEFAULT_STORE_ID = '36d016c4-7584-4c0f-a3e8-9562089d57f8'
 
 export function apiSuccess(data: unknown) {
   return NextResponse.json({
