@@ -53,7 +53,10 @@ export default function ProductsPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">商品銷售排行</h3>
+        <div className="flex items-baseline gap-2 mb-4">
+          <h3 className="text-base font-semibold text-slate-900">商品銷售排行</h3>
+          <span className="text-xs text-slate-400">商品名稱以 eat365 報表語言顯示</span>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
             載入中...

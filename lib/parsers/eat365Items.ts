@@ -52,6 +52,10 @@ export function parseEat365Items(buffer: ArrayBuffer): { data: ProductSalesRow[]
         continue
       }
 
+      // Skip header rows and total rows that appear in the data range
+      const skipNames = ['SKU Name', 'Category', 'Total', 'Grand Total']
+      if (skipNames.includes(productName)) continue
+
       data.push({
         product_name: productName,
         category: row[1] ? String(row[1]).trim() : null,
