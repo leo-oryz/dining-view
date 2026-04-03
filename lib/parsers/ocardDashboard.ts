@@ -35,8 +35,8 @@ export function parseOcardDashboard(buffer: ArrayBuffer): { data: OcardDailyRow[
     const sheet = workbook.Sheets[sheetName]
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 })
 
-    // Header at row 2, data from row 3
-    for (let i = 3; i < rows.length; i++) {
+    // Header at row 2 (index 1), data from row 3 (index 2)
+    for (let i = 2; i < rows.length; i++) {
       const row = rows[i]
       if (!row || !row[0]) continue
 
