@@ -126,3 +126,4 @@
 - Ocard 儀表板 xlsx "明細" sheet has header at row 2 (0-indexed row 1), data from row 3 (0-indexed row 2). Parser must start loop at index 2, not 3.
 - Upload API endpoints require middleware bypass — added `/api/upload` to `publicPaths` in middleware.ts so the agent can POST without Supabase Auth session.
 - Use `waitUntil: 'domcontentloaded'` with optional `waitForLoadState('networkidle').catch(() => {})` instead of `waitUntil: 'networkidle'` alone — some pages never reach networkidle due to analytics/tracking scripts.
+- `DEFAULT_STORE_ID` must match the actual `stores` table record. The placeholder UUID `00000000-...` was used in migrations to seed data but the real store got a random UUID (`36d016c4-...`). If API queries return empty, check store_id mismatch first — foreign key constraints on upload and empty dashboard queries are both symptoms of this.
