@@ -260,6 +260,25 @@ function buildPrompt(
     }
   }
 
+  // Review snapshots
+  if (ctx.reviewSnapshots.length > 0) {
+    sections.push('\n## 評論數據')
+    sections.push('week | avg_rating | new_reviews | negative_count | negative_summary')
+    for (const r of ctx.reviewSnapshots) {
+      sections.push(
+        `${r.snapshot_date} | ${r.avg_rating ?? '-'} | ${r.new_reviews_count ?? '-'} | ${r.negative_count ?? '-'} | ${r.ai_negative_summary ?? '-'}`
+      )
+    }
+    // Include sentiment trend and keywords from latest snapshot
+    const latest = ctx.reviewSnapshots[ctx.reviewSnapshots.length - 1]
+    if (latest.ai_sentiment_trend) {
+      sections.push(`\n評價趨勢：${latest.ai_sentiment_trend}`)
+    }
+    if (latest.keywords && latest.keywords.length > 0) {
+      sections.push(`負評關鍵字：${latest.keywords.join('、')}`)
+    }
+  }
+
   if (reportType === 'expansion') {
     sections.push('\n請根據以上數據評估展店準備度，重點關注：')
     sections.push('1. 哪些時段表現最佳（從每日營收和商品銷售推斷）')
@@ -267,6 +286,7 @@ function buildPrompt(
     sections.push('3. 會員結構是否健康（回訪率、新客佔比）')
     sections.push('4. 營收穩定性和季節性趨勢')
     sections.push('5. 新店應該採取什麼型態（外帶、內用、複合）')
+    sections.push('6. 品牌聲譽是否適合展店（Google 評分趨勢、負評主題是否為系統性問題）')
   }
 
   sections.push('\n請根據以上數據產生分析報告 JSON。')

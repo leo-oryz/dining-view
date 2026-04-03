@@ -10,6 +10,7 @@ export interface AnalysisContext {
   weather: WeatherRow[]
   adCampaigns: AdCampaignRow[]
   memberSnapshots: MemberSnapshotRow[]
+  reviewSnapshots: ReviewSnapshotRow[]
 }
 
 interface DailySalesRow {
@@ -67,6 +68,16 @@ interface MemberSnapshotRow {
   new_members: number | null
 }
 
+interface ReviewSnapshotRow {
+  snapshot_date: string
+  avg_rating: number | null
+  new_reviews_count: number | null
+  negative_count: number | null
+  ai_negative_summary: string | null
+  ai_sentiment_trend: string | null
+  keywords: string[] | null
+}
+
 export async function prepareAnalysisContext(
   supabase: SupabaseClient,
   storeId: string,
@@ -81,6 +92,7 @@ export async function prepareAnalysisContext(
     weatherRes,
     adsRes,
     membersRes,
+    reviewsRes,
   ] = await Promise.all([
     supabase.from('stores').select('name').eq('id', storeId).single(),
     supabase
@@ -124,6 +136,13 @@ export async function prepareAnalysisContext(
       .gte('snapshot_date', periodStart)
       .lte('snapshot_date', periodEnd)
       .order('snapshot_date'),
+    supabase
+      .from('google_review_snapshots')
+      .select('snapshot_date, avg_rating, new_reviews_count, negative_count, ai_negative_summary, ai_sentiment_trend, keywords')
+      .eq('store_id', storeId)
+      .gte('snapshot_date', periodStart)
+      .lte('snapshot_date', periodEnd)
+      .order('snapshot_date'),
   ])
 
   return {
@@ -136,5 +155,6 @@ export async function prepareAnalysisContext(
     weather: weatherRes.data || [],
     adCampaigns: adsRes.data || [],
     memberSnapshots: membersRes.data || [],
+    reviewSnapshots: reviewsRes.data || [],
   }
 }

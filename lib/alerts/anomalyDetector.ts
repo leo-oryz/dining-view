@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendLineAlert } from './lineNotifier'
 
-type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'delivery_drop'
+type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'delivery_drop' | 'rating_drop'
 
 interface DetectedAnomaly {
   store_id: string
@@ -163,6 +163,37 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
           threshold_value: avgMarginWeek * 0.8,
           message: `${store.name}：毛利率下降 ${pct}%（昨日 ${(avgMarginYesterday * 100).toFixed(1)}% vs 7日均值 ${(avgMarginWeek * 100).toFixed(1)}%）`,
         })
+      }
+    }
+
+    // 5. Rating drop: weekly avg_rating < 4-week average - 0.3
+    const { data: recentSnapshots } = await supabase
+      .from('google_review_snapshots')
+      .select('snapshot_date, avg_rating')
+      .eq('store_id', store.id)
+      .not('avg_rating', 'is', null)
+      .order('snapshot_date', { ascending: false })
+      .limit(5)
+
+    if (recentSnapshots && recentSnapshots.length >= 3) {
+      const [latestSnap, ...olderSnaps] = recentSnapshots
+      // Need at least 3 older snapshots for 4-week baseline (excluding current)
+      const baselineSnaps = olderSnaps.slice(0, 4)
+      if (baselineSnaps.length >= 3 && latestSnap.avg_rating != null) {
+        const baselineAvg = baselineSnaps.reduce((s, r) => s + Number(r.avg_rating), 0) / baselineSnaps.length
+        const currentRating = Number(latestSnap.avg_rating)
+        if (currentRating < baselineAvg - 0.3) {
+          const drop = (baselineAvg - currentRating).toFixed(2)
+          anomalies.push({
+            store_id: store.id,
+            store_name: store.name,
+            alert_type: 'rating_drop',
+            severity: currentRating < baselineAvg - 0.5 ? 'critical' : 'warning',
+            metric_value: currentRating,
+            threshold_value: baselineAvg - 0.3,
+            message: `${store.name}：Google 評分下降 ${drop}（本週 ${currentRating.toFixed(2)} vs 前 4 週均值 ${baselineAvg.toFixed(2)}）`,
+          })
+        }
       }
     }
   }

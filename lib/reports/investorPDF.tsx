@@ -35,6 +35,17 @@ interface TopProduct {
   total_quantity: number
 }
 
+interface ReviewTrend {
+  month: string
+  avg_rating: number | null
+}
+
+interface BrandReputation {
+  current_rating: number | null
+  rating_trend: ReviewTrend[]
+  negative_rate: number | null // 0-1
+}
+
 interface ReportData {
   store_name: string
   report_month: string
@@ -47,6 +58,7 @@ interface ReportData {
     turnover_rate: number
     new_member_rate: number
   }
+  brand_reputation?: BrandReputation | null
 }
 
 export function InvestorReportDocument({ data }: { data: ReportData }) {
@@ -132,6 +144,54 @@ export function InvestorReportDocument({ data }: { data: ReportData }) {
             <Text style={styles.kpiLabel}>New Member Rate:</Text>
             <Text style={styles.kpiValue}>{(data.kpis.new_member_rate * 100).toFixed(1)}%</Text>
           </View>
+        </View>
+
+        {/* Section 6: Brand Reputation (Google Reviews) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>6. Brand Reputation (Google Reviews)</Text>
+          {data.brand_reputation ? (
+            <>
+              <View style={styles.kpiRow}>
+                <Text style={styles.kpiLabel}>Current Google Rating:</Text>
+                <Text style={styles.kpiValue}>
+                  {data.brand_reputation.current_rating != null
+                    ? `${data.brand_reputation.current_rating.toFixed(2)} / 5.0`
+                    : 'N/A'}
+                </Text>
+              </View>
+              <View style={styles.kpiRow}>
+                <Text style={styles.kpiLabel}>Negative Review Rate:</Text>
+                <Text style={styles.kpiValue}>
+                  {data.brand_reputation.negative_rate != null
+                    ? `${(data.brand_reputation.negative_rate * 100).toFixed(1)}%`
+                    : 'N/A'}
+                </Text>
+              </View>
+              {data.brand_reputation.rating_trend.length > 0 && (
+                <>
+                  <Text style={{ fontSize: 10, color: '#475569', marginTop: 8, marginBottom: 4 }}>
+                    Rating Trend (Last 12 Months):
+                  </Text>
+                  <View style={styles.row}>
+                    <Text style={styles.cellHeader}>Month</Text>
+                    <Text style={styles.cellHeaderRight}>Avg Rating</Text>
+                  </View>
+                  {data.brand_reputation.rating_trend.map((r, i) => (
+                    <View key={i} style={styles.row}>
+                      <Text style={styles.cell}>{r.month}</Text>
+                      <Text style={styles.cellRight}>
+                        {r.avg_rating != null ? r.avg_rating.toFixed(2) : 'N/A'}
+                      </Text>
+                    </View>
+                  ))}
+                </>
+              )}
+            </>
+          ) : (
+            <Text style={{ fontSize: 10, color: '#94a3b8' }}>
+              尚未設定 Google 評論同步
+            </Text>
+          )}
         </View>
 
         {/* Footer */}

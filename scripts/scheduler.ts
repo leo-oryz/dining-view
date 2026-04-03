@@ -75,6 +75,20 @@ cron.schedule('0 3 * * *', async () => {
   }
 }, { timezone: 'Asia/Taipei' })
 
+// Google Reviews sync: Monday 04:00
+cron.schedule('0 4 * * 1', async () => {
+  console.log(`[scheduler] ${new Date().toISOString()} — Running Google Reviews sync`)
+  try {
+    const res = await fetch(`${BASE_URL}/api/reviews/sync`, {
+      method: 'POST',
+    })
+    const json = await res.json()
+    console.log('[scheduler] Google Reviews sync result:', json)
+  } catch (err) {
+    console.error('[scheduler] Google Reviews sync failed:', err)
+  }
+}, { timezone: 'Asia/Taipei' })
+
 // Weekly digest: Monday 08:00
 cron.schedule('0 8 * * 1', async () => {
   console.log(`[scheduler] ${new Date().toISOString()} — Sending weekly digest`)
@@ -95,6 +109,7 @@ console.log('  01:00 — Weather sync (CWA)')
 console.log('  02:00 — Google sync (GSC + GA4)')
 console.log('  02:45 — TikTok Ads sync')
 console.log('  03:00 — Anomaly detection + LINE alerts')
+console.log('  Mon 04:00 — Google Reviews sync (Apify)')
 console.log('  Mon 08:00 — Weekly digest email')
 console.log(`  Base URL: ${BASE_URL}`)
 console.log(`  Timezone: Asia/Taipei`)

@@ -11,6 +11,10 @@ interface DigestData {
   newMembers: number
   topProducts: { name: string; revenue: number }[]
   alertCount: number
+  reviewNewCount: number
+  reviewAvgRating: number | null
+  reviewPrevAvgRating: number | null
+  hasRatingDrop: boolean
 }
 
 export async function compileDigest(): Promise<DigestData> {
@@ -29,7 +33,7 @@ export async function compileDigest(): Promise<DigestData> {
   const prevEnd = format(prevSunday, 'yyyy-MM-dd')
 
   // Fetch all stores' sales for last week and previous week
-  const [lastWeekRes, prevWeekRes, productsRes, membersRes, alertsRes] = await Promise.all([
+  const [lastWeekRes, prevWeekRes, productsRes, membersRes, alertsRes, reviewSnapRes, prevReviewSnapRes] = await Promise.all([
     supabase
       .from('daily_sales')
       .select('net_sales')
@@ -57,6 +61,22 @@ export async function compileDigest(): Promise<DigestData> {
       .select('id')
       .gte('created_at', `${weekStart}T00:00:00`)
       .lte('created_at', `${weekEnd}T23:59:59`),
+    supabase
+      .from('google_review_snapshots')
+      .select('avg_rating, new_reviews_count')
+      .gte('snapshot_date', weekStart)
+      .lte('snapshot_date', weekEnd)
+      .order('snapshot_date', { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from('google_review_snapshots')
+      .select('avg_rating')
+      .gte('snapshot_date', prevStart)
+      .lte('snapshot_date', prevEnd)
+      .order('snapshot_date', { ascending: false })
+      .limit(1)
+      .single(),
   ])
 
   const totalRevenue = (lastWeekRes.data || []).reduce((sum, r) => sum + (Number(r.net_sales) || 0), 0)
@@ -78,6 +98,11 @@ export async function compileDigest(): Promise<DigestData> {
   const newMembers = (membersRes.data || []).reduce((sum, r) => sum + (Number(r.new_members) || 0), 0)
   const alertCount = alertsRes.data?.length || 0
 
+  const reviewNewCount = reviewSnapRes.data?.new_reviews_count || 0
+  const reviewAvgRating = reviewSnapRes.data?.avg_rating ? Number(reviewSnapRes.data.avg_rating) : null
+  const reviewPrevAvgRating = prevReviewSnapRes.data?.avg_rating ? Number(prevReviewSnapRes.data.avg_rating) : null
+  const hasRatingDrop = reviewAvgRating != null && reviewPrevAvgRating != null && reviewAvgRating < reviewPrevAvgRating - 0.3
+
   return {
     weekStart,
     weekEnd,
@@ -87,6 +112,10 @@ export async function compileDigest(): Promise<DigestData> {
     newMembers,
     topProducts,
     alertCount,
+    reviewNewCount,
+    reviewAvgRating,
+    reviewPrevAvgRating,
+    hasRatingDrop,
   }
 }
 
@@ -144,6 +173,16 @@ export async function sendDigest(): Promise<{ recipientCount: number; error?: st
       <div style="font-size: 20px; font-weight: bold;">${digest.alertCount}</div>
     </div>
   </div>
+
+  ${digest.reviewAvgRating != null ? `
+  <div style="background: ${digest.hasRatingDrop ? '#fef2f2' : '#f8fafc'}; border: 1px solid ${digest.hasRatingDrop ? '#fecaca' : '#e2e8f0'}; border-radius: 8px; padding: 16px; margin: 16px 0;">
+    <div style="font-size: 14px; color: #64748b;">Google 評論</div>
+    <div style="font-size: 20px; font-weight: bold; margin: 4px 0;">
+      ${digest.reviewAvgRating.toFixed(2)} ★ <span style="font-size: 14px; font-weight: normal; color: #64748b;">(${digest.reviewNewCount} 則新評論)</span>
+    </div>
+    ${digest.reviewPrevAvgRating != null ? `<div style="font-size: 14px; color: ${digest.reviewAvgRating >= digest.reviewPrevAvgRating ? '#16a34a' : '#dc2626'};">vs 上週: ${digest.reviewPrevAvgRating.toFixed(2)}</div>` : ''}
+    ${digest.hasRatingDrop ? '<div style="font-size: 14px; font-weight: bold; color: #dc2626; margin-top: 4px;">⚠️ 評分顯著下滑，請注意顧客反饋</div>' : ''}
+  </div>` : ''}
 
   <h3 style="font-size: 16px; margin-top: 20px;">Top 3 商品</h3>
   <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
