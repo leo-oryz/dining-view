@@ -1,5 +1,34 @@
 # Changelog
 
+## [6.0.0] — 2026-04-03 — Phase 6 Complete
+
+### Added
+- **Mobile Bottom Tab Bar**: 5-tab navigation (概覽/商品/會員/AI/上傳 + 更多) for < 1024px viewports
+- **Loading Skeletons**: `KpiSkeleton`, `ChartSkeleton`, `TableSkeleton` reusable components
+- **In-Memory Cache**: `lib/cache/queryCache.ts` with 1-hour TTL for aggregation queries
+- **Excel Export Page**: `/export` with date range picker and 4 dataset cards
+- **GET /api/export/daily-sales**: Daily sales Excel export with weather data
+- **GET /api/export/products**: Product sales Excel export by date range
+- **GET /api/export/orders**: Order aggregation Excel export
+- **GET /api/export/members**: Member snapshot Excel export with VIP tiers
+- **Expansion Dashboard**: Owner-only `/expansion` page with 5 visualization sections
+- **POST /api/ai/expansion**: AI expansion readiness analysis via Claude
+- **GET /api/members/demographics**: Latest member demographic data (gender, age, channels)
+- **Expansion Components**: `TimeSlotHeatmap`, `CategoryBreakdown`, `DemographicProfile`, `SeasonalHeatmap`, `ExpansionReport`
+- **Weekly Digest Email**: `lib/digest/weeklyDigest.ts` compiles KPIs and sends via Resend
+- **POST /api/digest/send**: Manual digest trigger endpoint
+- **Migration**: `007_performance_indexes.sql` — additional indexes for expansion/export queries
+- **Migration**: `008_weekly_digests.sql` — weekly digest send history table
+- **Dependencies**: `exceljs` for Excel generation, `resend` for email delivery
+
+### Changed
+- Layout: bottom tab bar on mobile, sidebar on desktop; all touch targets 44×44px minimum
+- Charts: `SalesLineChart` and `HourlyHeatmap` accept `height` prop with mobile defaults
+- Dashboard page: loading skeletons shown during data fetch
+- `claudeAnalyzer.ts`: added `expansion` report type with dedicated prompt and JSON schema
+- Scheduler: added Monday 08:00 weekly digest cron job
+- Sidebar: added 資料匯出, 展店分析 navigation items
+
 ## [5.0.0] — 2026-04-02 — Phase 5 Complete
 
 ### Added

@@ -5,7 +5,7 @@ import { SkuMargin } from './marginMatrix'
 
 const MAX_RETRIES = 2
 
-type ReportType = 'attribution' | 'star_products' | 'retire_candidates'
+type ReportType = 'attribution' | 'star_products' | 'retire_candidates' | 'expansion'
 
 export async function analyzeWithClaude(
   reportType: ReportType,
@@ -126,6 +126,25 @@ function getSystemPrompt(reportType: ReportType): string {
     }
   ]
 }`,
+    expansion: `${base}
+
+你正在協助餐飲集團評估展店準備度。根據現有店鋪的營運數據，分析並建議新店的最佳型態。
+
+輸出格式：
+{
+  "period": { "from": "YYYY-MM-DD", "to": "YYYY-MM-DD" },
+  "summary": "2-3 句展店準備度評估",
+  "strengths": ["string — 展店有利因素"],
+  "risks": ["string — 展店風險因素"],
+  "optimal_format": "string — 建議店型，例如 外帶為主、60席以下",
+  "target_demographic": "string — 目標客群描述",
+  "recommended_hours": "string — 建議營業時段",
+  "revenue_benchmark": {
+    "daily_avg": number,
+    "per_seat_daily": number
+  },
+  "recommendations": ["string — 具體建議行動"]
+}`,
   }
 
   return schemas[reportType]
@@ -222,6 +241,15 @@ function buildPrompt(
     for (const m of ctx.memberSnapshots) {
       sections.push(`${m.snapshot_date} | ${m.total_members ?? '-'} | ${m.new_members ?? '-'}`)
     }
+  }
+
+  if (reportType === 'expansion') {
+    sections.push('\n請根據以上數據評估展店準備度，重點關注：')
+    sections.push('1. 哪些時段表現最佳（從每日營收和商品銷售推斷）')
+    sections.push('2. 哪些商品類別是核心營收來源')
+    sections.push('3. 會員結構是否健康（回訪率、新客佔比）')
+    sections.push('4. 營收穩定性和季節性趨勢')
+    sections.push('5. 新店應該採取什麼型態（外帶、內用、複合）')
   }
 
   sections.push('\n請根據以上數據產生分析報告 JSON。')

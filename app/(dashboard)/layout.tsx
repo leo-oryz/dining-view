@@ -23,11 +23,21 @@ import {
   FileText,
   Bell,
   Settings,
+  Download,
+  Building2,
+  type LucideIcon,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { createClient } from '@/lib/supabase/client'
 
-const navItems = [
+interface NavItem {
+  href: string
+  label: string
+  icon: LucideIcon
+  ownerOnly?: boolean
+}
+
+const navItems: NavItem[] = [
   { href: '/dashboard', label: '今日概覽', icon: LayoutDashboard },
   { href: '/heatmap', label: '時段分析', icon: Clock },
   { href: '/products', label: '商品排行', icon: ShoppingBag },
@@ -37,12 +47,23 @@ const navItems = [
   { href: '/line', label: 'LINE 推播', icon: MessageSquare },
   { href: '/ads', label: '廣告管理', icon: BarChart3 },
   { href: '/delivery', label: '外送平台', icon: Truck },
+  { href: '/export', label: '資料匯出', icon: Download },
   { href: '/compare', label: '跨店對比', icon: GitCompareArrows, ownerOnly: true },
   { href: '/reports', label: '投資人報告', icon: FileText, ownerOnly: true },
+  { href: '/expansion', label: '展店分析', icon: Building2, ownerOnly: true },
   { href: '/alerts', label: '異常警報', icon: Bell },
   { href: '/campaigns', label: '活動管理', icon: Megaphone },
   { href: '/upload', label: '資料上傳', icon: Upload },
   { href: '/settings', label: '系統設定', icon: Settings, ownerOnly: true },
+]
+
+// Bottom tab bar items for mobile (5 most-used)
+const mobileTabItems: NavItem[] = [
+  { href: '/dashboard', label: '概覽', icon: LayoutDashboard },
+  { href: '/products', label: '商品', icon: ShoppingBag },
+  { href: '/members', label: '會員', icon: Users },
+  { href: '/ai', label: 'AI', icon: Brain },
+  { href: '/upload', label: '上傳', icon: Upload },
 ]
 
 type UserProfile = {
@@ -110,8 +131,12 @@ export default function DashboardLayout({
 
   const activeStoreName = stores.find((s) => s.id === activeStore)?.name || 'BE& 西門'
 
+  const filteredNavItems = navItems.filter(
+    (item) => !item.ownerOnly || profile?.role === 'owner'
+  )
+
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -120,7 +145,7 @@ export default function DashboardLayout({
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — desktop only (>= 1024px), or slide-in on mobile when open */}
       <aside
         className={clsx(
           'fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-800 text-slate-200 transform transition-transform lg:transform-none',
@@ -133,7 +158,7 @@ export default function DashboardLayout({
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-slate-400 hover:text-white"
+            className="lg:hidden text-slate-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <X size={20} />
           </button>
@@ -144,7 +169,7 @@ export default function DashboardLayout({
           <div className="px-3 mt-3 relative">
             <button
               onClick={() => setStoreDropdownOpen(!storeDropdownOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-slate-700 rounded-lg text-sm text-white hover:bg-slate-600 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2 bg-slate-700 rounded-lg text-sm text-white hover:bg-slate-600 transition-colors min-h-[44px]"
             >
               <span className="truncate">{activeStoreName}</span>
               <ChevronDown size={16} className={clsx('transition-transform', storeDropdownOpen && 'rotate-180')} />
@@ -159,7 +184,7 @@ export default function DashboardLayout({
                       setStoreDropdownOpen(false)
                     }}
                     className={clsx(
-                      'w-full text-left px-3 py-2 text-sm transition-colors',
+                      'w-full text-left px-3 py-2 text-sm transition-colors min-h-[44px]',
                       store.id === activeStore
                         ? 'bg-blue-600 text-white'
                         : 'text-slate-300 hover:bg-slate-600'
@@ -173,29 +198,27 @@ export default function DashboardLayout({
           </div>
         )}
 
-        <nav className="mt-4 px-3 space-y-1">
-          {navItems
-            .filter((item) => !item.ownerOnly || profile?.role === 'owner')
-            .map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={clsx(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                  )}
-                >
-                  <Icon size={18} />
-                  {item.label}
-                </Link>
-              )
-            })}
+        <nav className="mt-4 px-3 space-y-1 overflow-y-auto max-h-[calc(100vh-180px)]">
+          {filteredNavItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={clsx(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
+                  isActive
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                )}
+              >
+                <Icon size={18} />
+                {item.label}
+              </Link>
+            )
+          })}
         </nav>
 
         <div className="absolute bottom-4 left-0 right-0 px-3">
@@ -205,7 +228,7 @@ export default function DashboardLayout({
             </div>
             <button
               onClick={handleLogout}
-              className="text-slate-500 hover:text-white transition-colors"
+              className="text-slate-500 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               title="登出"
             >
               <LogOut size={16} />
@@ -220,7 +243,7 @@ export default function DashboardLayout({
         <header className="h-16 bg-white border-b border-slate-200 flex items-center px-4 lg:px-6">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden mr-4 text-slate-600 hover:text-slate-900"
+            className="lg:hidden mr-4 text-slate-600 hover:text-slate-900 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Menu size={24} />
           </button>
@@ -229,11 +252,44 @@ export default function DashboardLayout({
           </h2>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        {/* Page content — add bottom padding on mobile for tab bar */}
+        <main className="flex-1 p-4 lg:p-6 overflow-auto pb-20 lg:pb-6">
           {children}
         </main>
       </div>
+
+      {/* Mobile bottom tab bar — visible only on < 1024px */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 lg:hidden">
+        <div className="flex items-center justify-around h-16">
+          {mobileTabItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={clsx(
+                  'flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2',
+                  isActive ? 'text-blue-600' : 'text-slate-400'
+                )}
+              >
+                <Icon size={20} />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            )
+          })}
+          {/* More menu — opens sidebar */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className={clsx(
+              'flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 text-slate-400'
+            )}
+          >
+            <Menu size={20} />
+            <span className="text-[10px] font-medium">更多</span>
+          </button>
+        </div>
+      </nav>
     </div>
   )
 }

@@ -91,3 +91,22 @@
 ### Cloudbeds API
 - `hotel_guest_mappings` table needed a UNIQUE constraint on `(store_id, hotel_booking_id)` for upsert — was missing in Phase 1 schema, added in migration 006.
 - Phone normalization critical: Taiwan mobile numbers may come as +886, 886, or 09xx — normalize to 09xx format for matching.
+
+## Phase 6
+
+### Excel Export
+- Use `exceljs` (not `xlsx`) for server-side Excel generation — it has better streaming support and TypeScript types.
+- `ExcelJS.Workbook.xlsx.writeBuffer()` returns an `ArrayBuffer` — wrap with `Buffer.from()` before passing to `Response`.
+- Always validate date range server-side (max 366 days) to prevent memory issues with large exports.
+
+### Mobile Layout
+- Bottom tab bar needs `pb-20` (bottom padding) on main content to prevent overlap with fixed tab bar.
+- `typeof window !== 'undefined'` check needed when accessing `window.innerWidth` in chart height defaults — SSR will fail otherwise.
+- Touch target minimum 44×44px: use `min-w-[44px] min-h-[44px]` on all interactive elements.
+
+### Dynamic Imports
+- `next/dynamic` with `{ ssr: false }` is needed for Recharts components in dynamically imported expansion charts — prevents hydration mismatches from window-dependent height calculations.
+
+### Weekly Digest
+- Resend SDK `emails.send` accepts array of emails in `to` field — no need to loop per recipient.
+- `date-fns` `startOfWeek` with `{ weekStartsOn: 1 }` gives Monday — default is Sunday.

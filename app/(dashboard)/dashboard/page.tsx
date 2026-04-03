@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { KpiCard } from '@/components/dashboard/KpiCard'
 import { SalesLineChart } from '@/components/charts/SalesLineChart'
+import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
 import { DollarSign, Users, ShoppingCart, TrendingUp } from 'lucide-react'
 import { format, subDays } from 'date-fns'
 
@@ -38,6 +39,19 @@ export default function DashboardPage() {
   const calcChange = (current: number | null, previous: number | null) => {
     if (!current || !previous || previous === 0) return null
     return ((current - previous) / previous) * 100
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <KpiSkeleton key={i} />
+          ))}
+        </div>
+        <ChartSkeleton />
+      </div>
+    )
   }
 
   return (

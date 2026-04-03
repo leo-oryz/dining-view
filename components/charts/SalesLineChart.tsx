@@ -19,9 +19,10 @@ interface DataPoint {
 
 interface SalesLineChartProps {
   data: DataPoint[]
+  height?: number
 }
 
-export function SalesLineChart({ data }: SalesLineChartProps) {
+export function SalesLineChart({ data, height }: SalesLineChartProps) {
   const chartData = data
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -40,7 +41,7 @@ export function SalesLineChart({ data }: SalesLineChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={height ?? (typeof window !== 'undefined' && window.innerWidth < 640 ? 200 : 300)}>
       <LineChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#94a3b8" />
