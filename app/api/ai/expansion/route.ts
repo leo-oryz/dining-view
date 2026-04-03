@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient()
 
-    const [context, basketPairs, marginMatrix] = await Promise.all([
+    const [context, basketResult, marginMatrix] = await Promise.all([
       prepareAnalysisContext(supabase, storeId, start, end),
       getTopProductPairs(supabase, storeId),
       getMarginMatrix(supabase, storeId, start, end),
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const reportJson = await analyzeWithClaude(
       'expansion',
       context,
-      basketPairs,
+      basketResult.pairs,
       marginMatrix
     )
 
