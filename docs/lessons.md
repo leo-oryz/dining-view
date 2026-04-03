@@ -110,3 +110,17 @@
 ### Weekly Digest
 - Resend SDK `emails.send` accepts array of emails in `to` field — no need to loop per recipient.
 - `date-fns` `startOfWeek` with `{ weekStartsOn: 1 }` gives Monday — default is Sunday.
+
+### Playwright Download Agent
+- eat365 (eats365pos.com) requires MFA on every new browser session. Must save session via `storageState` after manual MFA, then reuse the session JSON file for subsequent runs.
+- eat365 login page uses `div.sign-in-btn` (not `button[type="submit"]`), username field is `#username`, password is `#password`.
+- eat365 report URLs accept date params directly: `&startDate=YYYY-MM-DD+00:00&endDate=YYYY-MM-DD+23:59` — no need to interact with the readonly date picker UI.
+- eat365 Transaction Report page is protected by Cloudflare Turnstile (bot protection). Cannot be automated — all API endpoints for this report return Turnstile redirect. Other 3 reports (Sales Summary, Hourly Sales, Sales by Item) work fine.
+- eat365 date input fields are `readonly` — cannot use `page.fill()`. Use URL params instead.
+- Ocard (crm.ocard.co) login uses `input[name="acc"]` and `input[name="pwd"]`, submit button is `button:has-text("登入")`.
+- Ocard sidebar nav items are outside viewport in headless mode. Use direct page URLs (e.g. `https://crm.ocard.co/Dashboard`) instead of clicking sidebar links.
+- Ocard date range picker uses jQuery `daterangepicker` plugin. Set dates via `$('input[name="range"]').data('daterangepicker').setStartDate()` in `page.evaluate()` rather than interacting with the picker UI.
+- Ocard analysis pages (會員招募, 顧客消費, RFM) are on a different domain (`console.ocard.co`) but share the session cookie with `crm.ocard.co`.
+- Ocard 儀表板 xlsx "明細" sheet has header at row 2 (0-indexed row 1), data from row 3 (0-indexed row 2). Parser must start loop at index 2, not 3.
+- Upload API endpoints require middleware bypass — added `/api/upload` to `publicPaths` in middleware.ts so the agent can POST without Supabase Auth session.
+- Use `waitUntil: 'domcontentloaded'` with optional `waitForLoadState('networkidle').catch(() => {})` instead of `waitUntil: 'networkidle'` alone — some pages never reach networkidle due to analytics/tracking scripts.
