@@ -1,8 +1,11 @@
-import { chromium, type Browser, type Page } from 'playwright'
+import { chromium, type Browser, type BrowserContext } from 'playwright'
 import path from 'path'
 import fs from 'fs'
 
 const DOWNLOAD_DIR = path.join(__dirname, 'downloads')
+const SESSION_FILE = path.join(__dirname, 'eat365-session.json')
+const BASE_URL = 'https://mpphk.eats365pos.com'
+const RESTAURANT_PARAMS = 'restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072'
 
 export type DownloadedFile = {
   reportType: string
@@ -22,80 +25,87 @@ async function ensureDownloadDir() {
   }
 }
 
-async function login(page: Page, credentials?: StoreCredentials) {
-  const email = credentials?.email || process.env.EAT365_LOGIN_EMAIL
-  const password = credentials?.password || process.env.EAT365_LOGIN_PASSWORD
-
-  if (!email || !password) {
-    throw new Error('EAT365 login credentials required (via store config or env vars)')
-  }
-
-  await page.goto('https://mpphk.eats365pos.com/sign-in', { waitUntil: 'networkidle' })
-  await page.fill('#username', email)
-  await page.fill('#password', password)
-  await page.click('div.sign-in-btn')
-  await page.waitForNavigation({ waitUntil: 'networkidle' })
-}
-
 function getYesterday(): string {
   const d = new Date()
   d.setDate(d.getDate() - 1)
   return d.toISOString().slice(0, 10)
 }
 
-/**
- * Download all 4 eat365 reports for yesterday.
- * This is a template — actual selectors need to be adapted to the eat365 backend UI.
- */
+async function createContext(browser: Browser): Promise<BrowserContext> {
+  // Use saved session if available
+  if (fs.existsSync(SESSION_FILE)) {
+    console.log('[eat365] Using saved session')
+    return browser.newContext({
+      storageState: SESSION_FILE,
+      viewport: { width: 1280, height: 900 },
+      acceptDownloads: true,
+    })
+  }
+  return browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    acceptDownloads: true,
+  })
+}
+
 export async function downloadEat365Reports(options?: { storeId?: string; credentials?: StoreCredentials }): Promise<DownloadedFile[]> {
   await ensureDownloadDir()
   const yesterday = getYesterday()
   const files: DownloadedFile[] = []
   let browser: Browser | null = null
 
+  // Note: eat365-transactions (Transaction Report) is protected by Cloudflare
+  // Turnstile and cannot be automated. Must be downloaded manually.
+  const reports = [
+    { type: 'eat365-summary', path: '/v2/report/sales_summary' },
+    { type: 'eat365-hourly', path: '/v2/report/sales/hourly_sales_report' },
+    { type: 'eat365-items', path: '/v2/report/sales/sales_by_items' },
+  ]
+
   try {
     browser = await chromium.launch({ headless: true })
-    const context = await browser.newContext({ acceptDownloads: true })
+    const context = await createContext(browser)
     const page = await context.newPage()
-
-    await login(page, options?.credentials)
-
-    // Report configurations — selectors are placeholders to be adapted
-    const reports = [
-      { type: 'eat365-summary', nav: '營業報表', sub: '營業總表', ext: '.xlsx' },
-      { type: 'eat365-hourly', nav: '營業報表', sub: '時段營業報表', ext: '.xls' },
-      { type: 'eat365-items', nav: '營業報表', sub: '商品銷售報表', ext: '.xls' },
-      { type: 'eat365-transactions', nav: '營業報表', sub: '交易明細', ext: '.csv' },
-    ]
 
     for (const report of reports) {
       try {
-        // Navigate to report page
-        await page.click(`text=${report.nav}`)
-        await page.click(`text=${report.sub}`)
-        await page.waitForLoadState('networkidle')
+        const url = `${BASE_URL}${report.path}?${RESTAURANT_PARAMS}&startDate=${yesterday}+00:00&endDate=${yesterday}+23:59`
+        console.log(`[eat365] Loading ${report.type}...`)
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+        await page.waitForLoadState('networkidle').catch(() => {})
 
-        // Set date range to yesterday
-        const dateInputs = page.locator('input[type="date"]')
-        if (await dateInputs.count() >= 2) {
-          await dateInputs.nth(0).fill(yesterday)
-          await dateInputs.nth(1).fill(yesterday)
+        // Check if redirected to login (session expired)
+        if (page.url().includes('/sign-in')) {
+          throw new Error('Session expired — please re-run _save_session.ts to refresh MFA')
         }
 
-        // Click search/query button
-        const searchBtn = page.locator('button:has-text("查詢"), button:has-text("搜尋")')
-        if (await searchBtn.count() > 0) {
-          await searchBtn.first().click()
-          await page.waitForLoadState('networkidle')
+        // Wait for data to load
+        await page.waitForTimeout(3000)
+
+        // Some reports (e.g. Transaction Report) need a Submit button click first
+        const submitBtn = page.locator('button:has-text("Submit")')
+        if (await submitBtn.count() > 0 && await submitBtn.isVisible().catch(() => false)) {
+          // Wait for any loading overlay to disappear
+          await page.locator('.vl-background').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {})
+          await submitBtn.click({ force: true })
+          await page.waitForTimeout(5000)
+          await page.waitForLoadState('networkidle').catch(() => {})
         }
 
-        // Click export/download button
+        // Click Export button
+        const exportBtn = page.locator('button:has-text("Export")')
+        if (await exportBtn.count() === 0) {
+          console.warn(`[eat365] No Export button found for ${report.type}`)
+          continue
+        }
+
         const [download] = await Promise.all([
-          page.waitForEvent('download'),
-          page.click('button:has-text("匯出"), button:has-text("下載"), a:has-text("匯出")'),
+          page.waitForEvent('download', { timeout: 15000 }),
+          exportBtn.first().click(),
         ])
 
-        const fileName = `${report.type}_${yesterday}${report.ext}`
+        const suggestedName = download.suggestedFilename()
+        const ext = path.extname(suggestedName) || '.xlsx'
+        const fileName = `${report.type}_${yesterday}${ext}`
         const filePath = path.join(DOWNLOAD_DIR, fileName)
         await download.saveAs(filePath)
 
