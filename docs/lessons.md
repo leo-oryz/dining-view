@@ -56,6 +56,7 @@
 - Use retry (up to 2 retries) for JSON parse failures — Claude may occasionally return malformed JSON on first attempt.
 - Prompt assembly should use pipe-delimited tables for data context — structured enough for Claude to understand, compact enough to fit in context.
 - Limit product sales to top 50 and margin matrix to top 40 in prompts to avoid exceeding token limits.
+- Always defensively parse AI-generated JSON — never trust that Claude returns exact types matching the schema. Use runtime coercion (`Number()`) for numeric fields and ensure arrays are actually arrays before calling `.toFixed()` or `.slice()` in UI components.
 
 ### Recharts TypeScript
 - Recharts v3 Tooltip `formatter` prop types are strict. Don't annotate callback parameter types (e.g. `(val: number)`) — use `(val)` and cast with `Number(val)` inside the callback.
