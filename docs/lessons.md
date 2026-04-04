@@ -144,3 +144,13 @@
 - `weather_code` column is always null in current sync logic; weather classification (sunny/rainy/typhoon) is derived at runtime from `description` text via `weatherUtils.getWeatherType()`.
 - When adding weather overlays to Recharts ComposedChart, dual Y-axes require explicit `yAxisId` on ALL chart elements (bars, lines, reference lines) — omitting it causes silent render failures.
 - `CWA_API_KEY` in `.env.local` was commented out — weather sync returns null without it. Check env config before debugging empty weather_daily table.
+
+### LINE Messaging API Broadcast
+- LINE Messaging API broadcast endpoint (`/v2/bot/message/broadcast`) sends to ALL friends — no user ID needed. Different from push endpoint which requires individual `to` user ID.
+- Broadcast API returns `200 {}` on success with empty body — don't try to parse response JSON for data.
+- `LINE_CHANNEL_ACCESS_TOKEN` for broadcast bot is different from the one used for alert push notifications. Keep them separate in env config.
+
+### Alert Notifications — LINE to Email Migration
+- Replaced `lineNotifier.ts` (LINE push to single user) with `emailNotifier.ts` (Resend email to configurable recipients).
+- Alert email recipients are stored in `alert_settings` table (per-store, `TEXT[]` column for email list) — not derived from `users` table roles.
+- `Array.from(new Set(...))` instead of `[...new Set(...)]` to avoid TypeScript `downlevelIteration` errors when target < ES2015.
