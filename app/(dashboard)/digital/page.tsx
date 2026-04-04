@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { TrendingUp, Search, MousePointerClick, Users, ArrowUpRight, ArrowDownRight, type LucideIcon } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { TrendingUp, Search, MousePointerClick, Users, ArrowUpRight, ArrowDownRight, Calendar, type LucideIcon } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
 } from 'recharts'
@@ -61,26 +61,36 @@ const RANGE_OPTIONS = [
   { label: '近 180 天', days: 180 },
 ] as const
 
+function toDateStr(d: Date) {
+  return d.toISOString().slice(0, 10)
+}
+
+function defaultEnd() {
+  const d = new Date()
+  d.setDate(d.getDate() - 3)
+  return d
+}
+
 export default function DigitalPage() {
   const [gscData, setGscData] = useState<GscRow[]>([])
   const [ga4Data, setGa4Data] = useState<Ga4Row[]>([])
   const [conversionData, setConversionData] = useState<ConversionRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [rangeDays, setRangeDays] = useState(30)
+  const [activePreset, setActivePreset] = useState<number | null>(30)
 
-  const loadData = useCallback(async (days: number) => {
+  const end = defaultEnd()
+  const start = new Date(end)
+  start.setDate(start.getDate() - 30)
+  const [startDate, setStartDate] = useState(toDateStr(start))
+  const [endDate, setEndDate] = useState(toDateStr(end))
+  const prevRange = useRef(`${toDateStr(start)}|${toDateStr(end)}`)
+
+  const loadData = useCallback(async (sd: string, ed: string) => {
     setLoading(true)
-    const end = new Date()
-    end.setDate(end.getDate() - 3)
-    const start = new Date(end)
-    start.setDate(start.getDate() - days)
-    const startStr = start.toISOString().slice(0, 10)
-    const endStr = end.toISOString().slice(0, 10)
-
     const [gscRes, ga4Res, convRes] = await Promise.all([
-      fetch(`/api/google/gsc/brand-search?start_date=${startStr}&end_date=${endStr}`),
-      fetch(`/api/google/ga4/events?start_date=${startStr}&end_date=${endStr}`),
-      fetch(`/api/google/conversion?start_date=${startStr}&end_date=${endStr}`),
+      fetch(`/api/google/gsc/brand-search?start_date=${sd}&end_date=${ed}`),
+      fetch(`/api/google/ga4/events?start_date=${sd}&end_date=${ed}`),
+      fetch(`/api/google/conversion?start_date=${sd}&end_date=${ed}`),
     ])
 
     const [gscJson, ga4Json, convJson] = await Promise.all([
@@ -94,8 +104,26 @@ export default function DigitalPage() {
   }, [])
 
   useEffect(() => {
-    loadData(rangeDays)
-  }, [rangeDays, loadData])
+    const key = `${startDate}|${endDate}`
+    if (key !== prevRange.current) {
+      prevRange.current = key
+      loadData(startDate, endDate)
+    }
+  }, [startDate, endDate, loadData])
+
+  useEffect(() => {
+    loadData(startDate, endDate)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function selectPreset(days: number) {
+    setActivePreset(days)
+    const e = defaultEnd()
+    const s = new Date(e)
+    s.setDate(s.getDate() - days)
+    setStartDate(toDateStr(s))
+    setEndDate(toDateStr(e))
+  }
 
   // Aggregate GSC data by date for chart
   const gscByDate = gscData.reduce<Record<string, { clicks: number; impressions: number }>>((acc, row) => {
@@ -166,13 +194,13 @@ export default function DigitalPage() {
   return (
     <div className="space-y-6">
       {/* Date Range Selector */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {RANGE_OPTIONS.map((opt) => (
           <button
             key={opt.days}
-            onClick={() => setRangeDays(opt.days)}
+            onClick={() => selectPreset(opt.days)}
             className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              rangeDays === opt.days
+              activePreset === opt.days
                 ? 'bg-blue-600 text-white'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
@@ -180,6 +208,22 @@ export default function DigitalPage() {
             {opt.label}
           </button>
         ))}
+        <div className="flex items-center gap-1.5 ml-2">
+          <Calendar size={16} className="text-slate-400" />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => { setStartDate(e.target.value); setActivePreset(null) }}
+            className="px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-700"
+          />
+          <span className="text-slate-400 text-sm">—</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => { setEndDate(e.target.value); setActivePreset(null) }}
+            className="px-2 py-1.5 text-sm border border-slate-200 rounded-lg bg-white text-slate-700"
+          />
+        </div>
       </div>
 
       {/* KPI Cards */}
