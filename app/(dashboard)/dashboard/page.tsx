@@ -88,7 +88,7 @@ export default function DashboardPage() {
       ) : null}
 
       {/* KPI Cards */}
-      <div className="flex items-center justify-between mb--2">
+      <div className="flex items-center justify-between -mb-2">
         <h2 className="text-lg font-semibold text-slate-900">最新概覽</h2>
         {latestDate && (
           <span className="text-sm text-slate-500">資料日期：{latestDate}</span>
