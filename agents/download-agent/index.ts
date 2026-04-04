@@ -86,7 +86,7 @@ async function runForStore(store: StoreConfig, isDryRun: boolean, targetDate?: s
   if (!isDryRun) {
     console.log(`[agent] [${store.name}] Uploading ${allFiles.length} files...`)
     for (const file of allFiles) {
-      const result = await uploadFile(file.reportType, file.filePath, file.storeId)
+      const result = await uploadFile(file.reportType, file.filePath, file.storeId, file.date)
       if (!result.success) {
         const msg = `[agent] [${store.name}] Upload failed for ${file.reportType}: ${result.error}`
         console.error(msg)

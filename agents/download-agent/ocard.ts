@@ -9,6 +9,7 @@ export type DownloadedFile = {
   filePath: string
   fileName: string
   storeId?: string
+  date?: string
 }
 
 export type StoreCredentials = {
@@ -148,7 +149,7 @@ export async function downloadOcardReports(options?: {
             const fileName = `${report.type}_${dateStr}${ext}`
             const filePath = path.join(DOWNLOAD_DIR, fileName)
             await download.saveAs(filePath)
-            files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId })
+            files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId, date: dateStr })
             console.log(`[ocard] Downloaded: ${fileName}`)
             downloaded = true
           }
@@ -180,7 +181,7 @@ export async function downloadOcardReports(options?: {
                 const fileName = `${report.type}_${dateStr}${ext}`
                 const filePath = path.join(DOWNLOAD_DIR, fileName)
                 await download.saveAs(filePath)
-                files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId })
+                files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId, date: dateStr })
                 console.log(`[ocard] Downloaded: ${fileName}`)
                 downloaded = true
                 break

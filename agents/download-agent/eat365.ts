@@ -12,6 +12,7 @@ export type DownloadedFile = {
   filePath: string
   fileName: string
   storeId?: string
+  date?: string
 }
 
 export type StoreCredentials = {
@@ -100,7 +101,7 @@ export async function downloadEat365Reports(options?: {
         const filePath = path.join(DOWNLOAD_DIR, fileName)
         await download.saveAs(filePath)
 
-        files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId })
+        files.push({ reportType: report.type, filePath, fileName, storeId: options?.storeId, date: dateStr })
         console.log(`[eat365] Downloaded: ${fileName}`)
       } catch (err) {
         console.error(`[eat365] Failed to download ${report.type}:`, err)

@@ -70,7 +70,7 @@ async function backfill() {
     // Upload
     if (!dryRun && allFiles.length > 0) {
       for (const file of allFiles) {
-        const result = await uploadFile(file.reportType, file.filePath, file.storeId)
+        const result = await uploadFile(file.reportType, file.filePath, file.storeId, file.date)
         if (result.success) {
           totalUploaded++
         } else {

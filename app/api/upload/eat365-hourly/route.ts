@@ -12,11 +12,14 @@ export async function POST(request: NextRequest) {
 
     const storeId = formData.get('store_id') as string || DEFAULT_STORE_ID
 
-    // Extract date from filename: Hourly_Sales_Report+202603310000-...
+    // Accept explicit date from form data (agent upload), or extract from filename
+    const formDate = formData.get('date') as string | null
     const dateMatch = file.name.match(/(\d{4})(\d{2})(\d{2})\d{4}-/)
-    const date = dateMatch
-      ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
-      : new Date().toISOString().split('T')[0]
+    const agentDateMatch = file.name.match(/(\d{4}-\d{2}-\d{2})/)
+    const date = formDate
+      || (dateMatch ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}` : null)
+      || (agentDateMatch ? agentDateMatch[1] : null)
+      || new Date().toISOString().split('T')[0]
 
     const buffer = await file.arrayBuffer()
     const { data, errors } = parseEat365Hourly(buffer)
