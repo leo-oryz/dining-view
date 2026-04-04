@@ -61,6 +61,12 @@ export interface ReportRecord {
   created_at: string
 }
 
+function toNum(v: unknown, fallback = 0): number {
+  if (typeof v === 'number' && !isNaN(v)) return v
+  const n = Number(v)
+  return isNaN(n) ? fallback : n
+}
+
 export function parseAttributionReport(content: unknown): AttributionReport | null {
   try {
     const c = content as AttributionReport
@@ -68,7 +74,13 @@ export function parseAttributionReport(content: unknown): AttributionReport | nu
     return {
       period: c.period,
       summary: c.summary,
-      anomalies: Array.isArray(c.anomalies) ? c.anomalies : [],
+      anomalies: Array.isArray(c.anomalies)
+        ? c.anomalies.map((a) => ({
+            ...a,
+            revenue_delta_pct: toNum(a.revenue_delta_pct),
+            confidence: (['high', 'medium', 'low'].includes(a.confidence) ? a.confidence : 'low') as 'high' | 'medium' | 'low',
+          }))
+        : [],
       top_drivers: Array.isArray(c.top_drivers) ? c.top_drivers : [],
       recommendations: Array.isArray(c.recommendations) ? c.recommendations : [],
     }
@@ -84,7 +96,14 @@ export function parseStarProductsReport(content: unknown): StarProductsReport | 
     return {
       period: c.period,
       summary: c.summary,
-      stars: Array.isArray(c.stars) ? c.stars : [],
+      stars: Array.isArray(c.stars)
+        ? c.stars.map((s) => ({
+            ...s,
+            gross_margin: toNum(s.gross_margin),
+            qty_trend_pct: toNum(s.qty_trend_pct),
+            basket_affinity: Array.isArray(s.basket_affinity) ? s.basket_affinity : [],
+          }))
+        : [],
     }
   } catch {
     return null
@@ -98,7 +117,14 @@ export function parseRetireCandidatesReport(content: unknown): RetireCandidatesR
     return {
       period: c.period,
       summary: c.summary,
-      candidates: Array.isArray(c.candidates) ? c.candidates : [],
+      candidates: Array.isArray(c.candidates)
+        ? c.candidates.map((d) => ({
+            ...d,
+            gross_margin: toNum(d.gross_margin),
+            qty_trend_pct: toNum(d.qty_trend_pct),
+            verdict: (['retire', 'caution', 'monitor'].includes(d.verdict) ? d.verdict : 'monitor') as 'retire' | 'caution' | 'monitor',
+          }))
+        : [],
     }
   } catch {
     return null
