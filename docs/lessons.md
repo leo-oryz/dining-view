@@ -137,3 +137,10 @@
 
 ### Deployment (Zeabur) — Uncommitted Changes
 - Zeabur deploys from git, not local files. If local changes aren't committed and pushed, the remote build uses stale code. Always verify uncommitted changes (`git status`) before troubleshooting Zeabur build failures — the fix may already exist locally but hasn't been pushed.
+
+### Weather Integration
+- CWA observation API (`O-A0001-001`) returns real-time temperature, not daily max/min — `temp_high` and `temp_low` will be the same value. To get true high/low, would need the daily climate report API (`C-B0024-001`).
+- CWA API doesn't support historical queries — can only sync current/recent data. Historical backfill requires a different API endpoint or manual CSV import from CWA website.
+- `weather_code` column is always null in current sync logic; weather classification (sunny/rainy/typhoon) is derived at runtime from `description` text via `weatherUtils.getWeatherType()`.
+- When adding weather overlays to Recharts ComposedChart, dual Y-axes require explicit `yAxisId` on ALL chart elements (bars, lines, reference lines) — omitting it causes silent render failures.
+- `CWA_API_KEY` in `.env.local` was commented out — weather sync returns null without it. Check env config before debugging empty weather_daily table.
