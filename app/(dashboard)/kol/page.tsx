@@ -41,13 +41,13 @@ interface KolCollaboration {
   kol_name: string
   kol_handle: string | null
   collaboration_date: string
-  featured_products: string[]
+  featured_products: string[] | null
   collaboration_fee: number | null
   fee_type: string | null
   responsible_staff: string | null
   notes: string | null
   status: string
-  kol_posts: KolPost[]
+  kol_posts: KolPost[] | null
 }
 
 interface PerformanceRow {
@@ -277,7 +277,7 @@ export default function KolPage() {
 
   const thisMonthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd')
   const monthCollabs = collabs.filter(c => c.collaboration_date >= thisMonthStart)
-  const monthPosts = monthCollabs.flatMap(c => c.kol_posts)
+  const monthPosts = monthCollabs.flatMap(c => c.kol_posts || [])
   const monthViews = monthPosts.reduce((s, p) => s + (p.views || 0), 0)
   const monthLikes = monthPosts.reduce((s, p) => s + (p.likes || 0), 0)
   const monthComments = monthPosts.reduce((s, p) => s + (p.comments || 0), 0)
@@ -552,9 +552,9 @@ export default function KolPage() {
                           <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded">完成</span>
                         )}
                       </div>
-                      {collab.featured_products.length > 0 && (
+                      {(collab.featured_products || []).length > 0 && (
                         <div className="flex gap-1 mt-1 flex-wrap">
-                          {collab.featured_products.map((p, i) => (
+                          {(collab.featured_products || []).map((p, i) => (
                             <span key={i} className="text-xs bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded">
                               {p}
                             </span>
@@ -677,7 +677,7 @@ export default function KolPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 flex-wrap">
-                        {row.platforms.map(p => (
+                        {(row.platforms || []).map(p => (
                           <span key={p} className={`px-1.5 py-0.5 rounded text-xs ${PLATFORM_COLORS[p]}`}>
                             {PLATFORM_LABELS[p]}
                           </span>
