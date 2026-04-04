@@ -33,8 +33,8 @@ export default function DashboardPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const today = data[0]
-  const yesterday = data[1]
+  const latest = data[0]
+  const previous = data[1]
 
   const calcChange = (current: number | null, previous: number | null) => {
     if (!current || !previous || previous === 0) return null
@@ -54,36 +54,46 @@ export default function DashboardPage() {
     )
   }
 
+  const latestDate = latest?.date
+    ? format(new Date(latest.date + 'T00:00:00'), 'yyyy/MM/dd')
+    : null
+
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
+      <div className="flex items-center justify-between mb--2">
+        <h2 className="text-lg font-semibold text-slate-900">最新概覽</h2>
+        {latestDate && (
+          <span className="text-sm text-slate-500">資料日期：{latestDate}</span>
+        )}
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
-          title="今日淨銷售額"
-          value={today?.net_sales != null ? `NT$${today.net_sales.toLocaleString()}` : '--'}
-          change={calcChange(today?.net_sales ?? null, yesterday?.net_sales ?? null)}
-          changeLabel="vs 昨天"
+          title="淨銷售額"
+          value={latest?.net_sales != null ? `NT$${latest.net_sales.toLocaleString()}` : '--'}
+          change={calcChange(latest?.net_sales ?? null, previous?.net_sales ?? null)}
+          changeLabel="vs 前一天"
           icon={<DollarSign size={20} />}
         />
         <KpiCard
-          title="今日來客數"
-          value={today?.guests != null ? today.guests.toLocaleString() : '--'}
-          change={calcChange(today?.guests ?? null, yesterday?.guests ?? null)}
-          changeLabel="vs 昨天"
+          title="來客數"
+          value={latest?.guests != null ? latest.guests.toLocaleString() : '--'}
+          change={calcChange(latest?.guests ?? null, previous?.guests ?? null)}
+          changeLabel="vs 前一天"
           icon={<Users size={20} />}
         />
         <KpiCard
-          title="今日訂單數"
-          value={today?.orders != null ? today.orders.toLocaleString() : '--'}
-          change={calcChange(today?.orders ?? null, yesterday?.orders ?? null)}
-          changeLabel="vs 昨天"
+          title="訂單數"
+          value={latest?.orders != null ? latest.orders.toLocaleString() : '--'}
+          change={calcChange(latest?.orders ?? null, previous?.orders ?? null)}
+          changeLabel="vs 前一天"
           icon={<ShoppingCart size={20} />}
         />
         <KpiCard
           title="平均客單價"
-          value={today?.avg_spending != null ? `NT$${today.avg_spending.toLocaleString()}` : '--'}
-          change={calcChange(today?.avg_spending ?? null, yesterday?.avg_spending ?? null)}
-          changeLabel="vs 昨天"
+          value={latest?.avg_spending != null ? `NT$${latest.avg_spending.toLocaleString()}` : '--'}
+          change={calcChange(latest?.avg_spending ?? null, previous?.avg_spending ?? null)}
+          changeLabel="vs 前一天"
           icon={<TrendingUp size={20} />}
         />
       </div>
