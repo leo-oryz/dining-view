@@ -8,6 +8,7 @@ import { format, subDays } from 'date-fns'
 import RFMTrendChart from '@/components/members/RFMTrendChart'
 import RFMDistributionChart from '@/components/members/RFMDistributionChart'
 import DormantAlert from '@/components/members/DormantAlert'
+import DemographicsPanel from '@/components/members/DemographicsPanel'
 
 interface DailySales {
   date: string
@@ -30,6 +31,12 @@ interface RFMSnapshot {
   m_distribution: Record<string, number> | null
 }
 
+interface DemographicData {
+  gender: { male: number; female: number; unknown: number }
+  age: { label: string; count: number }[]
+  channels: { direct: number; app: number; coupon: number; other: number }
+}
+
 interface HotelConversion {
   total_guests: number
   matched_guests: number
@@ -49,7 +56,9 @@ export default function MembersPage() {
   const [data, setData] = useState<DailySales[]>([])
   const [rfmData, setRfmData] = useState<RFMSnapshot[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'rfm' | 'hotel'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'rfm' | 'demographics' | 'hotel'>('overview')
+  const [demoData, setDemoData] = useState<DemographicData | null>(null)
+  const [demoLoading, setDemoLoading] = useState(false)
   const [hotelData, setHotelData] = useState<HotelConversion | null>(null)
   const [hotelLoading, setHotelLoading] = useState(false)
   const [hotelConfigured, setHotelConfigured] = useState(false)
@@ -105,6 +114,26 @@ export default function MembersPage() {
           }`}
         >
           RFM 分析
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('demographics')
+            if (!demoData && !demoLoading) {
+              setDemoLoading(true)
+              fetch('/api/members/demographics')
+                .then(r => r.json())
+                .then(json => { if (json.success) setDemoData(json.data) })
+                .catch(() => {})
+                .finally(() => setDemoLoading(false))
+            }
+          }}
+          className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === 'demographics'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          人口統計
         </button>
         {hotelConfigured && (
           <button
@@ -239,6 +268,10 @@ export default function MembersPage() {
             </div>
           )}
         </>
+      )}
+
+      {activeTab === 'demographics' && (
+        <DemographicsPanel data={demoData} loading={demoLoading} />
       )}
 
       {activeTab === 'hotel' && (
