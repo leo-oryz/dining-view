@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Bell, Mail, AlertTriangle, TrendingDown, Users, Truck, DollarSign } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, subDays } from 'date-fns'
+import { type WeatherDaily, getWeatherType, getWeatherIcon, WEATHER_LABELS, isTyphoon, buildWeatherMap } from '@/lib/weather/weatherUtils'
 
 interface Alert {
   id: string
@@ -25,15 +26,22 @@ const alertTypeConfig: Record<string, { label: string; icon: typeof TrendingDown
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
+  const [weatherMap, setWeatherMap] = useState<Map<string, WeatherDaily>>(new Map())
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/alerts?days=30')
-      .then(r => r.json())
-      .then(json => {
-        if (json.success) setAlerts(json.data || [])
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const from = format(subDays(new Date(), 30), 'yyyy-MM-dd')
+
+    Promise.all([
+      fetch('/api/alerts?days=30').then(r => r.json()),
+      fetch(`/api/weather/range?from=${from}&to=${today}`).then(r => r.json()).catch(() => ({ success: false })),
+    ])
+      .then(([alertsJson, weatherJson]) => {
+        if (alertsJson.success) setAlerts(alertsJson.data || [])
+        if (weatherJson.success) setWeatherMap(buildWeatherMap(weatherJson.data || []))
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -128,6 +136,29 @@ export default function AlertsPage() {
                       </span>
                     </div>
                     <p className="text-sm text-slate-900">{alert.message}</p>
+                    {(() => {
+                      const alertDate = alert.created_at.slice(0, 10)
+                      const w = weatherMap.get(alertDate)
+                      if (!w) return null
+                      const type = getWeatherType(w)
+                      const isTyphoonDay = isTyphoon(w)
+                      return (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-slate-500">
+                            {alertDate}  {getWeatherIcon(type)} {WEATHER_LABELS[type]}
+                            {w.temp_high != null ? ` 最高 ${w.temp_high}°C` : ''}
+                          </span>
+                          {isTyphoonDay && (
+                            <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded">
+                              颱風日
+                            </span>
+                          )}
+                          {isTyphoonDay && (
+                            <span className="text-xs text-slate-400">此異常可能為天氣因素</span>
+                          )}
+                        </div>
+                      )
+                    })()}
                     {alert.notified_at && (
                       <p className="text-xs text-slate-400 mt-1">
                         Email 通知已送出：{format(new Date(alert.notified_at), 'HH:mm')}

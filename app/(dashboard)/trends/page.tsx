@@ -7,6 +7,7 @@ import { WeekdayHeatmap } from '@/components/charts/WeekdayHeatmap'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
 import { DollarSign, Users, ShoppingCart, Target, TrendingUp } from 'lucide-react'
 import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, getDaysInMonth, differenceInCalendarDays, parseISO } from 'date-fns'
+import { type WeatherDaily, getWeatherType, isRainy, buildWeatherMap } from '@/lib/weather/weatherUtils'
 
 type RangeKey = '7d' | '30d' | '90d' | 'ytd' | 'last_month' | 'this_month' | 'custom'
 type Metric = 'net_sales' | 'guests' | 'orders'
@@ -81,9 +82,11 @@ export default function TrendsPage() {
   const [data, setData] = useState<DailySales[]>([])
   const [hourlyData, setHourlyData] = useState<HourlyRecord[]>([])
   const [targets, setTargets] = useState<MonthlyTarget[]>([])
+  const [weatherData, setWeatherData] = useState<WeatherDaily[]>([])
   const [loading, setLoading] = useState(true)
   const [rangeKey, setRangeKey] = useState<RangeKey>('30d')
   const [metric, setMetric] = useState<Metric>('net_sales')
+  const [heatmapWeatherFilter, setHeatmapWeatherFilter] = useState<'all' | 'sunny' | 'rainy'>('all')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
 
@@ -130,11 +133,13 @@ export default function TrendsPage() {
       fetch(`/api/sales/daily?${params}`).then((r) => r.json()),
       fetch(`/api/sales/hourly?${params}`).then((r) => r.json()),
       fetch(`/api/targets?start_month=${tStartMonth}&end_month=${tEndMonth}`).then((r) => r.json()),
+      fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then((r) => r.json()).catch(() => ({ success: false })),
     ])
-      .then(([dailyJson, hourlyJson, targetsJson]) => {
+      .then(([dailyJson, hourlyJson, targetsJson, weatherJson]) => {
         if (dailyJson.success) setData(dailyJson.data || [])
         if (hourlyJson.success) setHourlyData(hourlyJson.data || [])
         if (targetsJson.success) setTargets(targetsJson.data || [])
+        if (weatherJson.success) setWeatherData(weatherJson.data || [])
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -337,16 +342,46 @@ export default function TrendsPage() {
             ))}
           </div>
         </div>
-        <TrendLineChart data={data} dailyTarget={dailyTarget} metric={metric} />
+        <TrendLineChart data={data} dailyTarget={dailyTarget} metric={metric} weatherData={weatherData} />
       </div>
 
       {/* Weekday × Hour Heatmap */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 className="text-sm font-semibold text-slate-900 mb-4">
-          週間 × 時段熱力圖
-          <span className="text-xs font-normal text-slate-400 ml-2">平均營收</span>
-        </h2>
-        <WeekdayHeatmap data={hourlyData} />
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-slate-900">
+            週間 × 時段熱力圖
+            <span className="text-xs font-normal text-slate-400 ml-2">平均營收</span>
+          </h2>
+          {weatherData.length > 0 && (
+            <div className="flex gap-1">
+              {([['all', '全部'], ['sunny', '☀️ 晴天'], ['rainy', '🌧 雨天']] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setHeatmapWeatherFilter(key)}
+                  className={`px-2.5 py-1 text-xs rounded-md transition ${
+                    heatmapWeatherFilter === key
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <WeekdayHeatmap data={(() => {
+          if (heatmapWeatherFilter === 'all' || weatherData.length === 0) return hourlyData
+          const wMap = buildWeatherMap(weatherData)
+          return hourlyData.filter(h => {
+            const w = wMap.get(h.date)
+            if (!w) return false
+            if (heatmapWeatherFilter === 'rainy') return isRainy(w)
+            // sunny = sunny + cloudy
+            const type = getWeatherType(w)
+            return type === 'sunny' || type === 'cloudy' || type === 'other'
+          })
+        })()} />
       </div>
     </div>
   )

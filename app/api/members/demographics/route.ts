@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     // Get latest member snapshot with demographic data
     const { data, error } = await supabase
       .from('ocard_member_snapshots')
-      .select('male_count, female_count, age_0_18, age_19_25, age_26_30, age_31_35, age_36_40, age_41_50, age_51_60, age_60_plus, channel_direct, channel_app, channel_coupon, channel_other')
+      .select('male_count, female_count, age_0_18, age_19_22, age_23_29, age_30_39, age_40_49, age_50_59, age_60_plus, channel_direct, channel_app, channel_coupon, channel_other')
       .eq('store_id', storeId)
       .order('snapshot_date', { ascending: false })
       .limit(1)
@@ -33,12 +33,11 @@ export async function GET(request: NextRequest) {
       },
       age: [
         { label: '0-18', count: data.age_0_18 || 0 },
-        { label: '19-25', count: data.age_19_25 || 0 },
-        { label: '26-30', count: data.age_26_30 || 0 },
-        { label: '31-35', count: data.age_31_35 || 0 },
-        { label: '36-40', count: data.age_36_40 || 0 },
-        { label: '41-50', count: data.age_41_50 || 0 },
-        { label: '51-60', count: data.age_51_60 || 0 },
+        { label: '19-22', count: data.age_19_22 || 0 },
+        { label: '23-29', count: data.age_23_29 || 0 },
+        { label: '30-39', count: data.age_30_39 || 0 },
+        { label: '40-49', count: data.age_40_49 || 0 },
+        { label: '50-59', count: data.age_50_59 || 0 },
         { label: '60+', count: data.age_60_plus || 0 },
       ],
       channels: {

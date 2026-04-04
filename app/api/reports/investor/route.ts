@@ -6,6 +6,7 @@ import { InvestorReportDocument } from '@/lib/reports/investorPDF'
 import type { ReportData } from '@/lib/reports/investorPDF'
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import React from 'react'
+import { type WeatherDaily, isTyphoon, isRainy } from '@/lib/weather/weatherUtils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,6 +96,22 @@ export async function POST(request: NextRequest) {
     const margins = (costData || []).map(c => Number(c.gross_margin)).filter(m => !isNaN(m) && m > 0)
     const gross_margin = margins.length > 0 ? margins.reduce((s, m) => s + m, 0) / margins.length : null
 
+    // Weather summary for the report period
+    const { data: weatherRows } = await supabase
+      .from('weather_daily')
+      .select('date, description, precipitation')
+      .eq('store_id', storeId)
+      .gte('date', twelveMonthsAgo)
+      .lte('date', endStr)
+
+    let typhoonDays = 0
+    let rainyDays = 0
+    for (const w of weatherRows || []) {
+      const wd = w as WeatherDaily
+      if (isTyphoon(wd)) typhoonDays++
+      else if (isRainy(wd)) rainyDays++
+    }
+
     const reportData: ReportData = {
       store_name: store?.name || 'Unknown Store',
       report_month: reportMonth,
@@ -107,6 +124,11 @@ export async function POST(request: NextRequest) {
         turnover_rate: turnoverCount > 0 ? sumTurnover / turnoverCount : 0,
         new_member_rate: totalGuests > 0 ? totalNewMembers / totalGuests : 0,
       },
+      weather_summary: (weatherRows && weatherRows.length > 0) ? {
+        typhoon_days: typhoonDays,
+        rainy_days: rainyDays,
+        total_days: weatherRows.length,
+      } : null,
     }
 
     const pdfBuffer = await renderToBuffer(

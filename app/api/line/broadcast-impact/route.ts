@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError, getStoreId } from '@/lib/api-utils'
+import { type WeatherDaily, isTyphoon } from '@/lib/weather/weatherUtils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,17 +46,37 @@ export async function GET(request: NextRequest) {
       if (s.net_sales != null) salesMap.set(s.date, s.net_sales)
     }
 
-    // Calculate impact per broadcast
+    // Fetch weather data for typhoon filtering
+    const { data: weatherRows } = await supabase
+      .from('weather_daily')
+      .select('date, description, precipitation')
+      .eq('store_id', storeId)
+      .gte('date', startDate.toISOString().slice(0, 10))
+      .lte('date', endDate.toISOString().slice(0, 10))
+
+    const weatherMap = new Map<string, WeatherDaily>()
+    for (const w of weatherRows || []) {
+      weatherMap.set(w.date, w as WeatherDaily)
+    }
+
+    const isTyphoonDate = (dateStr: string) => {
+      const w = weatherMap.get(dateStr)
+      return w ? isTyphoon(w) : false
+    }
+
+    // Calculate impact per broadcast (excluding typhoon days)
     const results = broadcasts.map((b) => {
       const bDate = new Date(b.broadcast_date)
 
-      // 7-day rolling average before broadcast
+      // 7-day rolling average before broadcast (excluding typhoon days)
       const beforeSales: number[] = []
       for (let i = 1; i <= 7; i++) {
         const d = new Date(bDate)
         d.setDate(d.getDate() - i)
         const key = d.toISOString().slice(0, 10)
-        if (salesMap.has(key)) beforeSales.push(salesMap.get(key)!)
+        if (salesMap.has(key) && !isTyphoonDate(key)) {
+          beforeSales.push(salesMap.get(key)!)
+        }
       }
       const avgBefore = beforeSales.length > 0
         ? beforeSales.reduce((a, b) => a + b, 0) / beforeSales.length
@@ -68,6 +89,13 @@ export async function GET(request: NextRequest) {
         return salesMap.get(d.toISOString().slice(0, 10)) ?? null
       }
 
+      // Check if D+1~D+3 has typhoon days
+      const hasTyphoonInWindow = [1, 2, 3].some(offset => {
+        const d = new Date(bDate)
+        d.setDate(d.getDate() + offset)
+        return isTyphoonDate(d.toISOString().slice(0, 10))
+      })
+
       return {
         broadcast_title: b.title,
         broadcast_date: b.broadcast_date,
@@ -75,6 +103,7 @@ export async function GET(request: NextRequest) {
         d1_revenue: getDay(1),
         d2_revenue: getDay(2),
         d3_revenue: getDay(3),
+        has_typhoon_warning: hasTyphoonInWindow,
       }
     })
 

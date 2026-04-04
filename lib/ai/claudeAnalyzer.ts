@@ -287,6 +287,8 @@ function buildPrompt(
     sections.push('4. 營收穩定性和季節性趨勢')
     sections.push('5. 新店應該採取什麼型態（外帶、內用、複合）')
     sections.push('6. 品牌聲譽是否適合展店（Google 評分趨勢、負評主題是否為系統性問題）')
+    sections.push('7. 天氣對業績的影響模式：颱風日平均業績下降幅度、雨天對外送/外帶比例的影響')
+    sections.push('   — 新店選址應考慮當地天氣模式（年均雨天比例、颱風季影響）')
   }
 
   sections.push('\n請根據以上數據產生分析報告 JSON。')

@@ -6,6 +6,7 @@ import { SalesLineChart } from '@/components/charts/SalesLineChart'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
 import { DollarSign, Users, ShoppingCart, TrendingUp } from 'lucide-react'
 import { format, subDays } from 'date-fns'
+import { type WeatherDaily, formatWeatherSummary, isTyphoon } from '@/lib/weather/weatherUtils'
 
 interface DailySales {
   date: string
@@ -18,16 +19,20 @@ interface DailySales {
 
 export default function DashboardPage() {
   const [data, setData] = useState<DailySales[]>([])
+  const [weather, setWeather] = useState<WeatherDaily | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const endDate = format(new Date(), 'yyyy-MM-dd')
     const startDate = format(subDays(new Date(), 30), 'yyyy-MM-dd')
 
-    fetch(`/api/sales/daily?start_date=${startDate}&end_date=${endDate}`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success) setData(json.data || [])
+    Promise.all([
+      fetch(`/api/sales/daily?start_date=${startDate}&end_date=${endDate}`).then(r => r.json()),
+      fetch('/api/weather/today').then(r => r.json()).catch(() => ({ success: false })),
+    ])
+      .then(([salesJson, weatherJson]) => {
+        if (salesJson.success) setData(salesJson.data || [])
+        if (weatherJson.success && weatherJson.data) setWeather(weatherJson.data)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -58,8 +63,30 @@ export default function DashboardPage() {
     ? format(new Date(latest.date + 'T00:00:00'), 'yyyy/MM/dd')
     : null
 
+  const isTyphoonDay = weather ? isTyphoon(weather) : false
+
   return (
     <div className="space-y-6">
+      {/* Weather Bar */}
+      {weather ? (
+        <div className={`rounded-xl border px-5 py-3 flex items-center gap-3 ${
+          isTyphoonDay
+            ? 'bg-red-50 border-red-300'
+            : 'bg-white border-slate-200'
+        }`}>
+          <span className="text-lg">{formatWeatherSummary(weather)}</span>
+          {isTyphoonDay && (
+            <span className="ml-auto px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full">
+              颱風警報
+            </span>
+          )}
+        </div>
+      ) : !loading ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-3 text-sm text-slate-400">
+          天氣數據同步中
+        </div>
+      ) : null}
+
       {/* KPI Cards */}
       <div className="flex items-center justify-between mb--2">
         <h2 className="text-lg font-semibold text-slate-900">最新概覽</h2>

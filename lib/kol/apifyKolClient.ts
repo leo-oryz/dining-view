@@ -7,6 +7,7 @@ const ACTOR_MAP: Record<KolPlatform, string> = {
   tiktok: 'clockworks/tiktok-scraper',
   threads: 'apify/threads-scraper',
   youtube: 'streamers/youtube-scraper',
+  blogger: 'apify/blogger-scraper',
 }
 
 export interface ScrapedPostData {
@@ -49,6 +50,9 @@ async function startActorRun(
       break
     case 'youtube':
       input = { startUrls: [{ url: postUrl }], maxResults: 1 }
+      break
+    case 'blogger':
+      input = { startUrls: [{ url: postUrl }], resultsLimit: 1 }
       break
   }
 
@@ -178,6 +182,16 @@ function parseResult(platform: KolPlatform, raw: any): ScrapedPostData {
         saves: null,
         reach: null,
         post_date: toDateStr(raw.date || raw.uploadDate),
+      }
+    case 'blogger':
+      return {
+        likes: toInt(raw.likes),
+        comments: toInt(raw.comments),
+        views: toInt(raw.views),
+        shares: null,
+        saves: null,
+        reach: null,
+        post_date: toDateStr(raw.date || raw.publishedAt),
       }
   }
 }

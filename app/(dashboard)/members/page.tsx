@@ -5,6 +5,7 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { SalesLineChart } from '@/components/charts/SalesLineChart'
 import { Users, UserPlus, UserCheck, Hotel, RefreshCw } from 'lucide-react'
 import { format, subDays } from 'date-fns'
+import { type WeatherDaily, isTyphoon, buildWeatherMap } from '@/lib/weather/weatherUtils'
 import RFMTrendChart from '@/components/members/RFMTrendChart'
 import RFMDistributionChart from '@/components/members/RFMDistributionChart'
 import DormantAlert from '@/components/members/DormantAlert'
@@ -55,6 +56,7 @@ interface HotelConversion {
 export default function MembersPage() {
   const [data, setData] = useState<DailySales[]>([])
   const [rfmData, setRfmData] = useState<RFMSnapshot[]>([])
+  const [weatherMap, setWeatherMap] = useState<Map<string, WeatherDaily>>(new Map())
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'rfm' | 'demographics' | 'hotel'>('overview')
   const [demoData, setDemoData] = useState<DemographicData | null>(null)
@@ -73,13 +75,15 @@ export default function MembersPage() {
       fetch(`/api/sales/daily?start_date=${startDate}&end_date=${endDate}`).then(r => r.json()),
       fetch('/api/members/rfm').then(r => r.json()),
       fetch('/api/hotel/conversion').then(r => r.json()).catch(() => ({ success: false })),
-    ]).then(([salesJson, rfmJson, hotelJson]) => {
+      fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then(r => r.json()).catch(() => ({ success: false })),
+    ]).then(([salesJson, rfmJson, hotelJson, weatherJson]) => {
       if (salesJson.success) setData(salesJson.data || [])
       if (rfmJson.success) setRfmData(rfmJson.data || [])
       if (hotelJson.success) {
         setHotelConfigured(true)
         setHotelData(hotelJson.data)
       }
+      if (weatherJson.success) setWeatherMap(buildWeatherMap(weatherJson.data || []))
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
@@ -186,13 +190,32 @@ export default function MembersPage() {
                 載入中...
               </div>
             ) : (
-              <SalesLineChart
-                data={data.map((d) => ({
-                  date: d.date,
-                  net_sales: d.member_visits,
-                  guests: d.new_members,
-                }))}
-              />
+              <>
+                <SalesLineChart
+                  data={data.map((d) => ({
+                    date: d.date,
+                    net_sales: d.member_visits,
+                    guests: d.new_members,
+                  }))}
+                />
+                {/* Typhoon day annotations */}
+                {(() => {
+                  const typhoonDays = data.filter(d => {
+                    const w = weatherMap.get(d.date)
+                    return w && isTyphoon(w)
+                  })
+                  if (typhoonDays.length === 0) return null
+                  return (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {typhoonDays.map(d => (
+                        <span key={d.date} className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 text-xs rounded-lg">
+                          🌀 {d.date} 颱風日 — 來客數極低，新會員數不具參考性
+                        </span>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </>
             )}
           </div>
         </>

@@ -65,6 +65,7 @@ interface PerformanceRow {
   engagement_rate: number | null
   sales_delta_pct: number | null
   roi: number | null
+  has_typhoon_warning?: boolean
   posts: KolPost[]
 }
 
@@ -743,6 +744,9 @@ export default function KolPage() {
                           {row.sales_delta_pct >= 0 ? '+' : ''}{row.sales_delta_pct.toFixed(1)}%
                         </span>
                       ) : '—'}
+                      {row.has_typhoon_warning && (
+                        <div className="text-xs text-amber-600 mt-0.5">🌀 含颱風日，數據可能失真</div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
                       {row.collaboration_fee && row.collaboration_fee > 0 && row.roi != null

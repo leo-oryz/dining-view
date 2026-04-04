@@ -5,7 +5,7 @@ import {
   Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
   Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
   ExternalLink, User, Power, PowerOff, Trash2, Target, ChevronLeft, ChevronRight,
-  Mail, Bell, X, Send,
+  Mail, Bell, X, Send, Cloud, RefreshCw,
 } from 'lucide-react'
 
 interface StoreInfo {
@@ -87,6 +87,104 @@ const ROLE_COLORS: Record<string, string> = {
   manager: 'bg-blue-100 text-blue-700',
   marketing: 'bg-green-100 text-green-700',
   investor: 'bg-amber-100 text-amber-700',
+}
+
+// ─── Weather Settings Panel ─────────────────────────────────────────
+function WeatherSettingsPanel() {
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<string | null>(null)
+  const [info, setInfo] = useState<{ count: number; minDate: string; maxDate: string } | null>(null)
+  const [infoLoading, setInfoLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/weather/range?from=2000-01-01&to=2099-12-31')
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && json.data?.length > 0) {
+          const rows = json.data as { date: string }[]
+          setInfo({
+            count: rows.length,
+            minDate: rows[0].date,
+            maxDate: rows[rows.length - 1].date,
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setInfoLoading(false))
+  }, [])
+
+  const handleSync = async () => {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await fetch('/api/weather/sync', { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        setSyncResult(`同步成功：${json.data.date}，共 ${json.data.stores} 個門市`)
+        // Refresh info
+        const infoRes = await fetch('/api/weather/range?from=2000-01-01&to=2099-12-31')
+        const infoJson = await infoRes.json()
+        if (infoJson.success && infoJson.data?.length > 0) {
+          const rows = infoJson.data as { date: string }[]
+          setInfo({ count: rows.length, minDate: rows[0].date, maxDate: rows[rows.length - 1].date })
+        }
+      } else {
+        setSyncResult(`同步失敗：${json.error}`)
+      }
+    } catch {
+      setSyncResult('同步失敗')
+    }
+    setSyncing(false)
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200">
+      <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Cloud size={16} className="text-blue-500" />
+          <h4 className="text-sm font-semibold text-slate-900">天氣數據</h4>
+        </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? '同步中...' : '立即同步'}
+        </button>
+      </div>
+      <div className="p-5 space-y-3">
+        {infoLoading ? (
+          <p className="text-sm text-slate-400">載入中...</p>
+        ) : info ? (
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-slate-500">已有數據</p>
+              <p className="text-sm font-semibold text-slate-900">{info.count} 筆</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">最早日期</p>
+              <p className="text-sm font-semibold text-slate-900">{info.minDate}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">最新日期</p>
+              <p className="text-sm font-semibold text-slate-900">{info.maxDate}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">尚無天氣數據，請點擊「立即同步」</p>
+        )}
+        <p className="text-xs text-slate-400">
+          數據來源：中央氣象署（CWA），每日自動同步一次。
+        </p>
+        {syncResult && (
+          <div className={`text-sm px-3 py-2 rounded-lg ${syncResult.includes('成功') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            {syncResult}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ─── Store Form Component ───────────────────────────────────────────
@@ -1153,6 +1251,9 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Weather Data Management */}
+      <WeatherSettingsPanel />
 
       {/* Team Management — Owner only */}
       {isOwner && (

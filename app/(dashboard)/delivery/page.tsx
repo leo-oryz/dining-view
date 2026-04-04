@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { Truck, Upload, RefreshCw } from 'lucide-react'
 import { format, subDays } from 'date-fns'
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend,
+  LineChart, ComposedChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts'
 import { KpiCard } from '@/components/dashboard/KpiCard'
+import { type WeatherDaily, isTyphoon, buildWeatherMap } from '@/lib/weather/weatherUtils'
 
 interface DeliveryKpis {
   total_gross_revenue: number
@@ -32,6 +33,7 @@ export default function DeliveryPage() {
   const [kpis, setKpis] = useState<DeliveryKpis | null>(null)
   const [delivery, setDelivery] = useState<DeliveryRow[]>([])
   const [comparison, setComparison] = useState<ComparisonRow[]>([])
+  const [weatherData, setWeatherData] = useState<WeatherDaily[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<string | null>(null)
@@ -42,14 +44,19 @@ export default function DeliveryPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(
-        `/api/delivery/summary?start_date=${startDate}&end_date=${endDate}`
-      )
+      const [res, wRes] = await Promise.all([
+        fetch(`/api/delivery/summary?start_date=${startDate}&end_date=${endDate}`),
+        fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).catch(() => null),
+      ])
       const json = await res.json()
       if (json.success) {
         setKpis(json.data.kpis)
         setDelivery(json.data.delivery)
         setComparison(json.data.comparison)
+      }
+      if (wRes) {
+        const wJson = await wRes.json()
+        if (wJson.success) setWeatherData(wJson.data || [])
       }
     } catch { /* ignore */ }
     setLoading(false)
@@ -83,17 +90,31 @@ export default function DeliveryPage() {
   const hasData = delivery.length > 0
 
   // Chart data for delivery trends
+  const wMap = buildWeatherMap(weatherData)
+  const hasWeather = weatherData.length > 0
+
   const trendData = delivery
     .slice()
     .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-    .map(d => ({
-      date: format(new Date(d.date), 'M/d'),
-      gross: Number(d.gross_revenue) || 0,
-      net: Number(d.net_revenue) || 0,
-      orders: Number(d.order_count) || 0,
-      cancel: Number(d.cancellation_rate) * 100 || 0,
-      rating: Number(d.platform_rating) || 0,
-    }))
+    .map(d => {
+      const dateStr = String(d.date)
+      const w = wMap.get(dateStr)
+      return {
+        rawDate: dateStr,
+        date: format(new Date(dateStr), 'M/d'),
+        gross: Number(d.gross_revenue) || 0,
+        net: Number(d.net_revenue) || 0,
+        orders: Number(d.order_count) || 0,
+        cancel: Number(d.cancellation_rate) * 100 || 0,
+        rating: Number(d.platform_rating) || 0,
+        precipitation: w?.precipitation ?? null,
+      }
+    })
+
+  const typhoonDays = trendData.filter(d => {
+    const w = wMap.get(d.rawDate)
+    return w && isTyphoon(w)
+  })
 
   const comparisonData = comparison.map(c => ({
     date: format(new Date(c.date), 'M/d'),
@@ -183,17 +204,37 @@ export default function DeliveryPage() {
             </ResponsiveContainer>
           </div>
 
-          {/* Order Count Trend */}
+          {/* Order Count Trend + Weather */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h4 className="text-sm font-semibold text-slate-900 mb-4">訂單數趨勢</h4>
+            <h4 className="text-sm font-semibold text-slate-900 mb-1">訂單數趨勢</h4>
+            {hasWeather && (
+              <p className="text-xs text-slate-400 mb-4">
+                下雨天外送訂單通常增加 20-40%，高降雨量日的數據可作為備貨參考
+              </p>
+            )}
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={trendData}>
+              <ComposedChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
-                <Tooltip />
-                <Bar dataKey="orders" name="訂單數" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <YAxis yAxisId="left" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                {hasWeather && (
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                )}
+                <Tooltip
+                  formatter={(value, name) => {
+                    if (name === '降雨量') return [`${value}mm`, name]
+                    return [value, name]
+                  }}
+                />
+                <Legend />
+                <Bar yAxisId="left" dataKey="orders" name="訂單數" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                {hasWeather && (
+                  <Bar yAxisId="right" dataKey="precipitation" name="降雨量" fill="#93c5fd" opacity={0.4} radius={[2, 2, 0, 0]} />
+                )}
+                {typhoonDays.map(d => (
+                  <ReferenceLine key={d.rawDate} yAxisId="left" x={d.date} stroke="#ef4444" strokeWidth={2} label={{ value: '颱風', position: 'top', fontSize: 11, fill: '#ef4444' }} />
+                ))}
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
 

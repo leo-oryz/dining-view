@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/server'
 import { format, subDays, startOfWeek } from 'date-fns'
+import { type WeatherDaily, getWeatherType, isTyphoon, isRainy } from '@/lib/weather/weatherUtils'
 
 interface DigestData {
   weekStart: string
@@ -15,6 +16,7 @@ interface DigestData {
   reviewAvgRating: number | null
   reviewPrevAvgRating: number | null
   hasRatingDrop: boolean
+  weatherSummary: { sunny: number; rainy: number; typhoon: number; other: number }
 }
 
 export async function compileDigest(): Promise<DigestData> {
@@ -33,7 +35,7 @@ export async function compileDigest(): Promise<DigestData> {
   const prevEnd = format(prevSunday, 'yyyy-MM-dd')
 
   // Fetch all stores' sales for last week and previous week
-  const [lastWeekRes, prevWeekRes, productsRes, membersRes, alertsRes, reviewSnapRes, prevReviewSnapRes] = await Promise.all([
+  const [lastWeekRes, prevWeekRes, productsRes, membersRes, alertsRes, reviewSnapRes, prevReviewSnapRes, weatherRes] = await Promise.all([
     supabase
       .from('daily_sales')
       .select('net_sales')
@@ -77,6 +79,11 @@ export async function compileDigest(): Promise<DigestData> {
       .order('snapshot_date', { ascending: false })
       .limit(1)
       .single(),
+    supabase
+      .from('weather_daily')
+      .select('date, description, precipitation')
+      .gte('date', weekStart)
+      .lte('date', weekEnd),
   ])
 
   const totalRevenue = (lastWeekRes.data || []).reduce((sum, r) => sum + (Number(r.net_sales) || 0), 0)
@@ -103,6 +110,19 @@ export async function compileDigest(): Promise<DigestData> {
   const reviewPrevAvgRating = prevReviewSnapRes.data?.avg_rating ? Number(prevReviewSnapRes.data.avg_rating) : null
   const hasRatingDrop = reviewAvgRating != null && reviewPrevAvgRating != null && reviewAvgRating < reviewPrevAvgRating - 0.3
 
+  // Weather summary
+  const weatherSummary = { sunny: 0, rainy: 0, typhoon: 0, other: 0 }
+  for (const w of weatherRes.data || []) {
+    const wd = w as WeatherDaily
+    if (isTyphoon(wd)) weatherSummary.typhoon++
+    else if (isRainy(wd)) weatherSummary.rainy++
+    else {
+      const type = getWeatherType(wd)
+      if (type === 'sunny' || type === 'cloudy') weatherSummary.sunny++
+      else weatherSummary.other++
+    }
+  }
+
   return {
     weekStart,
     weekEnd,
@@ -116,6 +136,7 @@ export async function compileDigest(): Promise<DigestData> {
     reviewAvgRating,
     reviewPrevAvgRating,
     hasRatingDrop,
+    weatherSummary,
   }
 }
 
@@ -183,6 +204,14 @@ export async function sendDigest(): Promise<{ recipientCount: number; error?: st
     ${digest.reviewPrevAvgRating != null ? `<div style="font-size: 14px; color: ${digest.reviewAvgRating >= digest.reviewPrevAvgRating ? '#16a34a' : '#dc2626'};">vs 上週: ${digest.reviewPrevAvgRating.toFixed(2)}</div>` : ''}
     ${digest.hasRatingDrop ? '<div style="font-size: 14px; font-weight: bold; color: #dc2626; margin-top: 4px;">⚠️ 評分顯著下滑，請注意顧客反饋</div>' : ''}
   </div>` : ''}
+
+  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+    <div style="font-size: 14px; color: #64748b;">本週天氣</div>
+    <div style="font-size: 14px; margin-top: 4px;">
+      晴天/多雲 ${digest.weatherSummary.sunny} 天、雨天 ${digest.weatherSummary.rainy} 天、颱風 ${digest.weatherSummary.typhoon} 天
+    </div>
+    ${digest.weatherSummary.typhoon > 0 ? '<div style="font-size: 14px; font-weight: bold; color: #dc2626; margin-top: 4px;">⚠️ 本週有 ' + digest.weatherSummary.typhoon + ' 天颱風影響，業績受天氣因素拖累</div>' : ''}
+  </div>
 
   <h3 style="font-size: 16px; margin-top: 20px;">Top 3 商品</h3>
   <table style="width: 100%; border-collapse: collapse; font-size: 14px;">

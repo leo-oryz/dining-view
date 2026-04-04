@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ProductRanking } from '@/components/charts/ProductRanking'
 import { BasketPairs } from '@/components/charts/BasketPairs'
 import { format, subDays, differenceInDays, parseISO } from 'date-fns'
+import { type WeatherDaily } from '@/lib/weather/weatherUtils'
 
 interface ProductSalesData {
   product_name: string
@@ -26,6 +27,8 @@ export default function ProductsPage() {
   const [totalOrders, setTotalOrders] = useState(0)
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [weatherFilter, setWeatherFilter] = useState<'all' | 'sunny_cloudy' | 'rainy' | 'typhoon'>('all')
+  const [weatherData, setWeatherData] = useState<WeatherDaily[]>([])
   const [loading, setLoading] = useState(true)
   const [basketLoading, setBasketLoading] = useState(true)
 
@@ -33,24 +36,21 @@ export default function ProductsPage() {
     setLoading(true)
     setBasketLoading(true)
 
-    fetch(`/api/sales/products?start_date=${startDate}&end_date=${endDate}`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success) setData(json.data || [])
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-
-    fetch(`/api/sales/basket-pairs?start_date=${startDate}&end_date=${endDate}`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success) {
-          setBasketData(json.data?.pairs || [])
-          setTotalOrders(json.data?.total_orders || 0)
-        }
-      })
-      .catch(() => {})
-      .finally(() => setBasketLoading(false))
+    Promise.all([
+      fetch(`/api/sales/products?start_date=${startDate}&end_date=${endDate}`).then(r => r.json()),
+      fetch(`/api/sales/basket-pairs?start_date=${startDate}&end_date=${endDate}`).then(r => r.json()),
+      fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then(r => r.json()).catch(() => ({ success: false })),
+    ]).then(([prodJson, basketJson, weatherJson]) => {
+      if (prodJson.success) setData(prodJson.data || [])
+      if (basketJson.success) {
+        setBasketData(basketJson.data?.pairs || [])
+        setTotalOrders(basketJson.data?.total_orders || 0)
+      }
+      if (weatherJson.success) setWeatherData(weatherJson.data || [])
+    }).catch(() => {}).finally(() => {
+      setLoading(false)
+      setBasketLoading(false)
+    })
   }, [startDate, endDate])
 
   const daySpan = differenceInDays(parseISO(endDate), parseISO(startDate))
@@ -76,7 +76,28 @@ export default function ProductsPage() {
             className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        {weatherData.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-500">天氣</label>
+            <select
+              value={weatherFilter}
+              onChange={(e) => setWeatherFilter(e.target.value as typeof weatherFilter)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">全部天氣</option>
+              <option value="sunny_cloudy">☀️ 晴天/多雲</option>
+              <option value="rainy">🌧 雨天</option>
+              <option value="typhoon">🌀 颱風日</option>
+            </select>
+          </div>
+        )}
       </div>
+
+      {weatherFilter === 'typhoon' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-700">
+          颱風日數據僅供參考
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <div className="flex items-baseline gap-2 mb-4">

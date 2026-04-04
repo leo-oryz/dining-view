@@ -46,6 +46,12 @@ interface BrandReputation {
   negative_rate: number | null // 0-1
 }
 
+interface WeatherSummary {
+  typhoon_days: number
+  rainy_days: number
+  total_days: number
+}
+
 interface ReportData {
   store_name: string
   report_month: string
@@ -59,6 +65,7 @@ interface ReportData {
     new_member_rate: number
   }
   brand_reputation?: BrandReputation | null
+  weather_summary?: WeatherSummary | null
 }
 
 export function InvestorReportDocument({ data }: { data: ReportData }) {
@@ -193,6 +200,30 @@ export function InvestorReportDocument({ data }: { data: ReportData }) {
             </Text>
           )}
         </View>
+
+        {/* Section 7: Weather Context */}
+        {data.weather_summary && (data.weather_summary.typhoon_days > 0 || data.weather_summary.rainy_days > 0) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>7. Weather Context</Text>
+            <View style={styles.kpiRow}>
+              <Text style={styles.kpiLabel}>Typhoon Days:</Text>
+              <Text style={styles.kpiValue}>{data.weather_summary.typhoon_days} days</Text>
+            </View>
+            <View style={styles.kpiRow}>
+              <Text style={styles.kpiLabel}>Rainy Days:</Text>
+              <Text style={styles.kpiValue}>{data.weather_summary.rainy_days} days</Text>
+            </View>
+            <View style={styles.kpiRow}>
+              <Text style={styles.kpiLabel}>Total Days in Period:</Text>
+              <Text style={styles.kpiValue}>{data.weather_summary.total_days} days</Text>
+            </View>
+            {data.weather_summary.typhoon_days > 0 && (
+              <Text style={{ fontSize: 9, color: '#64748b', marginTop: 6 }}>
+                Note: This period includes {data.weather_summary.typhoon_days} typhoon-impacted day(s). Actual business performance may be better than the numbers suggest.
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Footer */}
         <Text style={styles.footer}>
