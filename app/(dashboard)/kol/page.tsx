@@ -74,6 +74,7 @@ const PLATFORM_LABELS: Record<string, string> = {
   tiktok: 'TikTok',
   threads: 'Threads',
   youtube: 'YouTube',
+  blogger: 'Blogger',
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -82,7 +83,10 @@ const PLATFORM_COLORS: Record<string, string> = {
   tiktok: 'bg-gray-100 text-gray-700',
   threads: 'bg-purple-100 text-purple-700',
   youtube: 'bg-red-100 text-red-700',
+  blogger: 'bg-orange-100 text-orange-700',
 }
+
+const ALL_PLATFORMS = ['instagram', 'facebook', 'tiktok', 'threads', 'youtube', 'blogger'] as const
 
 const FEE_TYPE_LABELS: Record<string, string> = {
   cash: '現金',
@@ -124,6 +128,8 @@ export default function KolPage() {
   const [activeCollabId, setActiveCollabId] = useState<string | null>(null)
   const [postUrl, setPostUrl] = useState('')
   const [addingPost, setAddingPost] = useState(false)
+  const [manualPlatform, setManualPlatform] = useState<string>('')
+  const [manualViews, setManualViews] = useState('')
 
   // Upload state
   const [uploading, setUploading] = useState(false)
@@ -162,8 +168,14 @@ export default function KolPage() {
     if (/tiktok\.com/i.test(postUrl)) return 'tiktok'
     if (/threads\.net/i.test(postUrl)) return 'threads'
     if (/youtube\.com|youtu\.be/i.test(postUrl)) return 'youtube'
+    if (/pixnet\.net|wordpress\.com|blogger\.com|medium\.com|vocus\.cc/i.test(postUrl)) return 'blogger'
     return null
   })()
+
+  // Effective platform = auto-detected or manually selected
+  const effectivePlatform = detectedPlatform || manualPlatform || null
+  const isBlogger = effectivePlatform === 'blogger'
+  const needsManualSelect = postUrl.trim() && !detectedPlatform
 
   // ─── Handlers ────────────────────────────────────────────────
 
@@ -206,7 +218,7 @@ export default function KolPage() {
   }
 
   const handleAddPost = async () => {
-    if (!activeCollabId || !postUrl.trim()) return
+    if (!activeCollabId || !postUrl.trim() || !effectivePlatform) return
     setAddingPost(true)
     try {
       const res = await fetch('/api/kol/posts', {
@@ -215,11 +227,15 @@ export default function KolPage() {
         body: JSON.stringify({
           collaboration_id: activeCollabId,
           post_url: postUrl.trim(),
+          platform: effectivePlatform,
+          views: manualViews ? Number(manualViews) : undefined,
         }),
       })
       const json = await res.json()
       if (json.success) {
         setPostUrl('')
+        setManualPlatform('')
+        setManualViews('')
         // Refresh after a short delay to pick up background sync
         setTimeout(() => fetchData(), 5000)
         fetchData()
@@ -472,14 +488,14 @@ export default function KolPage() {
       {activeCollabId && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-medium text-blue-800 mb-3">新增貼文連結</h3>
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
               <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="url"
                 value={postUrl}
                 onChange={e => setPostUrl(e.target.value)}
-                placeholder="貼上 Instagram / TikTok / Facebook / YouTube / Threads 連結"
+                placeholder="貼上貼文連結（IG / TikTok / Blog / YouTube 等）"
                 className="w-full border rounded px-3 py-2 pl-10 text-sm"
               />
             </div>
@@ -488,9 +504,30 @@ export default function KolPage() {
                 {PLATFORM_LABELS[detectedPlatform]}
               </span>
             )}
+            {needsManualSelect && (
+              <select
+                value={manualPlatform}
+                onChange={e => setManualPlatform(e.target.value)}
+                className="border rounded px-2 py-2 text-sm"
+              >
+                <option value="">選擇平台</option>
+                {ALL_PLATFORMS.map(p => (
+                  <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>
+                ))}
+              </select>
+            )}
+            {isBlogger && (
+              <input
+                type="number"
+                value={manualViews}
+                onChange={e => setManualViews(e.target.value)}
+                placeholder="觀看數"
+                className="border rounded px-3 py-2 text-sm w-28"
+              />
+            )}
             <button
               onClick={handleAddPost}
-              disabled={addingPost || !postUrl.trim() || !detectedPlatform}
+              disabled={addingPost || !postUrl.trim() || !effectivePlatform}
               className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
             >
               {addingPost ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -498,10 +535,12 @@ export default function KolPage() {
             </button>
           </div>
           <p className="text-xs text-blue-600 mt-2">
-            新增後系統會自動透過 Apify 抓取互動數據，約需 30-60 秒
+            {isBlogger
+              ? 'Blog 文章需手動輸入觀看數，不支援自動抓取'
+              : '社群平台貼文會自動透過 Apify 抓取互動數據，約需 30-60 秒'}
           </p>
           <button
-            onClick={() => setActiveCollabId(null)}
+            onClick={() => { setActiveCollabId(null); setManualPlatform(''); setManualViews('') }}
             className="text-xs text-gray-500 mt-1 hover:text-gray-700"
           >
             關閉
