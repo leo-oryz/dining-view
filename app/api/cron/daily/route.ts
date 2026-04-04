@@ -131,7 +131,23 @@ export async function GET(request: NextRequest) {
     results.conversion = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
   }
 
-  // 2. Weather sync
+  // 2. Meta Ads sync (yesterday — Meta data has ~24h delay)
+  try {
+    const metaRes = await fetch(`${getBaseUrl(request)}/api/sync/meta-ads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        start_date: ga4End.toISOString().slice(0, 10),
+        end_date: ga4End.toISOString().slice(0, 10),
+      }),
+    })
+    const metaJson = await metaRes.json()
+    results.meta_ads = metaJson.success ? `${metaJson.data.synced} rows` : `Error: ${metaJson.error}`
+  } catch (err) {
+    results.meta_ads = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
+  }
+
+  // 4. Weather sync
   try {
     const weatherRes = await fetch(`${getBaseUrl(request)}/api/weather/sync`, { method: 'POST' })
     const weatherJson = await weatherRes.json()
@@ -140,7 +156,7 @@ export async function GET(request: NextRequest) {
     results.weather = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
   }
 
-  // 3. Google Reviews sync (weekly - only on Monday)
+  // 5. Google Reviews sync (weekly - only on Monday)
   if (today.getDay() === 1) {
     try {
       const reviewsRes = await fetch(`${getBaseUrl(request)}/api/reviews/sync`, { method: 'POST' })
