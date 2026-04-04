@@ -6,9 +6,9 @@ import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { WeekdayHeatmap } from '@/components/charts/WeekdayHeatmap'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
 import { DollarSign, Users, ShoppingCart, Target, TrendingUp } from 'lucide-react'
-import { format, subDays, startOfMonth, endOfMonth, getDaysInMonth, differenceInCalendarDays, parseISO } from 'date-fns'
+import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, getDaysInMonth, differenceInCalendarDays, parseISO } from 'date-fns'
 
-type RangeKey = '7d' | '30d' | '90d' | 'custom'
+type RangeKey = '7d' | '30d' | '90d' | 'ytd' | 'last_month' | 'this_month' | 'custom'
 type Metric = 'net_sales' | 'guests' | 'orders'
 
 interface DailySales {
@@ -91,10 +91,30 @@ export default function TrendsPage() {
     if (rangeKey === 'custom' && customStart && customEnd) {
       return { startDate: customStart, endDate: customEnd }
     }
+    const today = new Date()
+    if (rangeKey === 'ytd') {
+      return {
+        startDate: format(startOfYear(today), 'yyyy-MM-dd'),
+        endDate: format(today, 'yyyy-MM-dd'),
+      }
+    }
+    if (rangeKey === 'this_month') {
+      return {
+        startDate: format(startOfMonth(today), 'yyyy-MM-dd'),
+        endDate: format(today, 'yyyy-MM-dd'),
+      }
+    }
+    if (rangeKey === 'last_month') {
+      const lastMonth = subMonths(today, 1)
+      return {
+        startDate: format(startOfMonth(lastMonth), 'yyyy-MM-dd'),
+        endDate: format(endOfMonth(lastMonth), 'yyyy-MM-dd'),
+      }
+    }
     const days = rangeKey === '7d' ? 7 : rangeKey === '90d' ? 90 : 30
     return {
-      startDate: format(subDays(new Date(), days), 'yyyy-MM-dd'),
-      endDate: format(new Date(), 'yyyy-MM-dd'),
+      startDate: format(subDays(today, days), 'yyyy-MM-dd'),
+      endDate: format(today, 'yyyy-MM-dd'),
     }
   }, [rangeKey, customStart, customEnd])
 
@@ -147,6 +167,9 @@ export default function TrendsPage() {
     { key: '7d', label: '7 天' },
     { key: '30d', label: '30 天' },
     { key: '90d', label: '90 天' },
+    { key: 'this_month', label: '這個月' },
+    { key: 'last_month', label: '上個月' },
+    { key: 'ytd', label: '今年至今' },
     { key: 'custom', label: '自訂' },
   ]
 
