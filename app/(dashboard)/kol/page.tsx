@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Upload,
   AlertCircle,
   CheckCircle2,
   Clock,
@@ -124,6 +125,10 @@ export default function KolPage() {
   const [postUrl, setPostUrl] = useState('')
   const [addingPost, setAddingPost] = useState(false)
 
+  // Upload state
+  const [uploading, setUploading] = useState(false)
+  const [uploadResult, setUploadResult] = useState<{ total: number; processed: number; errors: { row: number; message: string }[] } | null>(null)
+
   // Expanded rows
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
@@ -226,6 +231,30 @@ export default function KolPage() {
     }
   }
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setUploadResult(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/kol/upload', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (json.success) {
+        setUploadResult(json.data)
+        fetchData()
+      } else {
+        setUploadResult({ total: 0, processed: 0, errors: [{ row: 0, message: json.error }] })
+      }
+    } catch {
+      setUploadResult({ total: 0, processed: 0, errors: [{ row: 0, message: '上傳失敗' }] })
+    } finally {
+      setUploading(false)
+      e.target.value = '' // reset file input
+    }
+  }
+
   const handleResync = async (postId: string) => {
     try {
       await fetch(`/api/kol/posts/${postId}/sync`, { method: 'POST' })
@@ -282,6 +311,46 @@ export default function KolPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ─── Batch Upload ─── */}
+      <div className="bg-white rounded-lg border p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-medium">批次上傳 KOL 合作記錄</h3>
+            <p className="text-xs text-gray-500 mt-1">上傳 CSV 檔案（格式：網紅合作流程追蹤表）</p>
+          </div>
+          <label className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium cursor-pointer ${
+            uploading ? 'bg-gray-300 text-gray-500' : 'bg-green-600 text-white hover:bg-green-700'
+          }`}>
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {uploading ? '上傳中...' : '選擇 CSV 檔案'}
+            <input
+              type="file"
+              accept=".csv"
+              className="hidden"
+              disabled={uploading}
+              onChange={handleUpload}
+            />
+          </label>
+        </div>
+        {uploadResult && (
+          <div className={`mt-3 p-3 rounded text-sm ${
+            uploadResult.errors.length > 0 ? 'bg-yellow-50 text-yellow-800' : 'bg-green-50 text-green-800'
+          }`}>
+            <p>共 {uploadResult.total} 筆，成功匯入 {uploadResult.processed} 筆</p>
+            {uploadResult.errors.length > 0 && (
+              <ul className="mt-1 text-xs space-y-0.5">
+                {uploadResult.errors.slice(0, 5).map((e, i) => (
+                  <li key={i}>第 {e.row} 列: {e.message}</li>
+                ))}
+                {uploadResult.errors.length > 5 && (
+                  <li>...還有 {uploadResult.errors.length - 5} 筆錯誤</li>
+                )}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ─── Section 1: KPI Cards ─── */}
