@@ -66,6 +66,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/digital', label: '數位行銷', icon: TrendingUp },
       { href: '/ads', label: '廣告管理', icon: BarChart3 },
+      { href: '/kol', label: 'KOL 合作', icon: Users },
       { href: '/line', label: 'LINE 推播', icon: MessageSquare },
       { href: '/campaigns', label: '活動管理', icon: Megaphone },
     ],

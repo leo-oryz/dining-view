@@ -11,6 +11,7 @@ export interface AnalysisContext {
   adCampaigns: AdCampaignRow[]
   memberSnapshots: MemberSnapshotRow[]
   reviewSnapshots: ReviewSnapshotRow[]
+  kolCollaborations: KolCollaborationRow[]
 }
 
 interface DailySalesRow {
@@ -78,6 +79,16 @@ interface ReviewSnapshotRow {
   keywords: string[] | null
 }
 
+interface KolCollaborationRow {
+  kol_name: string
+  collaboration_date: string
+  featured_products: string[]
+  collaboration_fee: number | null
+  platforms: string[]
+  total_views: number
+  total_engagement: number
+}
+
 export async function prepareAnalysisContext(
   supabase: SupabaseClient,
   storeId: string,
@@ -93,6 +104,7 @@ export async function prepareAnalysisContext(
     adsRes,
     membersRes,
     reviewsRes,
+    kolRes,
   ] = await Promise.all([
     supabase.from('stores').select('name').eq('id', storeId).single(),
     supabase
@@ -143,6 +155,13 @@ export async function prepareAnalysisContext(
       .gte('snapshot_date', periodStart)
       .lte('snapshot_date', periodEnd)
       .order('snapshot_date'),
+    supabase
+      .from('kol_collaborations')
+      .select('kol_name, collaboration_date, featured_products, collaboration_fee, kol_posts(platform, views, likes, comments, shares)')
+      .eq('store_id', storeId)
+      .gte('collaboration_date', periodStart)
+      .lte('collaboration_date', periodEnd)
+      .order('collaboration_date'),
   ])
 
   return {
@@ -156,5 +175,17 @@ export async function prepareAnalysisContext(
     adCampaigns: adsRes.data || [],
     memberSnapshots: membersRes.data || [],
     reviewSnapshots: reviewsRes.data || [],
+    kolCollaborations: (kolRes.data || []).map((c: { kol_name: string; collaboration_date: string; featured_products: string[]; collaboration_fee: number | null; kol_posts: { platform: string; views: number | null; likes: number | null; comments: number | null; shares: number | null }[] }) => {
+      const posts = c.kol_posts || []
+      return {
+        kol_name: c.kol_name,
+        collaboration_date: c.collaboration_date,
+        featured_products: c.featured_products,
+        collaboration_fee: c.collaboration_fee,
+        platforms: Array.from(new Set(posts.map(p => p.platform))),
+        total_views: posts.reduce((s, p) => s + (p.views || 0), 0),
+        total_engagement: posts.reduce((s, p) => s + (p.likes || 0) + (p.comments || 0) + (p.shares || 0), 0),
+      }
+    }),
   }
 }

@@ -61,6 +61,18 @@ cron.schedule('45 2 * * *', async () => {
   }
 }, { timezone: 'Asia/Taipei' })
 
+// KOL posts sync: 03:30 daily
+cron.schedule('30 3 * * *', async () => {
+  console.log(`[scheduler] ${new Date().toISOString()} — Running KOL posts sync`)
+  try {
+    const res = await fetch(`${BASE_URL}/api/kol/sync-all`, { method: 'POST' })
+    const json = await res.json()
+    console.log('[scheduler] KOL sync result:', json)
+  } catch (err) {
+    console.error('[scheduler] KOL sync failed:', err)
+  }
+}, { timezone: 'Asia/Taipei' })
+
 // Anomaly detection: 03:00 daily
 cron.schedule('0 3 * * *', async () => {
   console.log(`[scheduler] ${new Date().toISOString()} — Running anomaly detection`)
@@ -109,6 +121,7 @@ console.log('  01:00 — Weather sync (CWA)')
 console.log('  02:00 — Google sync (GSC + GA4)')
 console.log('  02:45 — TikTok Ads sync')
 console.log('  03:00 — Anomaly detection + LINE alerts')
+console.log('  03:30 — KOL posts sync (Apify)')
 console.log('  Mon 04:00 — Google Reviews sync (Apify)')
 console.log('  Mon 08:00 — Weekly digest email')
 console.log(`  Base URL: ${BASE_URL}`)
