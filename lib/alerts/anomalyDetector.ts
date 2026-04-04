@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { sendLineAlert } from './lineNotifier'
+import { sendAlertEmail } from './emailNotifier'
 
 type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'delivery_drop' | 'rating_drop'
 
@@ -213,14 +213,9 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
       .from('anomaly_alerts')
       .upsert(rows, { onConflict: 'store_id,alert_type,created_at' })
 
-    // Send LINE notification
-    const alertMessages = anomalies.map(a => {
-      const icon = a.severity === 'critical' ? '[!!!]' : '[!]'
-      return `${icon} ${a.message}`
-    })
-
-    const fullMessage = `FnB Pulse 異常警報\n${yesterday}\n\n${alertMessages.join('\n\n')}`
-    await sendLineAlert(fullMessage)
+    // Send email notification
+    const storeIds = Array.from(new Set(anomalies.map(a => a.store_id)))
+    await sendAlertEmail(anomalies, storeIds)
 
     // Update notified_at
     const { data: inserted } = await supabase

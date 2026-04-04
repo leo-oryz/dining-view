@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell, Send, AlertTriangle, TrendingDown, Users, Truck, DollarSign } from 'lucide-react'
+import { Bell, Mail, AlertTriangle, TrendingDown, Users, Truck, DollarSign } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface Alert {
@@ -45,7 +45,7 @@ export default function AlertsPage() {
     try {
       const res = await fetch('/api/alerts/test', { method: 'POST' })
       const json = await res.json()
-      setTestResult(json.success ? 'LINE 測試通知已送出' : `失敗：${json.error}`)
+      setTestResult(json.success ? 'Email 測試通知已送出' : `失敗：${json.error}`)
     } catch {
       setTestResult('發送失敗')
     }
@@ -63,10 +63,10 @@ export default function AlertsPage() {
         <button
           onClick={handleTestNotification}
           disabled={testing}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          <Send size={14} />
-          {testing ? '傳送中...' : '測試 LINE 通知'}
+          <Mail size={14} />
+          {testing ? '傳送中...' : '測試 Email 通知'}
         </button>
       </div>
 
@@ -130,7 +130,7 @@ export default function AlertsPage() {
                     <p className="text-sm text-slate-900">{alert.message}</p>
                     {alert.notified_at && (
                       <p className="text-xs text-slate-400 mt-1">
-                        LINE 通知已送出：{format(new Date(alert.notified_at), 'HH:mm')}
+                        Email 通知已送出：{format(new Date(alert.notified_at), 'HH:mm')}
                       </p>
                     )}
                   </div>

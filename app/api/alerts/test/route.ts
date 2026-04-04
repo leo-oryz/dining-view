@@ -1,17 +1,23 @@
-import { sendLineAlert } from '@/lib/alerts/lineNotifier'
+import { sendAlertEmail } from '@/lib/alerts/emailNotifier'
 import { apiSuccess, apiError } from '@/lib/api-utils'
 
 export async function POST() {
   try {
-    const testMessage = `FnB Pulse 測試通知\n\n這是一則測試訊息，確認 LINE 推播功能正常運作。\n\n時間：${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}`
+    const now = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
 
-    const result = await sendLineAlert(testMessage)
+    const result = await sendAlertEmail([
+      {
+        severity: 'warning',
+        alert_type: 'test',
+        message: `這是一則測試警報通知，確認 Email 通知功能正常運作。時間：${now}`,
+      },
+    ])
 
     if (!result.success) {
-      return apiError(result.error || 'Failed to send test notification', 500)
+      return apiError(result.error || 'Failed to send test email', 500)
     }
 
-    return apiSuccess({ message: 'Test notification sent successfully' })
+    return apiSuccess({ message: 'Test email sent successfully' })
   } catch {
     return apiError('Internal server error', 500)
   }

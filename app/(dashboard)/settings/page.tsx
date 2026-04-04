@@ -5,6 +5,7 @@ import {
   Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
   Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
   ExternalLink, User, Power, PowerOff, Trash2, Target, ChevronLeft, ChevronRight,
+  Mail, Bell, X, Send,
 } from 'lucide-react'
 
 interface StoreInfo {
@@ -531,7 +532,27 @@ export default function SettingsPage() {
   const [editMemberDisplayName, setEditMemberDisplayName] = useState('')
   const [editMemberSaving, setEditMemberSaving] = useState(false)
 
+  // Alert settings state
+  const [alertEmails, setAlertEmails] = useState<string[]>([])
+  const [alertEnabled, setAlertEnabled] = useState(true)
+  const [alertNewEmail, setAlertNewEmail] = useState('')
+  const [alertSaving, setAlertSaving] = useState(false)
+  const [alertMsg, setAlertMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [alertTesting, setAlertTesting] = useState(false)
+
   const isOwner = currentUser?.role === 'owner'
+
+  const fetchAlertSettings = useCallback(() => {
+    fetch('/api/settings/alerts')
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && json.data) {
+          setAlertEmails(json.data.alert_emails || [])
+          setAlertEnabled(json.data.is_enabled ?? true)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const fetchStores = () => {
     fetch('/api/stores')
@@ -563,7 +584,7 @@ export default function SettingsPage() {
       .finally(() => setTeamLoading(false))
   }, [isOwner])
 
-  useEffect(() => { fetchStores(); fetchCurrentUser() }, [])
+  useEffect(() => { fetchStores(); fetchCurrentUser(); fetchAlertSettings() }, [fetchAlertSettings])
   useEffect(() => { if (currentUser) fetchMembers() }, [currentUser, fetchMembers])
 
   // ── Store create ──
@@ -972,6 +993,166 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Alert Notification Settings */}
+      <div className="bg-white rounded-xl border border-slate-200">
+        <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bell size={16} className="text-red-500" />
+            <h4 className="text-sm font-semibold text-slate-900">警報通知設定</h4>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs text-slate-500">{alertEnabled ? '啟用' : '停用'}</span>
+            <button
+              type="button"
+              onClick={async () => {
+                const newVal = !alertEnabled
+                setAlertEnabled(newVal)
+                setAlertSaving(true)
+                try {
+                  await fetch('/api/settings/alerts', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alert_emails: alertEmails, is_enabled: newVal }),
+                  })
+                } catch {}
+                setAlertSaving(false)
+              }}
+              className={`relative w-10 h-5 rounded-full transition-colors ${alertEnabled ? 'bg-green-500' : 'bg-slate-300'}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${alertEnabled ? 'translate-x-5' : ''}`} />
+            </button>
+          </label>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-slate-500">偵測到異常時，系統會發送 Email 通知給以下收件人。</p>
+
+          {/* Email list */}
+          <div className="space-y-2">
+            {alertEmails.map((email, i) => (
+              <div key={i} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+                <Mail size={14} className="text-slate-400" />
+                <span className="text-sm text-slate-700 flex-1">{email}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = alertEmails.filter((_, idx) => idx !== i)
+                    setAlertEmails(updated)
+                  }}
+                  className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add email */}
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={alertNewEmail}
+              onChange={(e) => setAlertNewEmail(e.target.value)}
+              placeholder="輸入 Email 地址"
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  if (alertNewEmail.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(alertNewEmail.trim())) {
+                    if (!alertEmails.includes(alertNewEmail.trim())) {
+                      setAlertEmails([...alertEmails, alertNewEmail.trim()])
+                    }
+                    setAlertNewEmail('')
+                  }
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (alertNewEmail.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(alertNewEmail.trim())) {
+                  if (!alertEmails.includes(alertNewEmail.trim())) {
+                    setAlertEmails([...alertEmails, alertNewEmail.trim()])
+                  }
+                  setAlertNewEmail('')
+                }
+              }}
+              className="px-3 py-2 bg-slate-100 text-slate-600 text-sm rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              新增
+            </button>
+          </div>
+
+          {/* Save + Test buttons */}
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={async () => {
+                setAlertSaving(true)
+                setAlertMsg(null)
+                try {
+                  const res = await fetch('/api/settings/alerts', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alert_emails: alertEmails, is_enabled: alertEnabled }),
+                  })
+                  const json = await res.json()
+                  setAlertMsg(json.success
+                    ? { text: '已儲存', type: 'success' }
+                    : { text: `儲存失敗：${json.error}`, type: 'error' })
+                } catch {
+                  setAlertMsg({ text: '儲存失敗', type: 'error' })
+                }
+                setAlertSaving(false)
+              }}
+              disabled={alertSaving}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {alertSaving ? '儲存中...' : '儲存設定'}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (alertEmails.length === 0) {
+                  setAlertMsg({ text: '請先新增至少一個 Email', type: 'error' })
+                  return
+                }
+                // Save first, then test
+                setAlertTesting(true)
+                setAlertMsg(null)
+                try {
+                  await fetch('/api/settings/alerts', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alert_emails: alertEmails, is_enabled: alertEnabled }),
+                  })
+                  const res = await fetch('/api/alerts/test', { method: 'POST' })
+                  const json = await res.json()
+                  setAlertMsg(json.success
+                    ? { text: '測試 Email 已送出', type: 'success' }
+                    : { text: `發送失敗：${json.error}`, type: 'error' })
+                } catch {
+                  setAlertMsg({ text: '發送失敗', type: 'error' })
+                }
+                setAlertTesting(false)
+              }}
+              disabled={alertTesting}
+              className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+            >
+              <Send size={14} />
+              {alertTesting ? '傳送中...' : '測試發送'}
+            </button>
+          </div>
+
+          {alertMsg && (
+            <div className={`text-sm px-3 py-2 rounded-lg ${
+              alertMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            }`}>
+              {alertMsg.text}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Team Management — Owner only */}
       {isOwner && (
