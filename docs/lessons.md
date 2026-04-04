@@ -129,3 +129,11 @@
 - Use `waitUntil: 'domcontentloaded'` with optional `waitForLoadState('networkidle').catch(() => {})` instead of `waitUntil: 'networkidle'` alone — some pages never reach networkidle due to analytics/tracking scripts.
 - `DEFAULT_STORE_ID` must match the actual `stores` table record. The placeholder UUID `00000000-...` was used in migrations to seed data but the real store got a random UUID (`36d016c4-...`). If API queries return empty, check store_id mismatch first — foreign key constraints on upload and empty dashboard queries are both symptoms of this.
 - Download agent renames files to `{type}_{YYYY-MM-DD}.ext`, but upload routes extract dates from the original eat365 filename pattern (`\d{8}\d{4}-`). Renamed files don't match → fallback to `new Date()` → all data gets today's date. Fix: pass date explicitly via FormData `date` field from agent to upload API.
+
+### Meta Ads API
+- `idx_ad_campaigns_meta_dedup` unique index was on `(store_id, platform, campaign_id)` without `date` — caused duplicate key errors when syncing the same campaign across multiple days. Fix: include `date` in the index → `(store_id, date, platform, campaign_id)`.
+- Meta API data has ~24h delay. Default sync target should be yesterday, not today.
+- Batch sync (date range) should cap at 90 days to avoid excessive API calls and timeouts.
+
+### Deployment (Zeabur) — Uncommitted Changes
+- Zeabur deploys from git, not local files. If local changes aren't committed and pushed, the remote build uses stale code. Always verify uncommitted changes (`git status`) before troubleshooting Zeabur build failures — the fix may already exist locally but hasn't been pushed.
