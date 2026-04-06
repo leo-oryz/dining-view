@@ -166,3 +166,8 @@
 - Channel keys: `Ocard App 招募` + `Ocard App 掃碼` (two entries), not just `Ocard App`.
 - Period dates come from explicit `取樣開始日期`/`取樣結束日期` rows, not embedded in a combined string.
 - **Lesson**: Always verify parser keys against actual exported CSV files before writing parsers. Don't assume format from documentation alone.
+
+### Product Anomaly Detection
+- Supabase nested `.select('collaboration:kol_collaborations(kol_name)')` returns an array (not object) when the relationship is inferred — use `Array.isArray()` check before accessing properties.
+- TypeScript `downlevelIteration` restriction: cannot iterate `Map` with `for...of [key, value]`. Use `Array.from(map.keys())` then `.get()` instead.
+- 71 out of 128 products have 5+ days of data (in a 30-day window) — the 5-day minimum threshold is appropriate for the current data density. If data coverage drops, consider lowering to 3 days.
