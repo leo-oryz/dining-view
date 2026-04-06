@@ -1,13 +1,11 @@
 import { KolPlatform } from './platformDetector'
 
 /** Apify actor IDs per platform */
-const ACTOR_MAP: Record<KolPlatform, string> = {
-  instagram: 'apify/instagram-post-scraper',
+const ACTOR_MAP: Partial<Record<KolPlatform, string>> = {
+  instagram: 'apify/instagram-scraper',
   facebook: 'apify/facebook-posts-scraper',
-  tiktok: 'clockworks/tiktok-scraper',
-  threads: 'apify/threads-scraper',
-  youtube: 'streamers/youtube-scraper',
-  blogger: 'apify/blogger-scraper',
+  tiktok: 'clockworks/free-tiktok-scraper',
+  // threads, youtube, blogger — no Apify actor available
 }
 
 export interface ScrapedPostData {
@@ -30,6 +28,9 @@ async function startActorRun(
   apiToken: string
 ): Promise<string> {
   const actorId = ACTOR_MAP[platform]
+  if (!actorId) {
+    throw new Error(`No Apify actor available for platform: ${platform}`)
+  }
   const runUrl = `https://api.apify.com/v2/acts/${actorId}/runs?token=${apiToken}`
 
   // Build platform-specific input
@@ -37,21 +38,17 @@ async function startActorRun(
 
   switch (platform) {
     case 'instagram':
-      input = { directUrls: [postUrl], resultsLimit: 1 }
+      // apify/instagram-scraper uses directUrls
+      input = { directUrls: [postUrl], resultsLimit: 1, resultsType: 'posts' }
       break
     case 'tiktok':
+      // clockworks/free-tiktok-scraper
       input = { postURLs: [postUrl], resultsPerPage: 1 }
       break
     case 'facebook':
       input = { startUrls: [{ url: postUrl }], resultsLimit: 1 }
       break
-    case 'threads':
-      input = { startUrls: [{ url: postUrl }], resultsLimit: 1 }
-      break
-    case 'youtube':
-      input = { startUrls: [{ url: postUrl }], maxResults: 1 }
-      break
-    case 'blogger':
+    default:
       input = { startUrls: [{ url: postUrl }], resultsLimit: 1 }
       break
   }

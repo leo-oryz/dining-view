@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       .eq('store_id', storeId)
       .eq('sync_status', 'pending')
 
-    const scrapablePlatforms = ['instagram', 'facebook', 'tiktok', 'threads', 'youtube']
+    const scrapablePlatforms = ['instagram', 'facebook', 'tiktok']
 
     if (pendingPosts && pendingPosts.length > 0) {
       // Fire and forget — don't block the response
