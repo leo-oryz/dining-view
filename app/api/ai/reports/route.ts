@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('ai_analysis_reports')
-      .select('id, report_type, report_date, period_start, period_end, model_used, created_at')
+      .select('id, report_type, report_date, period_start, period_end, model_used, created_at, content')
       .eq('store_id', storeId)
       .order('report_date', { ascending: false })
       .limit(limit)
