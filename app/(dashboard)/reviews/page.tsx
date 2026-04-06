@@ -67,11 +67,12 @@ export default function ReviewsPage() {
       const startDate = getStartDate(timeRange)
       const dateParams = startDate ? `&start_date=${startDate}` : ''
 
+      const noCache = { cache: 'no-store' as RequestCache }
       const [snapshotsRes, recentRes, summaryRes, salesRes] = await Promise.all([
-        fetch(`/api/reviews/snapshots?limit=200${dateParams}`),
-        fetch(`/api/reviews/recent?limit=200${dateParams}`),
-        fetch('/api/reviews/latest-summary'),
-        fetch('/api/sales/daily?limit=180'),
+        fetch(`/api/reviews/snapshots?limit=200${dateParams}`, noCache),
+        fetch(`/api/reviews/recent?limit=200${dateParams}`, noCache),
+        fetch('/api/reviews/latest-summary', noCache),
+        fetch('/api/sales/daily?limit=180', noCache),
       ])
 
       const [snapshotsJson, recentJson, summaryJson, salesJson] = await Promise.all([

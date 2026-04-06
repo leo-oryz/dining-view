@@ -16,14 +16,12 @@ export async function GET(request: Request) {
       .from('google_reviews')
       .select('id, review_id, reviewer_name, rating, review_text, review_date, is_negative, created_at')
       .eq('store_id', storeId)
-      .order('review_date', { ascending: false })
-      .limit(limit)
 
-    if (cursor) {
-      query = query.lt('id', cursor)
-    }
+    if (cursor) query = query.lt('id', cursor)
     if (startDate) query = query.gte('review_date', startDate)
     if (endDate) query = query.lte('review_date', endDate)
+
+    query = query.order('review_date', { ascending: false }).limit(limit)
 
     const { data, error } = await query
 

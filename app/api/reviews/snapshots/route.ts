@@ -15,11 +15,11 @@ export async function GET(request: Request) {
       .from('google_review_snapshots')
       .select('*')
       .eq('store_id', storeId)
-      .order('snapshot_date', { ascending: false })
-      .limit(limit)
 
     if (startDate) query = query.gte('snapshot_date', startDate)
     if (endDate) query = query.lte('snapshot_date', endDate)
+
+    query = query.order('snapshot_date', { ascending: false }).limit(limit)
 
     const { data, error } = await query
 
