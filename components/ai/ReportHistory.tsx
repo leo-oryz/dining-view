@@ -10,6 +10,19 @@ const typeLabels: Record<ReportType, string> = {
   retire_candidates: '下架候選',
 }
 
+function formatPeriodLabel(start: string | null, end: string | null): string {
+  if (!start || !end) return ''
+  const s = new Date(start)
+  const e = new Date(end)
+  const days = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24))
+
+  const presetMap: Record<number, string> = { 7: '近7天', 30: '近30天', 60: '近60天', 90: '近90天' }
+  const preset = presetMap[days] || `${days}天`
+
+  const fmtDate = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`
+  return `（${preset}）${fmtDate(s)}-${fmtDate(e)}`
+}
+
 interface Props {
   reports: ReportRecord[]
   activeId: string | null
@@ -41,13 +54,11 @@ export default function ReportHistory({ reports, activeId, onSelect }: Props) {
             <FileText size={14} className="text-slate-400 shrink-0" />
             <span className="font-medium truncate">
               {typeLabels[r.report_type] || r.report_type}
+              {formatPeriodLabel(r.period_start, r.period_end)}
             </span>
           </div>
           <div className="text-xs text-slate-400 ml-5 mt-0.5">
             {format(new Date(r.created_at), 'yyyy/M/d HH:mm')}
-            {r.period_start && r.period_end && (
-              <span> ({r.period_start} ~ {r.period_end})</span>
-            )}
           </div>
         </button>
       ))}
