@@ -76,3 +76,75 @@ export async function PUT(
     timestamp: new Date().toISOString(),
   })
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const profile = await getSession()
+
+  if (!profile) {
+    return NextResponse.json(
+      { success: false, data: null, error: 'Not authenticated', timestamp: new Date().toISOString() },
+      { status: 401 }
+    )
+  }
+
+  if (profile.role !== 'owner') {
+    return NextResponse.json(
+      { success: false, data: null, error: 'Forbidden', timestamp: new Date().toISOString() },
+      { status: 403 }
+    )
+  }
+
+  const { id } = await params
+
+  // Cannot delete yourself
+  if (id === profile.id) {
+    return NextResponse.json(
+      { success: false, data: null, error: 'Cannot delete your own account', timestamp: new Date().toISOString() },
+      { status: 400 }
+    )
+  }
+
+  const supabase = createServiceClient()
+
+  // Get the user's auth_id before deleting
+  const { data: user, error: fetchError } = await supabase
+    .from('users')
+    .select('auth_id, email')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !user) {
+    return NextResponse.json(
+      { success: false, data: null, error: 'User not found', timestamp: new Date().toISOString() },
+      { status: 404 }
+    )
+  }
+
+  // Delete from users table
+  const { error: deleteError } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', id)
+
+  if (deleteError) {
+    return NextResponse.json(
+      { success: false, data: null, error: deleteError.message, timestamp: new Date().toISOString() },
+      { status: 500 }
+    )
+  }
+
+  // Delete from Supabase Auth
+  if (user.auth_id) {
+    await supabase.auth.admin.deleteUser(user.auth_id)
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: { id, email: user.email },
+    error: null,
+    timestamp: new Date().toISOString(),
+  })
+}

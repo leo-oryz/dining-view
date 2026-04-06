@@ -949,6 +949,23 @@ export default function SettingsPage() {
     }
   }
 
+  const handleDeleteMember = async (member: TeamMember) => {
+    if (!window.confirm(`確定要刪除 ${member.display_name || member.email} 的帳號？此操作無法復原。`)) return
+    setTeamMessage(null)
+    try {
+      const res = await fetch(`/api/team/${member.id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (json.success) {
+        setTeamMessage({ text: `已刪除 ${member.email}`, type: 'success' })
+        fetchMembers()
+      } else {
+        setTeamMessage({ text: `刪除失敗：${json.error}`, type: 'error' })
+      }
+    } catch {
+      setTeamMessage({ text: '刪除失敗', type: 'error' })
+    }
+  }
+
   const openEditMember = (member: TeamMember) => {
     setEditMember(member)
     setEditMemberRole(member.role)
@@ -1372,13 +1389,22 @@ export default function SettingsPage() {
                         <Edit2 size={14} />
                       </button>
                       {member.role !== 'owner' || members.filter(m => m.role === 'owner' && m.is_active).length > 1 ? (
-                        <button
-                          onClick={() => handleToggleMemberActive(member)}
-                          className={`p-1.5 rounded-lg transition-colors ${member.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
-                          title={member.is_active ? '停用帳號' : '重新啟用'}
-                        >
-                          {member.is_active ? <Ban size={14} /> : <RotateCcw size={14} />}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleToggleMemberActive(member)}
+                            className={`p-1.5 rounded-lg transition-colors ${member.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
+                            title={member.is_active ? '停用帳號' : '重新啟用'}
+                          >
+                            {member.is_active ? <Ban size={14} /> : <RotateCcw size={14} />}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMember(member)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="刪除成員"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
                       ) : null}
                     </div>
                   </div>
