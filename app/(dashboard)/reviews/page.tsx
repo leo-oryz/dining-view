@@ -1,12 +1,30 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ComposedChart, Bar, Legend,
 } from 'recharts'
 import { Star, TrendingDown, MessageSquare, AlertTriangle } from 'lucide-react'
 import clsx from 'clsx'
+
+type TimeRange = '1m' | '3m' | '6m' | 'all'
+type Granularity = 'week' | 'month'
+
+const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: '1m', label: '近 1 個月' },
+  { value: '3m', label: '近 3 個月' },
+  { value: '6m', label: '近 6 個月' },
+  { value: 'all', label: '全部' },
+]
+
+function getStartDate(range: TimeRange): string | null {
+  if (range === 'all') return null
+  const now = new Date()
+  const months = range === '1m' ? 1 : range === '3m' ? 3 : 6
+  now.setMonth(now.getMonth() - months)
+  return now.toISOString().split('T')[0]
+}
 
 interface Snapshot {
   snapshot_date: string
@@ -40,15 +58,20 @@ export default function ReviewsPage() {
   const [latestSummary, setLatestSummary] = useState<Snapshot | null>(null)
   const [salesData, setSalesData] = useState<DailySales[]>([])
   const [loading, setLoading] = useState(true)
+  const [timeRange, setTimeRange] = useState<TimeRange>('3m')
+  const [granularity, setGranularity] = useState<Granularity>('week')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
+      const startDate = getStartDate(timeRange)
+      const dateParams = startDate ? `&start_date=${startDate}` : ''
+
       const [snapshotsRes, recentRes, summaryRes, salesRes] = await Promise.all([
-        fetch('/api/reviews/snapshots?limit=52'),
-        fetch('/api/reviews/recent?limit=30'),
+        fetch(`/api/reviews/snapshots?limit=200${dateParams}`),
+        fetch(`/api/reviews/recent?limit=200${dateParams}`),
         fetch('/api/reviews/latest-summary'),
-        fetch('/api/sales/daily?limit=90'),
+        fetch('/api/sales/daily?limit=180'),
       ])
 
       const [snapshotsJson, recentJson, summaryJson, salesJson] = await Promise.all([
@@ -67,7 +90,7 @@ export default function ReviewsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [timeRange])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -79,15 +102,37 @@ export default function ReviewsPage() {
     ? ((latest.negative_count || 0) / latest.new_reviews_count * 100).toFixed(1)
     : null
 
-  // Chart data: snapshots sorted chronologically
-  const trendData = [...snapshots]
-    .sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date))
-    .map(s => ({
-      week: s.snapshot_date.slice(5), // MM-DD
-      avg_rating: s.avg_rating ? Number(s.avg_rating) : null,
-      new_reviews: s.new_reviews_count,
-      negative: s.negative_count,
+  // Chart data: snapshots sorted chronologically, with week/month aggregation
+  const trendData = useMemo(() => {
+    const sorted = [...snapshots].sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date))
+
+    if (granularity === 'week') {
+      return sorted.map(s => ({
+        label: s.snapshot_date.slice(5), // MM-DD
+        avg_rating: s.avg_rating ? Number(s.avg_rating) : null,
+        new_reviews: s.new_reviews_count,
+        negative: s.negative_count,
+      }))
+    }
+
+    // Monthly aggregation
+    const monthMap = new Map<string, { ratings: number[]; reviews: number; negative: number }>()
+    for (const s of sorted) {
+      const monthKey = s.snapshot_date.slice(0, 7) // YYYY-MM
+      const entry = monthMap.get(monthKey) || { ratings: [], reviews: 0, negative: 0 }
+      if (s.avg_rating) entry.ratings.push(Number(s.avg_rating))
+      entry.reviews += s.new_reviews_count
+      entry.negative += s.negative_count
+      monthMap.set(monthKey, entry)
+    }
+
+    return Array.from(monthMap.entries()).map(([month, d]) => ({
+      label: month.slice(2), // YY-MM
+      avg_rating: d.ratings.length > 0 ? Number((d.ratings.reduce((a, b) => a + b, 0) / d.ratings.length).toFixed(2)) : null,
+      new_reviews: d.reviews,
+      negative: d.negative,
     }))
+  }, [snapshots, granularity])
 
   // Rating vs Revenue dual-axis chart
   const ratingRevenueData = buildRatingRevenueData(snapshots, salesData)
@@ -113,6 +158,26 @@ export default function ReviewsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Time Range Selector */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
+          {TIME_RANGE_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setTimeRange(opt.value)}
+              className={clsx(
+                'px-3 py-1.5 text-sm rounded-md transition-colors',
+                timeRange === opt.value
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
@@ -145,15 +210,48 @@ export default function ReviewsPage() {
 
       {/* Rating Trend Chart */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 lg:p-6">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">評分趨勢（週）</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-slate-900">
+            評分趨勢
+          </h3>
+          <div className="flex bg-slate-100 rounded-md p-0.5">
+            {(['week', 'month'] as const).map(g => (
+              <button
+                key={g}
+                onClick={() => setGranularity(g)}
+                className={clsx(
+                  'px-3 py-1 text-xs rounded transition-colors',
+                  granularity === g
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                )}
+              >
+                {g === 'week' ? '按週' : '按月'}
+              </button>
+            ))}
+          </div>
+        </div>
         {trendData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={trendData}>
+            <ComposedChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="week" fontSize={12} />
-              <YAxis domain={[1, 5]} fontSize={12} />
-              <Tooltip />
+              <XAxis dataKey="label" fontSize={12} />
+              <YAxis yAxisId="rating" domain={[1, 5]} fontSize={12} orientation="left" />
+              <YAxis yAxisId="reviews" fontSize={12} orientation="right" />
+              <Tooltip formatter={(value, name) => {
+                if (name === '平均評分') return Number(value).toFixed(2)
+                return value
+              }} />
+              <Legend />
+              <Bar
+                yAxisId="reviews"
+                dataKey="new_reviews"
+                fill="#93c5fd"
+                opacity={0.7}
+                name="新評論數"
+              />
               <Line
+                yAxisId="rating"
                 type="monotone"
                 dataKey="avg_rating"
                 stroke="#eab308"
@@ -161,7 +259,7 @@ export default function ReviewsPage() {
                 name="平均評分"
                 dot={{ fill: '#eab308' }}
               />
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         ) : (
           <div className="h-48 flex items-center justify-center text-slate-400">

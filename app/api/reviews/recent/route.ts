@@ -7,6 +7,8 @@ export async function GET(request: Request) {
     const storeId = getStoreId(searchParams)
     const limit = Math.min(Number(searchParams.get('limit')) || 50, 200)
     const cursor = searchParams.get('cursor')
+    const startDate = searchParams.get('start_date')
+    const endDate = searchParams.get('end_date')
 
     const supabase = createServiceClient()
 
@@ -20,6 +22,8 @@ export async function GET(request: Request) {
     if (cursor) {
       query = query.lt('id', cursor)
     }
+    if (startDate) query = query.gte('review_date', startDate)
+    if (endDate) query = query.lte('review_date', endDate)
 
     const { data, error } = await query
 

@@ -6,15 +6,22 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const storeId = getStoreId(searchParams)
     const limit = Math.min(Number(searchParams.get('limit')) || 52, 200)
+    const startDate = searchParams.get('start_date')
+    const endDate = searchParams.get('end_date')
 
     const supabase = createServiceClient()
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('google_review_snapshots')
       .select('*')
       .eq('store_id', storeId)
       .order('snapshot_date', { ascending: false })
       .limit(limit)
+
+    if (startDate) query = query.gte('snapshot_date', startDate)
+    if (endDate) query = query.lte('snapshot_date', endDate)
+
+    const { data, error } = await query
 
     if (error) return apiError(error.message, 500)
 
