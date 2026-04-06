@@ -49,7 +49,7 @@ const navGroups: NavGroup[] = [
   {
     title: '營運總覽',
     items: [
-      { href: '/dashboard', label: '今日概覽', icon: LayoutDashboard },
+      { href: '/dashboard', label: '最新概覽', icon: LayoutDashboard },
       { href: '/trends', label: '趨勢分析', icon: TrendingUp },
       { href: '/alerts', label: '異常警報', icon: Bell },
     ],
@@ -103,7 +103,7 @@ const allNavItems = navGroups.flatMap((g) => g.items)
 
 // Bottom tab bar items for mobile (4 fixed + "more")
 const mobileTabItems: NavItem[] = [
-  { href: '/dashboard', label: '今日概覽', icon: LayoutDashboard },
+  { href: '/dashboard', label: '最新概覽', icon: LayoutDashboard },
   { href: '/trends', label: '趨勢分析', icon: TrendingUp },
   { href: '/products', label: '商品排行', icon: ShoppingBag },
   { href: '/ai', label: 'AI 分析', icon: Brain },
