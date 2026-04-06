@@ -8,22 +8,35 @@ type WeatherData = {
   description: string | null
 }
 
-type CwaResponse = {
+interface CwaStationElement {
+  Weather: string
+  Now: { Precipitation: string }
+  AirTemperature: string
+  RelativeHumidity: string
+  DailyExtreme: {
+    DailyHigh: { TemperatureInfo: { AirTemperature: string } }
+    DailyLow: { TemperatureInfo: { AirTemperature: string } }
+  }
+}
+
+interface CwaStation {
+  StationName: string
+  StationId: string
+  ObsTime: { DateTime: string }
+  WeatherElement: CwaStationElement
+}
+
+interface CwaResponse {
   success: string
   records: {
-    Station: Array<{
-      StationId: string
-      WeatherElement: Array<{
-        ElementName: string
-        Time: Array<{
-          DataTime: string
-          ElementValue: Array<{
-            Value: string
-          }>
-        }>
-      }>
-    }>
+    Station: CwaStation[]
   }
+}
+
+function safeFloat(val: string | null | undefined): number | null {
+  if (!val || val === '-99' || val === '-999' || val === '-99.0') return null
+  const n = parseFloat(val)
+  return isNaN(n) ? null : n
 }
 
 export async function fetchDailyWeather(date: string): Promise<WeatherData | null> {
@@ -53,28 +66,20 @@ export async function fetchDailyWeather(date: string): Promise<WeatherData | nul
     }
 
     const station = json.records.Station[0]
-    const elements = station.WeatherElement
+    const we = station.WeatherElement
 
-    const getValue = (name: string): string | null => {
-      const el = elements.find((e) => e.ElementName === name)
-      if (!el?.Time?.[0]?.ElementValue?.[0]?.Value) return null
-      const val = el.Time[0].ElementValue[0].Value
-      return val === '-99' || val === '-999' ? null : val
-    }
-
-    const temp = getValue('TEMP')
-    const humd = getValue('HUMD')
-    const rain = getValue('RAIN')
-    const weather = getValue('Weather')
+    const tempHigh = safeFloat(we.DailyExtreme?.DailyHigh?.TemperatureInfo?.AirTemperature)
+    const tempLow = safeFloat(we.DailyExtreme?.DailyLow?.TemperatureInfo?.AirTemperature)
+    const tempCurrent = safeFloat(we.AirTemperature)
 
     return {
       date,
-      temp_high: temp ? parseFloat(temp) : null,
-      temp_low: temp ? parseFloat(temp) : null,
-      humidity: humd ? parseFloat(humd) * 100 : null,
-      precipitation: rain ? parseFloat(rain) : null,
+      temp_high: tempHigh ?? tempCurrent,
+      temp_low: tempLow ?? tempCurrent,
+      humidity: safeFloat(we.RelativeHumidity),
+      precipitation: safeFloat(we.Now?.Precipitation),
       weather_code: null,
-      description: weather,
+      description: we.Weather || null,
     }
   } catch (err) {
     console.warn('[Weather] CWA API error:', err)

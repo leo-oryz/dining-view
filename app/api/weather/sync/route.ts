@@ -5,18 +5,16 @@ import { fetchDailyWeather } from '@/lib/weather/cwaClient'
 export async function POST() {
   try {
     const supabase = createServiceClient()
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const dateStr = yesterday.toISOString().slice(0, 10)
+    const today = new Date().toISOString().slice(0, 10)
 
-    const weather = await fetchDailyWeather(dateStr)
+    // CWA observation API returns current/today's data
+    const weather = await fetchDailyWeather(today)
 
     if (!weather) {
       return NextResponse.json({
         success: false,
         data: null,
-        error: 'Weather data unavailable',
+        error: 'Weather data unavailable — check CWA_API_KEY',
         timestamp: new Date().toISOString(),
       })
     }
@@ -38,7 +36,7 @@ export async function POST() {
 
     const rows = stores.map((store) => ({
       store_id: store.id,
-      date: weather.date,
+      date: today,
       temp_high: weather.temp_high,
       temp_low: weather.temp_low,
       humidity: weather.humidity,
@@ -62,7 +60,7 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      data: { date: dateStr, stores: stores.length },
+      data: { date: today, stores: stores.length },
       error: null,
       timestamp: new Date().toISOString(),
     })
