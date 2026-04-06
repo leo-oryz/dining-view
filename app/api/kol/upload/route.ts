@@ -47,14 +47,11 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // If row has engagement data, upsert a post record too
-        if (hasEngagementData(row) && collab) {
+        // Only create kol_posts when there's a real URL (starts with http)
+        const realUrl = isRealUrl(row.content_url)
+        if (hasEngagementData(row) && collab && realUrl) {
           const postPlatform = mapToPostPlatform(row.platform)
           if (postPlatform) {
-            const postUrl = row.content_url && row.content_url !== 'Link'
-              ? row.content_url
-              : `https://placeholder.local/${row.platform}/${row.kol_name}/${row.collaboration_date}`
-
             await supabase
               .from('kol_posts')
               .upsert(
@@ -62,7 +59,7 @@ export async function POST(request: NextRequest) {
                   collaboration_id: collab.id,
                   store_id: storeId,
                   platform: postPlatform,
-                  post_url: postUrl,
+                  post_url: row.content_url!,
                   post_date: row.collaboration_date,
                   views: row.views,
                   likes: row.likes,
@@ -88,11 +85,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Clean up any placeholder posts from previous uploads
+    const { count: cleaned } = await supabase
+      .from('kol_posts')
+      .delete({ count: 'exact' })
+      .eq('store_id', storeId)
+      .like('post_url', 'https://placeholder.local/%')
+
     return apiSuccess({
       total: rows.length,
       processed: inserted,
       errors: rowErrors,
       parseErrors,
+      cleaned_placeholder_posts: cleaned || 0,
     })
   } catch {
     return apiError('Internal server error', 500)
@@ -130,6 +135,15 @@ function buildCollabRecord(row: KolCsvRow, storeId: string) {
 
 function hasEngagementData(row: KolCsvRow): boolean {
   return (row.views ?? row.likes ?? row.comments ?? row.shares ?? row.saves ?? row.reach) != null
+}
+
+/**
+ * Check if a content_url is a real URL (not a label like "Link" or "圖文連結")
+ */
+function isRealUrl(url: string | null): boolean {
+  if (!url) return false
+  const trimmed = url.trim()
+  return trimmed.startsWith('http://') || trimmed.startsWith('https://')
 }
 
 /**
