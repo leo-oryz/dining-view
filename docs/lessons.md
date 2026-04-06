@@ -128,6 +128,7 @@
 - Upload API endpoints require middleware bypass — added `/api/upload` to `publicPaths` in middleware.ts so the agent can POST without Supabase Auth session.
 - Use `waitUntil: 'domcontentloaded'` with optional `waitForLoadState('networkidle').catch(() => {})` instead of `waitUntil: 'networkidle'` alone — some pages never reach networkidle due to analytics/tracking scripts.
 - `DEFAULT_STORE_ID` must match the actual `stores` table record. The placeholder UUID `00000000-...` was used in migrations to seed data but the real store got a random UUID (`36d016c4-...`). If API queries return empty, check store_id mismatch first — foreign key constraints on upload and empty dashboard queries are both symptoms of this.
+- eat365 Sales Summary has `Customers` (guest count) but NO order count. Order count lives in Hourly Sales Report as `transaction_count` per hour. The daily API fills `orders` by summing `hourly_sales.transaction_count` when `daily_sales.orders` is null.
 - Download agent renames files to `{type}_{YYYY-MM-DD}.ext`, but upload routes extract dates from the original eat365 filename pattern (`\d{8}\d{4}-`). Renamed files don't match → fallback to `new Date()` → all data gets today's date. Fix: pass date explicitly via FormData `date` field from agent to upload API.
 
 ### Meta Ads API
