@@ -57,6 +57,7 @@
 - Prompt assembly should use pipe-delimited tables for data context — structured enough for Claude to understand, compact enough to fit in context.
 - Limit product sales to top 50 and margin matrix to top 40 in prompts to avoid exceeding token limits.
 - Always defensively parse AI-generated JSON — never trust that Claude returns exact types matching the schema. Use runtime coercion (`Number()`) for numeric fields and ensure arrays are actually arrays before calling `.toFixed()` or `.slice()` in UI components.
+- `dataPrep.ts` already gathered `productAnomalies` via `detectProductAnomalies()` but `buildPrompt()` in `claudeAnalyzer.ts` never included it in the prompt text. When adding new data sources, always verify the data flows end-to-end: gather → prompt section → schema field → parser → UI component.
 
 ### Recharts TypeScript
 - Recharts v3 Tooltip `formatter` prop types are strict. Don't annotate callback parameter types (e.g. `(val: number)`) — use `(val)` and cast with `Number(val)` inside the callback.
