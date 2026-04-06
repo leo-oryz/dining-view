@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
   // Get redirect URL from request origin
   const origin = request.headers.get('origin') || request.headers.get('referer')?.replace(/\/[^/]*$/, '') || ''
-  const redirectTo = `${origin}/api/auth/callback`
+  const redirectTo = `${origin}/api/auth/callback?type=invite`
 
   // Send invite via Supabase Auth
   const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {

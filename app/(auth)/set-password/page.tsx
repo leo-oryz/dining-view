@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
+export default function SetPasswordPage() {
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -14,18 +14,26 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError('')
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
+    if (password.length < 8) {
+      setError('密碼至少需要 8 個字元')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('兩次輸入的密碼不一致')
+      return
+    }
+
+    setLoading(true)
+
+    const { error: updateError } = await supabase.auth.updateUser({
       password,
     })
 
-    if (authError) {
-      setError(authError.message === 'Invalid login credentials'
-        ? '帳號或密碼錯誤'
-        : authError.message)
+    if (updateError) {
+      setError(updateError.message)
       setLoading(false)
       return
     }
@@ -40,42 +48,37 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-slate-900">FnB Pulse</h1>
-            <p className="text-sm text-slate-500 mt-1">Restaurant Intelligence Platform</p>
+            <p className="text-sm text-slate-500 mt-1">設定您的密碼</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-                Email
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
+                新密碼
               </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="you@example.com"
-                autoFocus
-                required
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                  密碼
-                </label>
-                <a href="/forgot-password" className="text-xs text-blue-600 hover:text-blue-700">
-                  忘記密碼？
-                </a>
-              </div>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="請輸入密碼"
+                placeholder="至少 8 個字元"
+                autoFocus
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1">
+                確認密碼
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="再次輸入密碼"
                 required
               />
             </div>
@@ -89,7 +92,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {loading ? '登入中...' : '登入'}
+              {loading ? '設定中...' : '設定密碼'}
             </button>
           </form>
         </div>
