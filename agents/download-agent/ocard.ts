@@ -31,7 +31,8 @@ async function login(page: Page, credentials?: StoreCredentials) {
     throw new Error('Ocard login credentials required (via store config or env vars)')
   }
 
-  await page.goto('https://crm.ocard.co/Login', { waitUntil: 'networkidle' })
+  await page.goto('https://crm.ocard.co/Login', { waitUntil: 'domcontentloaded', timeout: 30000 })
+  await page.waitForLoadState('networkidle').catch(() => {})
   await page.fill('input[name="acc"]', email)
   await page.fill('input[name="pwd"]', password)
   await page.click('button:has-text("登入")')
