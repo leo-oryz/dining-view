@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { MessageSquare, FileText } from 'lucide-react'
 import BroadcastForm from '@/components/line/BroadcastForm'
@@ -21,6 +21,12 @@ interface Broadcast {
   created_at: string
 }
 
+interface FriendTrendPoint {
+  date: string
+  friends: number
+  has_broadcast: boolean
+}
+
 interface ImpactRow {
   broadcast_title: string
   broadcast_date: string
@@ -30,18 +36,31 @@ interface ImpactRow {
   d3_revenue: number | null
 }
 
+type TimeRange = '7d' | '30d' | '90d'
+
+const TIME_OPTIONS: { value: TimeRange; label: string }[] = [
+  { value: '7d', label: '7 天' },
+  { value: '30d', label: '30 天' },
+  { value: '90d', label: '90 天' },
+]
+
+const DAYS_MAP: Record<TimeRange, number> = { '7d': 7, '30d': 30, '90d': 90 }
+
 export default function LinePage() {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
-  const [friendTrend, setFriendTrend] = useState<{ broadcast_date: string; friend_count_after: number | null }[]>([])
+  const [friendTrend, setFriendTrend] = useState<FriendTrendPoint[]>([])
   const [impact, setImpact] = useState<ImpactRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d')
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setLoading(true)
     try {
+      const days = DAYS_MAP[timeRange]
       const [bRes, ftRes, impRes] = await Promise.all([
         fetch('/api/line/broadcasts'),
-        fetch('/api/line/friend-trend'),
+        fetch(`/api/line/friend-trend?days=${days}`),
         fetch('/api/line/broadcast-impact'),
       ])
       const [bJson, ftJson, impJson] = await Promise.all([
@@ -55,14 +74,21 @@ export default function LinePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [timeRange])
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [fetchData])
 
   // Filter out auto-synced follower snapshots from the table display
-  const displayBroadcasts = broadcasts.filter(b => b.title !== '__follower_snapshot__')
+  // Also filter by time range
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - DAYS_MAP[timeRange])
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+
+  const displayBroadcasts = broadcasts.filter(
+    b => b.title !== '__follower_snapshot__' && b.broadcast_date >= cutoffStr
+  )
 
   return (
     <div className="space-y-6">
@@ -85,9 +111,26 @@ export default function LinePage() {
         </button>
       </div>
 
-      {/* Auto-sync notice */}
-      <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-xs text-green-700">
-        好友數與推播送達數每日自動從 LINE OA 同步。你只需在推播後補上標題即可。
+      {/* Time range selector */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex bg-white rounded-lg border border-slate-200 p-0.5">
+          {TIME_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setTimeRange(opt.value)}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                timeRange === opt.value
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-400">
+          好友數每日自動同步 · <span className="inline-block w-2.5 h-2.5 bg-amber-400 rounded-full align-middle" /> = 有推播
+        </p>
       </div>
 
       {/* Form */}
@@ -113,7 +156,7 @@ export default function LinePage() {
         {loading ? (
           <div className="p-8 text-center text-slate-400 text-sm">載入中...</div>
         ) : displayBroadcasts.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">尚無推播紀錄</div>
+          <div className="p-8 text-center text-slate-400 text-sm">此區間尚無推播紀錄</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
