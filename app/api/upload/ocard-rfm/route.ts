@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
         gold_count: data.gold_count,
         regular_count: data.regular_count,
         dormant_count: data.dormant_count,
+        r_distribution: data.r_distribution,
+        f_distribution: data.f_distribution,
+        m_distribution: data.m_distribution,
       }, { onConflict: 'store_id,snapshot_date' })
 
     if (dbError) return apiError(dbError.message, 500)
