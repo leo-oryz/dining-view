@@ -47,11 +47,12 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Only create kol_posts when there's a real URL (starts with http)
+        // Create kol_posts when there's a real URL (even without engagement data)
         const realUrl = isRealUrl(row.content_url)
-        if (hasEngagementData(row) && collab && realUrl) {
+        if (collab && realUrl) {
           const postPlatform = mapToPostPlatform(row.platform)
           if (postPlatform) {
+            const hasData = hasEngagementData(row)
             await supabase
               .from('kol_posts')
               .upsert(
@@ -61,14 +62,15 @@ export async function POST(request: NextRequest) {
                   platform: postPlatform,
                   post_url: row.content_url!,
                   post_date: row.collaboration_date,
-                  views: row.views,
-                  likes: row.likes,
-                  comments: row.comments,
-                  shares: row.shares,
-                  saves: row.saves,
-                  reach: row.reach,
-                  sync_status: 'synced',
-                  last_synced_at: new Date().toISOString(),
+                  views: row.views ?? null,
+                  likes: row.likes ?? null,
+                  comments: row.comments ?? null,
+                  shares: row.shares ?? null,
+                  saves: row.saves ?? null,
+                  reach: row.reach ?? null,
+                  // If CSV has engagement data, mark synced; otherwise mark pending for Apify
+                  sync_status: hasData ? 'synced' : 'pending',
+                  last_synced_at: hasData ? new Date().toISOString() : null,
                 },
                 { onConflict: 'collaboration_id,post_url' }
               )
@@ -157,6 +159,7 @@ function mapToPostPlatform(platform: string | null): string | null {
     case 'tiktok': return 'tiktok'
     case 'threads': return 'threads'
     case 'youtube': return 'youtube'
-    default: return null // blogger etc. don't have social post scraping
+    case 'blogger': return 'blogger'
+    default: return null
   }
 }
