@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
       .from('line_broadcasts')
       .select('*')
       .eq('store_id', storeId)
+      .neq('title', '__follower_snapshot__')
       .order('broadcast_date', { ascending: false })
       .limit(50)
 

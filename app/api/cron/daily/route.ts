@@ -156,7 +156,21 @@ export async function GET(request: NextRequest) {
     results.weather = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
   }
 
-  // 5. Google Reviews sync (weekly - only on Monday)
+  // 5. LINE OA stats sync (follower count + broadcast delivery)
+  try {
+    const lineRes = await fetch(`${getBaseUrl(request)}/api/line/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    const lineJson = await lineRes.json()
+    results.line = lineJson.success
+      ? `friends: ${lineJson.data.friendCountUpdated}, broadcasts: ${lineJson.data.broadcastsUpdated}`
+      : `Error: ${lineJson.error}`
+  } catch (err) {
+    results.line = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
+  }
+
+  // 6. Google Reviews sync (weekly - only on Monday)
   if (today.getDay() === 1) {
     try {
       const reviewsRes = await fetch(`${getBaseUrl(request)}/api/reviews/sync`, { method: 'POST' })

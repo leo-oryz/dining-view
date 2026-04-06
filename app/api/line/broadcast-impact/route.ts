@@ -10,11 +10,12 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServiceClient()
 
-    // Get all broadcasts
+    // Get all broadcasts (exclude auto-synced follower snapshots)
     const { data: broadcasts, error: bErr } = await supabase
       .from('line_broadcasts')
       .select('broadcast_date, title')
       .eq('store_id', storeId)
+      .neq('title', '__follower_snapshot__')
       .order('broadcast_date', { ascending: false })
       .limit(20)
 
