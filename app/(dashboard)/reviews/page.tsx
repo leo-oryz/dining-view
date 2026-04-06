@@ -53,7 +53,6 @@ interface DailySales {
 }
 
 export default function ReviewsPage() {
-  const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
   const [latestSummary, setLatestSummary] = useState<Snapshot | null>(null)
   const [salesData, setSalesData] = useState<DailySales[]>([])
@@ -68,21 +67,18 @@ export default function ReviewsPage() {
       const dateParams = startDate ? `&start_date=${startDate}` : ''
 
       const noCache = { cache: 'no-store' as RequestCache }
-      const [snapshotsRes, recentRes, summaryRes, salesRes] = await Promise.all([
-        fetch(`/api/reviews/snapshots?limit=200${dateParams}`, noCache),
+      const [recentRes, summaryRes, salesRes] = await Promise.all([
         fetch(`/api/reviews/recent?limit=200${dateParams}`, noCache),
         fetch('/api/reviews/latest-summary', noCache),
-        fetch('/api/sales/daily?limit=180', noCache),
+        fetch(`/api/sales/daily?limit=180${dateParams}`, noCache),
       ])
 
-      const [snapshotsJson, recentJson, summaryJson, salesJson] = await Promise.all([
-        snapshotsRes.json(),
+      const [recentJson, summaryJson, salesJson] = await Promise.all([
         recentRes.json(),
         summaryRes.json(),
         salesRes.ok ? salesRes.json() : { data: [] },
       ])
 
-      if (snapshotsJson.success) setSnapshots(snapshotsJson.data || [])
       if (recentJson.success) setReviews(recentJson.data || [])
       if (summaryJson.success) setLatestSummary(summaryJson.data)
       if (salesJson.success) setSalesData(salesJson.data || [])
@@ -103,40 +99,45 @@ export default function ReviewsPage() {
     ? ((latest.negative_count || 0) / latest.new_reviews_count * 100).toFixed(1)
     : null
 
-  // Chart data: snapshots sorted chronologically, with week/month aggregation
+  // Chart data: aggregate reviews by week or month
   const trendData = useMemo(() => {
-    const sorted = [...snapshots].sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date))
+    const validReviews = reviews.filter(r => r.rating != null && r.review_date)
+    if (validReviews.length === 0) return []
 
-    if (granularity === 'week') {
-      return sorted.map(s => ({
-        label: s.snapshot_date.slice(5), // MM-DD
-        avg_rating: s.avg_rating ? Number(s.avg_rating) : null,
-        new_reviews: s.new_reviews_count,
-        negative: s.negative_count,
+    const bucketMap = new Map<string, { ratings: number[]; count: number; negative: number }>()
+
+    for (const r of validReviews) {
+      let key: string
+      if (granularity === 'month') {
+        key = r.review_date.slice(0, 7) // YYYY-MM
+      } else {
+        // Week: get Monday of the week
+        const d = new Date(r.review_date + 'T00:00:00')
+        const day = d.getDay()
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday
+        d.setDate(diff)
+        key = d.toISOString().split('T')[0]
+      }
+
+      const entry = bucketMap.get(key) || { ratings: [], count: 0, negative: 0 }
+      entry.ratings.push(r.rating!)
+      entry.count++
+      if (r.is_negative) entry.negative++
+      bucketMap.set(key, entry)
+    }
+
+    return Array.from(bucketMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, d]) => ({
+        label: granularity === 'month' ? key.slice(2) : key.slice(5), // YY-MM or MM-DD
+        avg_rating: Number((d.ratings.reduce((a, b) => a + b, 0) / d.ratings.length).toFixed(2)),
+        new_reviews: d.count,
+        negative: d.negative,
       }))
-    }
+  }, [reviews, granularity])
 
-    // Monthly aggregation
-    const monthMap = new Map<string, { ratings: number[]; reviews: number; negative: number }>()
-    for (const s of sorted) {
-      const monthKey = s.snapshot_date.slice(0, 7) // YYYY-MM
-      const entry = monthMap.get(monthKey) || { ratings: [], reviews: 0, negative: 0 }
-      if (s.avg_rating) entry.ratings.push(Number(s.avg_rating))
-      entry.reviews += s.new_reviews_count
-      entry.negative += s.negative_count
-      monthMap.set(monthKey, entry)
-    }
-
-    return Array.from(monthMap.entries()).map(([month, d]) => ({
-      label: month.slice(2), // YY-MM
-      avg_rating: d.ratings.length > 0 ? Number((d.ratings.reduce((a, b) => a + b, 0) / d.ratings.length).toFixed(2)) : null,
-      new_reviews: d.reviews,
-      negative: d.negative,
-    }))
-  }, [snapshots, granularity])
-
-  // Rating vs Revenue dual-axis chart
-  const ratingRevenueData = buildRatingRevenueData(snapshots, salesData)
+  // Rating vs Revenue dual-axis chart (weekly, built from individual reviews)
+  const ratingRevenueData = useMemo(() => buildRatingRevenueData(reviews, salesData), [reviews, salesData])
 
   const sentimentLabel: Record<string, string> = {
     improving: '改善中',
@@ -411,31 +412,44 @@ function KpiCard({
 }
 
 /**
- * Merge weekly snapshots with weekly aggregated sales for dual-axis chart.
+ * Build weekly rating vs revenue data from individual reviews and daily sales.
  */
 function buildRatingRevenueData(
-  snapshots: Snapshot[],
+  reviews: Review[],
   sales: DailySales[]
 ): { week: string; avg_rating: number; weekly_revenue: number }[] {
-  if (snapshots.length === 0) return []
+  const validReviews = reviews.filter(r => r.rating != null && r.review_date)
+  if (validReviews.length === 0) return []
 
-  // Group sales by the closest snapshot week
-  const sorted = [...snapshots].sort((a, b) => a.snapshot_date.localeCompare(b.snapshot_date))
+  // Group reviews by week (Monday-based)
+  const weekMap = new Map<string, number[]>()
+  for (const r of validReviews) {
+    const d = new Date(r.review_date + 'T00:00:00')
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    d.setDate(diff)
+    const weekKey = d.toISOString().split('T')[0]
+    const arr = weekMap.get(weekKey) || []
+    arr.push(r.rating!)
+    weekMap.set(weekKey, arr)
+  }
 
-  return sorted.map(s => {
-    const snapDate = new Date(s.snapshot_date)
-    const weekStart = new Date(snapDate)
-    weekStart.setDate(weekStart.getDate() - 6)
-    const weekStartStr = weekStart.toISOString().split('T')[0]
+  return Array.from(weekMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([weekStart, ratings]) => {
+      const ws = new Date(weekStart + 'T00:00:00')
+      const we = new Date(ws)
+      we.setDate(we.getDate() + 6)
+      const weekEndStr = we.toISOString().split('T')[0]
 
-    const weeklyRevenue = sales
-      .filter(d => d.date >= weekStartStr && d.date <= s.snapshot_date)
-      .reduce((sum, d) => sum + (d.net_sales || 0), 0)
+      const weeklyRevenue = sales
+        .filter(d => d.date >= weekStart && d.date <= weekEndStr)
+        .reduce((sum, d) => sum + (d.net_sales || 0), 0)
 
-    return {
-      week: s.snapshot_date.slice(5),
-      avg_rating: s.avg_rating ? Number(s.avg_rating) : 0,
-      weekly_revenue: weeklyRevenue,
-    }
-  }).filter(d => d.avg_rating > 0)
+      return {
+        week: weekStart.slice(5),
+        avg_rating: Number((ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)),
+        weekly_revenue: weeklyRevenue,
+      }
+    })
 }
