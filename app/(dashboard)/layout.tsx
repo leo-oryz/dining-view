@@ -303,24 +303,24 @@ export default function DashboardLayout({
         </nav>
 
         <div className="absolute bottom-4 left-0 right-0 px-3">
-          <div className="flex items-center gap-2 px-3 py-2">
-            <div className="flex-1 min-w-0">
+          <div className="px-3 py-2">
+            <div className="flex items-center gap-1.5">
               {profile?.name && (
-                <div className="text-sm text-slate-300 font-medium truncate">
+                <span className="text-sm text-slate-300 font-medium truncate">
                   {profile.name}
-                </div>
+                </span>
               )}
-              <div className="text-xs text-slate-500 truncate">
-                {profile?.email || ''}
-              </div>
+              <button
+                onClick={handleLogout}
+                className="text-slate-500 hover:text-white transition-colors shrink-0 p-1"
+                title="登出"
+              >
+                <LogOut size={14} />
+              </button>
             </div>
-            <button
-              onClick={handleLogout}
-              className="text-slate-500 hover:text-white transition-colors shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
-              title="登出"
-            >
-              <LogOut size={16} />
-            </button>
+            <div className="text-xs text-slate-500 truncate mt-0.5">
+              {profile?.email || ''}
+            </div>
           </div>
         </div>
       </aside>
