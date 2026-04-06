@@ -11,10 +11,13 @@ export async function POST() {
     const weather = await fetchDailyWeather(today)
 
     if (!weather) {
+      const hasKey = !!process.env.CWA_API_KEY
       return NextResponse.json({
         success: false,
         data: null,
-        error: 'Weather data unavailable — check CWA_API_KEY',
+        error: hasKey
+          ? 'CWA API 回傳無資料，請檢查 server log'
+          : 'CWA_API_KEY 未設定，請至 Zeabur 或 .env.local 設定後重啟',
         timestamp: new Date().toISOString(),
       })
     }
