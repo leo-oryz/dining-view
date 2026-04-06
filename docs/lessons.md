@@ -154,3 +154,11 @@
 - Replaced `lineNotifier.ts` (LINE push to single user) with `emailNotifier.ts` (Resend email to configurable recipients).
 - Alert email recipients are stored in `alert_settings` table (per-store, `TEXT[]` column for email list) — not derived from `users` table roles.
 - `Array.from(new Set(...))` instead of `[...new Set(...)]` to avoid TypeScript `downlevelIteration` errors when target < ES2015.
+
+### Ocard CSV Parser — Key Name Mismatches
+- Ocard CSV uses **sectioned format** (section headers like `期間新會員性別分析` followed by tables), not flat key-value pairs. Duplicate keys like `未知` appear in both gender and age sections — must use section-aware parsing.
+- Gender keys: actual CSV uses `男性`/`女性`, not `男`/`女`.
+- Age ranges differ from original spec: actual Ocard buckets are `0歲 - 18歲`, `19歲 - 22歲`, `23歲 - 29歲`, `30歲 - 39歲`, `40歲 - 49歲`, `50歲 - 59歲`, `60歲以上` — not the 19-25/26-30/31-35 ranges originally assumed.
+- Channel keys: `Ocard App 招募` + `Ocard App 掃碼` (two entries), not just `Ocard App`.
+- Period dates come from explicit `取樣開始日期`/`取樣結束日期` rows, not embedded in a combined string.
+- **Lesson**: Always verify parser keys against actual exported CSV files before writing parsers. Don't assume format from documentation alone.
