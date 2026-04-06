@@ -100,6 +100,7 @@ const RANGE_PRESETS = [
   { label: '近 90 天', days: 90 },
   { label: '近 180 天', days: 180 },
   { label: '近 1 年', days: 365 },
+  { label: '全部', days: 9999 },
 ] as const
 
 // ─── Main Page ───────────────────────────────────────────────────
@@ -108,8 +109,9 @@ export default function KolPage() {
   const [collabs, setCollabs] = useState<KolCollaboration[]>([])
   const [performance, setPerformance] = useState<PerformanceRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [startDate, setStartDate] = useState(() => format(subDays(new Date(), 90), 'yyyy-MM-dd'))
-  const [endDate, setEndDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  // Default: show from 1 year ago to 90 days in the future (to include scheduled collabs)
+  const [startDate, setStartDate] = useState(() => format(subDays(new Date(), 365), 'yyyy-MM-dd'))
+  const [endDate, setEndDate] = useState(() => format(new Date(new Date().setDate(new Date().getDate() + 90)), 'yyyy-MM-dd'))
 
   // Form state
   const [showForm, setShowForm] = useState(false)
@@ -316,7 +318,8 @@ export default function KolPage() {
               key={rp.days}
               onClick={() => {
                 setStartDate(format(subDays(new Date(), rp.days), 'yyyy-MM-dd'))
-                setEndDate(format(new Date(), 'yyyy-MM-dd'))
+                // Always include future 90 days to show scheduled collabs
+                setEndDate(format(new Date(new Date().setDate(new Date().getDate() + 90)), 'yyyy-MM-dd'))
               }}
               className={`px-3 py-1 rounded text-sm ${
                 startDate === format(subDays(new Date(), rp.days), 'yyyy-MM-dd')
