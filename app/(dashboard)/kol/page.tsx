@@ -15,8 +15,11 @@ import {
   Loader2,
   Upload,
   AlertCircle,
-  CheckCircle2,
   Clock,
+  Pencil,
+  Trash2,
+  Save,
+  X,
 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -133,6 +136,10 @@ export default function KolPage() {
   const [addingPost, setAddingPost] = useState(false)
   const [manualPlatform, setManualPlatform] = useState<string>('')
   const [manualViews, setManualViews] = useState('')
+
+  // Edit post state
+  const [editingPostId, setEditingPostId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ views: '', likes: '', comments: '', shares: '', saves: '', post_url: '' })
 
   // Upload state
   const [uploading, setUploading] = useState(false)
@@ -278,6 +285,50 @@ export default function KolPage() {
     try {
       await fetch(`/api/kol/posts/${postId}/sync`, { method: 'POST' })
       setTimeout(() => fetchData(), 5000)
+    } catch {
+      // silent
+    }
+  }
+
+  const handleEditPost = (post: KolPost) => {
+    setEditingPostId(post.id)
+    setEditForm({
+      post_url: post.post_url,
+      views: post.views?.toString() || '',
+      likes: post.likes?.toString() || '',
+      comments: post.comments?.toString() || '',
+      shares: post.shares?.toString() || '',
+      saves: post.saves?.toString() || '',
+    })
+  }
+
+  const handleSavePost = async () => {
+    if (!editingPostId) return
+    try {
+      await fetch(`/api/kol/posts/${editingPostId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          post_url: editForm.post_url,
+          views: editForm.views ? Number(editForm.views) : null,
+          likes: editForm.likes ? Number(editForm.likes) : null,
+          comments: editForm.comments ? Number(editForm.comments) : null,
+          shares: editForm.shares ? Number(editForm.shares) : null,
+          saves: editForm.saves ? Number(editForm.saves) : null,
+        }),
+      })
+      setEditingPostId(null)
+      fetchData()
+    } catch {
+      // silent
+    }
+  }
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('確定要刪除這則貼文記錄？')) return
+    try {
+      await fetch(`/api/kol/posts/${postId}`, { method: 'DELETE' })
+      fetchData()
     } catch {
       // silent
     }
@@ -627,7 +678,49 @@ export default function KolPage() {
 
                   {isExpanded && posts.length > 0 && (
                     <div className="mt-3 space-y-2">
-                      {posts.map(post => (
+                      {posts.map(post => editingPostId === post.id ? (
+                        /* ── Edit Mode ── */
+                        <div key={post.id} className="bg-yellow-50 border border-yellow-200 rounded p-3 text-sm space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${PLATFORM_COLORS[post.platform]}`}>
+                              {PLATFORM_LABELS[post.platform]}
+                            </span>
+                            <input
+                              type="url"
+                              value={editForm.post_url}
+                              onChange={e => setEditForm({ ...editForm, post_url: e.target.value })}
+                              className="flex-1 border rounded px-2 py-1 text-xs"
+                              placeholder="貼文連結"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <label className="flex items-center gap-1 text-xs text-gray-500">
+                              觀看 <input type="number" value={editForm.views} onChange={e => setEditForm({ ...editForm, views: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                            </label>
+                            <label className="flex items-center gap-1 text-xs text-gray-500">
+                              讚 <input type="number" value={editForm.likes} onChange={e => setEditForm({ ...editForm, likes: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                            </label>
+                            <label className="flex items-center gap-1 text-xs text-gray-500">
+                              留言 <input type="number" value={editForm.comments} onChange={e => setEditForm({ ...editForm, comments: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                            </label>
+                            <label className="flex items-center gap-1 text-xs text-gray-500">
+                              分享 <input type="number" value={editForm.shares} onChange={e => setEditForm({ ...editForm, shares: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                            </label>
+                            <label className="flex items-center gap-1 text-xs text-gray-500">
+                              儲存 <input type="number" value={editForm.saves} onChange={e => setEditForm({ ...editForm, saves: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                            </label>
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setEditingPostId(null)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
+                              <X className="w-3 h-3" /> 取消
+                            </button>
+                            <button onClick={handleSavePost} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+                              <Save className="w-3 h-3" /> 儲存
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* ── View Mode ── */
                         <div
                           key={post.id}
                           className="bg-gray-50 rounded p-3 flex items-center justify-between gap-4 text-sm"
@@ -645,14 +738,13 @@ export default function KolPage() {
                               {post.post_url}
                             </a>
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-gray-600 whitespace-nowrap">
+                          <div className="flex items-center gap-3 text-xs text-gray-600 whitespace-nowrap">
                             {post.sync_status === 'synced' && (
                               <>
                                 {post.views != null && <span>觀看 {post.views.toLocaleString()}</span>}
                                 {post.likes != null && <span>讚 {post.likes.toLocaleString()}</span>}
                                 {post.comments != null && <span>留言 {post.comments.toLocaleString()}</span>}
                                 {post.shares != null && <span>分享 {post.shares.toLocaleString()}</span>}
-                                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
                               </>
                             )}
                             {post.sync_status === 'pending' && (
@@ -663,22 +755,29 @@ export default function KolPage() {
                             {post.sync_status === 'failed' && (
                               <div className="flex flex-col items-end gap-0.5">
                                 <span className="flex items-center gap-1 text-red-500">
-                                  <AlertCircle className="w-3.5 h-3.5" />
-                                  失敗
-                                  <button
-                                    onClick={() => handleResync(post.id)}
-                                    className="ml-1 text-blue-600 hover:underline"
-                                  >
-                                    重新同步
-                                  </button>
+                                  <AlertCircle className="w-3.5 h-3.5" /> 失敗
                                 </span>
                                 {post.sync_error && (
-                                  <span className="text-[10px] text-red-400 max-w-[300px] truncate" title={post.sync_error}>
+                                  <span className="text-[10px] text-red-400 max-w-[200px] truncate" title={post.sync_error}>
                                     {post.sync_error}
                                   </span>
                                 )}
                               </div>
                             )}
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-1 ml-1 border-l pl-2">
+                              {post.sync_status === 'failed' && (
+                                <button onClick={() => handleResync(post.id)} className="text-blue-600 hover:text-blue-700" title="重新同步">
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              <button onClick={() => handleEditPost(post)} className="text-gray-400 hover:text-gray-600" title="編輯">
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => handleDeletePost(post.id)} className="text-gray-400 hover:text-red-500" title="刪除">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
