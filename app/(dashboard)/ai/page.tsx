@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Brain, Loader2 } from 'lucide-react'
+import { Brain, Loader2, Calendar } from 'lucide-react'
 import ReportHistory from '@/components/ai/ReportHistory'
 import AttributionReportView from '@/components/ai/AttributionReport'
 import StarProductsReportView from '@/components/ai/StarProductsReport'
@@ -14,11 +14,28 @@ import {
   parseRetireCandidatesReport,
 } from '@/lib/ai/reportRenderer'
 
-const reportTypeOptions: { value: ReportType; label: string }[] = [
-  { value: 'attribution', label: '營收歸因分析' },
-  { value: 'star_products', label: '明星商品分析' },
-  { value: 'retire_candidates', label: '下架候選分析' },
+const reportTypeOptions: { value: ReportType; label: string; defaultDays: number }[] = [
+  { value: 'attribution', label: '營收歸因分析', defaultDays: 30 },
+  { value: 'star_products', label: '明星商品分析', defaultDays: 60 },
+  { value: 'retire_candidates', label: '下架候選分析', defaultDays: 90 },
 ]
+
+const RANGE_PRESETS = [
+  { label: '近 7 天', days: 7 },
+  { label: '近 30 天', days: 30 },
+  { label: '近 60 天', days: 60 },
+  { label: '近 90 天', days: 90 },
+] as const
+
+function toDateStr(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function daysAgo(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - days)
+  return toDateStr(d)
+}
 
 export default function AiPage() {
   const [reports, setReports] = useState<ReportRecord[]>([])
@@ -26,7 +43,26 @@ export default function AiPage() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [selectedType, setSelectedType] = useState<ReportType>('attribution')
+  const [activePreset, setActivePreset] = useState<number | null>(30)
+  const [startDate, setStartDate] = useState(daysAgo(30))
+  const [endDate, setEndDate] = useState(toDateStr(new Date()))
   const [error, setError] = useState<string | null>(null)
+
+  const handleTypeChange = (type: ReportType) => {
+    setSelectedType(type)
+    const opt = reportTypeOptions.find((o) => o.value === type)
+    if (opt) {
+      setActivePreset(opt.defaultDays)
+      setStartDate(daysAgo(opt.defaultDays))
+      setEndDate(toDateStr(new Date()))
+    }
+  }
+
+  const selectPreset = (days: number) => {
+    setActivePreset(days)
+    setStartDate(daysAgo(days))
+    setEndDate(toDateStr(new Date()))
+  }
 
   const fetchReports = async () => {
     try {
@@ -65,7 +101,7 @@ export default function AiPage() {
       const res = await fetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ report_type: selectedType }),
+        body: JSON.stringify({ report_type: selectedType, period_start: startDate, period_end: endDate }),
       })
       const json = await res.json()
       if (json.success) {
@@ -113,26 +149,67 @@ export default function AiPage() {
           <h3 className="text-base font-semibold text-slate-900">AI 分析報告</h3>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value as ReportType)}
-            className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            {reportTypeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {generating && <Loader2 size={16} className="animate-spin" />}
-            {generating ? '分析中...' : '產生分析報告'}
-          </button>
+        <div className="flex flex-col gap-3">
+          {/* Report type + generate button */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={selectedType}
+              onChange={(e) => handleTypeChange(e.target.value as ReportType)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {reportTypeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {generating && <Loader2 size={16} className="animate-spin" />}
+              {generating ? '分析中...' : '產生分析報告'}
+            </button>
+          </div>
+
+          {/* Period selector */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-1.5 text-sm text-slate-500">
+              <Calendar size={14} />
+              <span>分析期間</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {RANGE_PRESETS.map((p) => (
+                <button
+                  key={p.days}
+                  onClick={() => selectPreset(p.days)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                    activePreset === p.days
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setActivePreset(null) }}
+                className="px-2 py-1 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <span className="text-slate-400">~</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setActivePreset(null) }}
+                className="px-2 py-1 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+          </div>
         </div>
 
         {error && (
