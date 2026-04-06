@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { format, subDays } from 'date-fns'
 import {
   Users,
@@ -148,6 +148,9 @@ export default function KolPage() {
   // Expanded rows
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
+  // Ref for post URL input section
+  const postInputRef = useRef<HTMLDivElement>(null)
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
@@ -169,6 +172,13 @@ export default function KolPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  // Scroll to post input when activeCollabId is set
+  useEffect(() => {
+    if (activeCollabId && postInputRef.current) {
+      postInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [activeCollabId])
 
   // Auto-detect platform from URL
   const detectedPlatform = (() => {
@@ -541,7 +551,7 @@ export default function KolPage() {
 
       {/* ─── Section 3: Post URL Input ─── */}
       {activeCollabId && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div ref={postInputRef} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-medium text-blue-800 mb-3">新增貼文連結</h3>
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
