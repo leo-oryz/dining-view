@@ -174,3 +174,8 @@
 - Supabase nested `.select('collaboration:kol_collaborations(kol_name)')` returns an array (not object) when the relationship is inferred — use `Array.isArray()` check before accessing properties.
 - TypeScript `downlevelIteration` restriction: cannot iterate `Map` with `for...of [key, value]`. Use `Array.from(map.keys())` then `.get()` instead.
 - 71 out of 128 products have 5+ days of data (in a 30-day window) — the 5-day minimum threshold is appropriate for the current data density. If data coverage drops, consider lowering to 3 days.
+
+### Review Trend Chart — Snapshot vs Raw Data
+- `google_review_snapshots` table only gets populated when `/api/reviews/sync` runs. If sync has only run once, the table has 1 row and the trend chart shows a single data point regardless of time range.
+- Fix: aggregate trend data directly from `google_reviews` (individual reviews) on the frontend, grouped by week/month. This works immediately with all historical reviews without needing snapshot backfills.
+- Lesson: When building dashboards that depend on aggregated/snapshot tables, verify the table has sufficient historical data. If the aggregation job hasn't been running long enough, compute from raw data instead.
