@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError, DEFAULT_STORE_ID } from '@/lib/api-utils'
 import { parseKolCsv, KolCsvRow } from '@/lib/parsers/kolCsvParser'
+import { scrapePost } from '@/lib/kol/apifyKolClient'
+import { KolPlatform } from '@/lib/kol/platformDetector'
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,9 +88,24 @@ export async function POST(request: NextRequest) {
       .eq('store_id', storeId)
       .like('post_url', 'https://placeholder.local/%')
 
+    // Trigger Apify sync for all pending posts in the background
+    const { data: pendingPosts } = await supabase
+      .from('kol_posts')
+      .select('id, platform, post_url')
+      .eq('store_id', storeId)
+      .eq('sync_status', 'pending')
+
+    const scrapablePlatforms = ['instagram', 'facebook', 'tiktok', 'threads', 'youtube']
+
+    if (pendingPosts && pendingPosts.length > 0) {
+      // Fire and forget — don't block the response
+      syncPendingPosts(supabase, pendingPosts, scrapablePlatforms)
+    }
+
     return apiSuccess({
       total: rows.length,
       processed: inserted,
+      syncing: pendingPosts?.filter(p => scrapablePlatforms.includes(p.platform)).length || 0,
       errors: rowErrors,
       parseErrors,
       cleaned_placeholder_posts: cleaned || 0,
@@ -161,5 +178,53 @@ function mapToPostPlatform(platform: string | null): string | null {
     case 'youtube': return 'youtube'
     case 'blogger': return 'blogger'
     default: return null
+  }
+}
+
+/**
+ * Sync pending posts via Apify in the background (sequentially to avoid rate limits)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function syncPendingPosts(supabase: any, posts: { id: string; platform: string; post_url: string }[], scrapablePlatforms: string[]) {
+  for (const post of posts) {
+    if (!scrapablePlatforms.includes(post.platform)) {
+      // Non-scrapable (blogger etc.) — mark synced with no data
+      await supabase
+        .from('kol_posts')
+        .update({ sync_status: 'synced', last_synced_at: new Date().toISOString() })
+        .eq('id', post.id)
+      continue
+    }
+
+    try {
+      const result = await scrapePost(post.platform as KolPlatform, post.post_url)
+      await supabase
+        .from('kol_posts')
+        .update({
+          likes: result.data.likes,
+          comments: result.data.comments,
+          shares: result.data.shares,
+          views: result.data.views,
+          saves: result.data.saves,
+          reach: result.data.reach,
+          post_date: result.data.post_date,
+          apify_run_id: result.runId,
+          sync_status: 'synced',
+          last_synced_at: new Date().toISOString(),
+          sync_error: null,
+        })
+        .eq('id', post.id)
+      console.log(`[kol-upload] Synced post ${post.id} (${post.platform})`)
+    } catch (err) {
+      await supabase
+        .from('kol_posts')
+        .update({
+          sync_status: 'failed',
+          sync_error: err instanceof Error ? err.message : String(err),
+          last_synced_at: new Date().toISOString(),
+        })
+        .eq('id', post.id)
+      console.error(`[kol-upload] Failed to sync post ${post.id}:`, err)
+    }
   }
 }
