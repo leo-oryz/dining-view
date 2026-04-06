@@ -15,6 +15,7 @@ const factorLabels: Record<string, string> = {
   competitor: '競品',
   line_broadcast: 'LINE 推播',
   ads: '廣告',
+  product_anomaly: '商品異常',
 }
 
 export default function AttributionReport({ data }: { data: AttributionData }) {

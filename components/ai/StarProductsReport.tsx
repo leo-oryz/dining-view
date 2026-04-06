@@ -1,7 +1,7 @@
 'use client'
 
 import { StarProductsReport as StarData } from '@/lib/ai/reportRenderer'
-import { Star } from 'lucide-react'
+import { Star, TrendingUp, TrendingDown } from 'lucide-react'
 
 export default function StarProductsReport({ data }: { data: StarData }) {
   return (
@@ -24,6 +24,7 @@ export default function StarProductsReport({ data }: { data: StarData }) {
                 <th className="text-left py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">分類</th>
                 <th className="text-right py-3 px-4 text-slate-500 font-medium">毛利率</th>
                 <th className="text-right py-3 px-4 text-slate-500 font-medium">銷量趨勢</th>
+                <th className="text-center py-3 px-4 text-slate-500 font-medium">異常</th>
                 <th className="text-left py-3 px-4 text-slate-500 font-medium hidden md:table-cell">搭配商品</th>
               </tr>
             </thead>
@@ -45,6 +46,21 @@ export default function StarProductsReport({ data }: { data: StarData }) {
                     <span className={s.qty_trend_pct >= 0 ? 'text-emerald-600' : 'text-red-600'}>
                       {s.qty_trend_pct >= 0 ? '+' : ''}{s.qty_trend_pct.toFixed(1)}%
                     </span>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    {s.anomaly_flag === 'spike' && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">
+                        <TrendingUp size={12} />暴增
+                      </span>
+                    )}
+                    {s.anomaly_flag === 'drop' && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                        <TrendingDown size={12} />驟降
+                      </span>
+                    )}
+                    {s.anomaly_flag === 'none' && (
+                      <span className="text-xs text-slate-300">—</span>
+                    )}
                   </td>
                   <td className="py-3 px-4 hidden md:table-cell">
                     <div className="flex flex-wrap gap-1">

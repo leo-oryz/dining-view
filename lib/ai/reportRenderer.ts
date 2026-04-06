@@ -28,6 +28,7 @@ export interface StarProductsReport {
     gross_margin: number
     qty_trend_pct: number
     basket_affinity: string[]
+    anomaly_flag: 'spike' | 'drop' | 'none'
     recommendation: string
     evidence: string
   }[]
@@ -42,6 +43,7 @@ export interface RetireCandidatesReport {
     gross_margin: number
     qty_trend_pct: number
     basket_risk: string
+    anomaly_flag: 'spike' | 'drop' | 'none'
     verdict: 'retire' | 'caution' | 'monitor'
     reason: string
     evidence: string
@@ -102,6 +104,7 @@ export function parseStarProductsReport(content: unknown): StarProductsReport | 
             gross_margin: toNum(s.gross_margin),
             qty_trend_pct: toNum(s.qty_trend_pct),
             basket_affinity: Array.isArray(s.basket_affinity) ? s.basket_affinity : [],
+            anomaly_flag: (['spike', 'drop', 'none'].includes(s.anomaly_flag) ? s.anomaly_flag : 'none') as 'spike' | 'drop' | 'none',
           }))
         : [],
     }
@@ -122,6 +125,7 @@ export function parseRetireCandidatesReport(content: unknown): RetireCandidatesR
             ...d,
             gross_margin: toNum(d.gross_margin),
             qty_trend_pct: toNum(d.qty_trend_pct),
+            anomaly_flag: (['spike', 'drop', 'none'].includes(d.anomaly_flag) ? d.anomaly_flag : 'none') as 'spike' | 'drop' | 'none',
             verdict: (['retire', 'caution', 'monitor'].includes(d.verdict) ? d.verdict : 'monitor') as 'retire' | 'caution' | 'monitor',
           }))
         : [],

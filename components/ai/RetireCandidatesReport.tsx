@@ -1,7 +1,7 @@
 'use client'
 
 import { RetireCandidatesReport as RetireData } from '@/lib/ai/reportRenderer'
-import { AlertOctagon } from 'lucide-react'
+import { AlertOctagon, TrendingUp, TrendingDown } from 'lucide-react'
 
 const verdictConfig = {
   retire: { label: '建議下架', color: 'bg-red-100 text-red-800' },
@@ -40,7 +40,7 @@ export default function RetireCandidatesReport({ data }: { data: RetireData }) {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                   <div>
                     <p className="text-xs text-slate-500">毛利率</p>
                     <p className="text-sm font-medium">{(c.gross_margin * 100).toFixed(1)}%</p>
@@ -50,6 +50,20 @@ export default function RetireCandidatesReport({ data }: { data: RetireData }) {
                     <p className={`text-sm font-medium ${c.qty_trend_pct >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {c.qty_trend_pct >= 0 ? '+' : ''}{c.qty_trend_pct.toFixed(1)}%
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">銷量異常</p>
+                    {c.anomaly_flag === 'spike' ? (
+                      <p className="text-sm font-medium text-emerald-600 flex items-center gap-1">
+                        <TrendingUp size={14} />暴增
+                      </p>
+                    ) : c.anomaly_flag === 'drop' ? (
+                      <p className="text-sm font-medium text-red-600 flex items-center gap-1">
+                        <TrendingDown size={14} />驟降
+                      </p>
+                    ) : (
+                      <p className="text-sm text-slate-400">無</p>
+                    )}
                   </div>
                   <div className="col-span-2 sm:col-span-1">
                     <p className="text-xs text-slate-500">連帶風險</p>

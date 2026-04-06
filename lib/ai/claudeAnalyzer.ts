@@ -61,7 +61,8 @@ function getSystemPrompt(reportType: ReportType): string {
 - 所有文字用繁體中文
 - 數字要精確，引用具體數據作為 evidence
 - confidence 只能是 "high"、"medium"、"low"
-- 日期格式 YYYY-MM-DD`
+- 日期格式 YYYY-MM-DD
+- 「商品銷量異常」資料包含以 14 日移動均線為基準偵測到的暴增(spike >200%)和驟降(drop <30%)，並附帶天氣、活動、KOL 等背景。請在分析中交叉引用這些異常來增強你的判斷`
 
   const schemas: Record<ReportType, string> = {
     attribution: `${base}
@@ -81,7 +82,7 @@ function getSystemPrompt(reportType: ReportType): string {
   ],
   "top_drivers": [
     {
-      "factor": "campaign | weather | competitor | line_broadcast | ads",
+      "factor": "campaign | weather | competitor | line_broadcast | ads | product_anomaly",
       "name": "string",
       "impact_estimate": "string",
       "evidence": "string"
@@ -102,8 +103,9 @@ function getSystemPrompt(reportType: ReportType): string {
       "gross_margin": number (0-1),
       "qty_trend_pct": number,
       "basket_affinity": ["常一起購買的商品"],
+      "anomaly_flag": "spike | drop | none — 該商品近期是否出現銷量異常",
       "recommendation": "string",
-      "evidence": "string"
+      "evidence": "string — 若有銷量異常請引用具體日期和 delta%"
     }
   ]
 }`,
@@ -120,9 +122,10 @@ function getSystemPrompt(reportType: ReportType): string {
       "gross_margin": number (0-1),
       "qty_trend_pct": number,
       "basket_risk": "會被影響的商品",
+      "anomaly_flag": "spike | drop | none — 該商品近期是否出現銷量異常",
       "verdict": "retire | caution | monitor",
       "reason": "string",
-      "evidence": "string"
+      "evidence": "string — 若有銷量異常請引用具體日期和 delta%"
     }
   ]
 }`,
@@ -277,6 +280,21 @@ function buildPrompt(
     if (latest.keywords && latest.keywords.length > 0) {
       sections.push(`負評關鍵字：${latest.keywords.join('、')}`)
     }
+  }
+
+  // Product anomalies
+  if (ctx.productAnomalies.length > 0) {
+    sections.push('\n## 商品銷量異常 (14日均線基準，spike >200%, drop <30%)')
+    sections.push('date | product_name | category | type | actual_qty | baseline_qty | delta_pct | weather | campaign | kol')
+    for (const a of ctx.productAnomalies.slice(0, 40)) {
+      sections.push(
+        `${a.anomaly_date} | ${a.product_name} | ${a.category ?? '-'} | ${a.anomaly_type} | ${a.actual_qty} | ${a.baseline_qty} | ${a.delta_pct > 0 ? '+' : ''}${a.delta_pct}% | ${a.weather_type}${a.is_typhoon_day ? '(颱風)' : ''} | ${a.campaign_name ?? '-'} | ${a.kol_name ?? '-'}`
+      )
+    }
+    // Summary
+    const spikes = ctx.productAnomalies.filter(a => a.anomaly_type === 'spike').length
+    const drops = ctx.productAnomalies.filter(a => a.anomaly_type === 'drop').length
+    sections.push(`\n異常摘要：共 ${ctx.productAnomalies.length} 筆（暴增 ${spikes}、驟降 ${drops}）`)
   }
 
   if (reportType === 'expansion') {
