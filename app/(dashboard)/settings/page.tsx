@@ -949,6 +949,26 @@ export default function SettingsPage() {
     }
   }
 
+  const handleResendInvite = async (member: TeamMember) => {
+    setTeamMessage(null)
+    try {
+      const res = await fetch('/api/team/resend-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ member_id: member.id }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setTeamMessage({ text: `已重新發送邀請信至 ${member.email}`, type: 'success' })
+        fetchMembers()
+      } else {
+        setTeamMessage({ text: `重發失敗：${json.error}`, type: 'error' })
+      }
+    } catch {
+      setTeamMessage({ text: '重發失敗', type: 'error' })
+    }
+  }
+
   const handleDeleteMember = async (member: TeamMember) => {
     if (!window.confirm(`確定要刪除 ${member.display_name || member.email} 的帳號？此操作無法復原。`)) return
     setTeamMessage(null)
@@ -1385,6 +1405,15 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 ml-3">
+                      {member.invited_at && (
+                        <button
+                          onClick={() => handleResendInvite(member)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="重發邀請信"
+                        >
+                          <Send size={14} />
+                        </button>
+                      )}
                       <button onClick={() => openEditMember(member)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="編輯角色">
                         <Edit2 size={14} />
                       </button>

@@ -70,9 +70,12 @@ export async function POST(request: NextRequest) {
   })
 
   if (inviteError) {
+    const msg = inviteError.message.includes('rate limit')
+      ? '寄信頻率超過限制，請稍後再試（Supabase 預設每小時 4 封）'
+      : inviteError.message
     return NextResponse.json(
-      { success: false, data: null, error: inviteError.message, timestamp: new Date().toISOString() },
-      { status: 500 }
+      { success: false, data: null, error: msg, timestamp: new Date().toISOString() },
+      { status: inviteError.message.includes('rate limit') ? 429 : 500 }
     )
   }
 
