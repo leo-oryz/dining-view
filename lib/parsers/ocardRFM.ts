@@ -94,10 +94,10 @@ export function parseOcardRFM(csvText: string): { data: OcardRFMData; errors: Pa
       const map = sectionData.get(section)
       if (!map || map.size === 0) return null
       const dist: Record<string, number> = {}
-      for (const [key, val] of map) {
+      Array.from(map.entries()).forEach(([key, val]) => {
         const num = parseNum(val)
         if (num !== null) dist[key] = num
-      }
+      })
       return Object.keys(dist).length > 0 ? dist : null
     }
 

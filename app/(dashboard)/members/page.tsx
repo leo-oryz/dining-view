@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { KpiCard } from '@/components/dashboard/KpiCard'
 import { SalesLineChart } from '@/components/charts/SalesLineChart'
 import { Users, UserPlus, UserCheck, Hotel, RefreshCw } from 'lucide-react'
-import { format, subDays } from 'date-fns'
+import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear } from 'date-fns'
 import { type WeatherDaily, isTyphoon, buildWeatherMap } from '@/lib/weather/weatherUtils'
 import RFMTrendChart from '@/components/members/RFMTrendChart'
 import RFMDistributionChart from '@/components/members/RFMDistributionChart'
@@ -53,12 +53,27 @@ interface HotelConversion {
   }>
 }
 
+type RangeKey = '7d' | '30d' | '90d' | 'this_month' | 'last_month' | 'ytd' | 'custom'
+
+const rangeOptions: { key: RangeKey; label: string }[] = [
+  { key: '7d', label: '7 天' },
+  { key: '30d', label: '30 天' },
+  { key: '90d', label: '90 天' },
+  { key: 'this_month', label: '本月' },
+  { key: 'last_month', label: '上月' },
+  { key: 'ytd', label: '今年至今' },
+  { key: 'custom', label: '自訂' },
+]
+
 export default function MembersPage() {
   const [data, setData] = useState<DailySales[]>([])
   const [rfmData, setRfmData] = useState<RFMSnapshot[]>([])
   const [weatherMap, setWeatherMap] = useState<Map<string, WeatherDaily>>(new Map())
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'overview' | 'rfm' | 'demographics' | 'hotel'>('overview')
+  const [rangeKey, setRangeKey] = useState<RangeKey>('30d')
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
   const [demoData, setDemoData] = useState<DemographicData | null>(null)
   const [demoLoading, setDemoLoading] = useState(false)
   const [hotelData, setHotelData] = useState<HotelConversion | null>(null)
@@ -67,27 +82,51 @@ export default function MembersPage() {
   const [hotelSyncing, setHotelSyncing] = useState(false)
   const [hotelSyncResult, setHotelSyncResult] = useState<string | null>(null)
 
-  useEffect(() => {
-    const endDate = format(new Date(), 'yyyy-MM-dd')
-    const startDate = format(subDays(new Date(), 30), 'yyyy-MM-dd')
+  const { startDate, endDate } = useMemo(() => {
+    if (rangeKey === 'custom' && customStart && customEnd) {
+      return { startDate: customStart, endDate: customEnd }
+    }
+    const today = new Date()
+    if (rangeKey === 'ytd') {
+      return { startDate: format(startOfYear(today), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') }
+    }
+    if (rangeKey === 'this_month') {
+      return { startDate: format(startOfMonth(today), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') }
+    }
+    if (rangeKey === 'last_month') {
+      const lm = subMonths(today, 1)
+      return { startDate: format(startOfMonth(lm), 'yyyy-MM-dd'), endDate: format(endOfMonth(lm), 'yyyy-MM-dd') }
+    }
+    const days = rangeKey === '7d' ? 7 : rangeKey === '90d' ? 90 : 30
+    return { startDate: format(subDays(today, days), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') }
+  }, [rangeKey, customStart, customEnd])
 
+  // Fetch overview data (reactive to date range)
+  useEffect(() => {
+    setLoading(true)
     Promise.all([
       fetch(`/api/sales/daily?start_date=${startDate}&end_date=${endDate}`).then(r => r.json()),
+      fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then(r => r.json()).catch(() => ({ success: false })),
+    ]).then(([salesJson, weatherJson]) => {
+      if (salesJson.success) setData(salesJson.data || [])
+      if (weatherJson.success) setWeatherMap(buildWeatherMap(weatherJson.data || []))
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [startDate, endDate])
+
+  // Fetch RFM + hotel data once on mount
+  useEffect(() => {
+    Promise.all([
       fetch('/api/members/rfm').then(r => r.json()),
       fetch('/api/hotel/conversion').then(r => r.json()).catch(() => ({ success: false })),
-      fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then(r => r.json()).catch(() => ({ success: false })),
-    ]).then(([salesJson, rfmJson, hotelJson, weatherJson]) => {
-      if (salesJson.success) setData(salesJson.data || [])
+    ]).then(([rfmJson, hotelJson]) => {
       if (rfmJson.success) setRfmData(rfmJson.data || [])
       if (hotelJson.success) {
         setHotelConfigured(true)
         setHotelData(hotelJson.data)
       }
-      if (weatherJson.success) setWeatherMap(buildWeatherMap(weatherJson.data || []))
-    }).catch(() => {}).finally(() => setLoading(false))
+    }).catch(() => {})
   }, [])
 
-  const today = data[0]
   const latestRfm = rfmData.length > 0 ? rfmData[rfmData.length - 1] : null
 
   // Calculate dormant percentage from latest snapshot
@@ -165,26 +204,60 @@ export default function MembersPage() {
 
       {activeTab === 'overview' && (
         <>
+          {/* Date range picker */}
+          <div className="flex flex-wrap items-center gap-2">
+            {rangeOptions.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setRangeKey(opt.key)}
+                className={`px-3 py-1.5 text-sm rounded-lg border transition ${
+                  rangeKey === opt.key
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            {rangeKey === 'custom' && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-slate-400">~</span>
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <KpiCard
-              title="會員來客數"
-              value={today?.member_visits != null ? today.member_visits.toLocaleString() : '--'}
+              title="期間會員來客數"
+              value={data.length > 0 ? data.reduce((s, d) => s + (d.member_visits || 0), 0).toLocaleString() : '--'}
               icon={<Users size={20} />}
             />
             <KpiCard
-              title="今日新會員"
-              value={today?.new_members != null ? today.new_members.toLocaleString() : '--'}
+              title="期間新會員"
+              value={data.length > 0 ? data.reduce((s, d) => s + (d.new_members || 0), 0).toLocaleString() : '--'}
               icon={<UserPlus size={20} />}
             />
             <KpiCard
               title="總會員數"
-              value={today?.total_members != null ? today.total_members.toLocaleString() : '--'}
+              value={data.length > 0 && data[0]?.total_members != null ? data[0].total_members.toLocaleString() : '--'}
               icon={<UserCheck size={20} />}
             />
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h3 className="text-base font-semibold text-slate-900 mb-4">30 天會員來客趨勢</h3>
+            <h3 className="text-base font-semibold text-slate-900 mb-4">會員來客趨勢</h3>
             {loading ? (
               <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
                 載入中...
