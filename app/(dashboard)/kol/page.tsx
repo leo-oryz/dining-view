@@ -661,16 +661,23 @@ export default function KolPage() {
                               </span>
                             )}
                             {post.sync_status === 'failed' && (
-                              <span className="flex items-center gap-1 text-red-500">
-                                <AlertCircle className="w-3.5 h-3.5" />
-                                失敗
-                                <button
-                                  onClick={() => handleResync(post.id)}
-                                  className="ml-1 text-blue-600 hover:underline"
-                                >
-                                  重新同步
-                                </button>
-                              </span>
+                              <div className="flex flex-col items-end gap-0.5">
+                                <span className="flex items-center gap-1 text-red-500">
+                                  <AlertCircle className="w-3.5 h-3.5" />
+                                  失敗
+                                  <button
+                                    onClick={() => handleResync(post.id)}
+                                    className="ml-1 text-blue-600 hover:underline"
+                                  >
+                                    重新同步
+                                  </button>
+                                </span>
+                                {post.sync_error && (
+                                  <span className="text-[10px] text-red-400 max-w-[300px] truncate" title={post.sync_error}>
+                                    {post.sync_error}
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
