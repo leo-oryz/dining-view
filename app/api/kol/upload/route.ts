@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
           // Detect platform from the actual URL, fallback to CSV platform column
           const postPlatform = detectPlatformFromUrl(row.content_url!) || mapToPostPlatform(row.platform)
           if (postPlatform) {
-            const hasData = hasEngagementData(row)
             await supabase
               .from('kol_posts')
               .upsert(
@@ -63,15 +62,7 @@ export async function POST(request: NextRequest) {
                   platform: postPlatform,
                   post_url: row.content_url!,
                   post_date: row.collaboration_date,
-                  views: row.views ?? null,
-                  likes: row.likes ?? null,
-                  comments: row.comments ?? null,
-                  shares: row.shares ?? null,
-                  saves: row.saves ?? null,
-                  reach: row.reach ?? null,
-                  // If CSV has engagement data, mark synced; otherwise mark pending for Apify
-                  sync_status: hasData ? 'synced' : 'pending',
-                  last_synced_at: hasData ? new Date().toISOString() : null,
+                  sync_status: 'pending',
                 },
                 { onConflict: 'collaboration_id,post_url' }
               )
@@ -134,10 +125,6 @@ function buildCollabRecord(row: KolCsvRow, storeId: string) {
     engagement_rate: row.engagement_rate,
     notes: row.contact_info, // Store contact as notes too for visibility
   }
-}
-
-function hasEngagementData(row: KolCsvRow): boolean {
-  return (row.views ?? row.likes ?? row.comments ?? row.shares ?? row.saves ?? row.reach) != null
 }
 
 /**
