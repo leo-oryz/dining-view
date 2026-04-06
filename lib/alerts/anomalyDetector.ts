@@ -1,7 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlertEmail } from './emailNotifier'
+import { detectProductAnomalies } from '@/lib/products/anomalyDetector'
 
-type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'delivery_drop' | 'rating_drop'
+type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'delivery_drop' | 'rating_drop' | 'product_anomaly'
 
 interface DetectedAnomaly {
   store_id: string
@@ -195,6 +196,22 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
           })
         }
       }
+    }
+
+    // 6. Product anomaly: 3+ products dropping on same day (exclude typhoon days)
+    const productAnomalies = await detectProductAnomalies(supabase, store.id, yesterday, yesterday, 'drop')
+    const nonTyphoonDrops = productAnomalies.filter(a => !a.is_typhoon_day)
+    if (nonTyphoonDrops.length >= 3) {
+      const productNames = nonTyphoonDrops.slice(0, 5).map(a => a.product_name).join('、')
+      anomalies.push({
+        store_id: store.id,
+        store_name: store.name,
+        alert_type: 'product_anomaly',
+        severity: nonTyphoonDrops.length >= 5 ? 'critical' : 'warning',
+        metric_value: nonTyphoonDrops.length,
+        threshold_value: 3,
+        message: `${store.name}：${nonTyphoonDrops.length} 個商品同時銷量下降（${productNames}）`,
+      })
     }
   }
 

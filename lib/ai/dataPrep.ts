@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import { detectProductAnomalies, type ProductAnomaly } from '@/lib/products/anomalyDetector'
 
 export interface AnalysisContext {
   storeName: string
@@ -12,6 +13,7 @@ export interface AnalysisContext {
   memberSnapshots: MemberSnapshotRow[]
   reviewSnapshots: ReviewSnapshotRow[]
   kolCollaborations: KolCollaborationRow[]
+  productAnomalies: ProductAnomaly[]
 }
 
 interface DailySalesRow {
@@ -164,6 +166,9 @@ export async function prepareAnalysisContext(
       .order('collaboration_date'),
   ])
 
+  // Detect product anomalies for the analysis period
+  const productAnomalies = await detectProductAnomalies(supabase, storeId, periodStart, periodEnd)
+
   return {
     storeName: storeRes.data?.name || 'Unknown',
     periodStart,
@@ -175,6 +180,7 @@ export async function prepareAnalysisContext(
     adCampaigns: adsRes.data || [],
     memberSnapshots: membersRes.data || [],
     reviewSnapshots: reviewsRes.data || [],
+    productAnomalies,
     kolCollaborations: (kolRes.data || []).map((c: { kol_name: string; collaboration_date: string; featured_products: string[]; collaboration_fee: number | null; kol_posts: { platform: string; views: number | null; likes: number | null; comments: number | null; shares: number | null }[] }) => {
       const posts = c.kol_posts || []
       return {
