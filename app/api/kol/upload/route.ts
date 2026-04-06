@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
         // Create kol_posts when there's a real URL (even without engagement data)
         const realUrl = isRealUrl(row.content_url)
         if (collab && realUrl) {
-          const postPlatform = mapToPostPlatform(row.platform)
+          // Detect platform from the actual URL, fallback to CSV platform column
+          const postPlatform = detectPlatformFromUrl(row.content_url!) || mapToPostPlatform(row.platform)
           if (postPlatform) {
             const hasData = hasEngagementData(row)
             await supabase
@@ -137,6 +138,18 @@ function buildCollabRecord(row: KolCsvRow, storeId: string) {
 
 function hasEngagementData(row: KolCsvRow): boolean {
   return (row.views ?? row.likes ?? row.comments ?? row.shares ?? row.saves ?? row.reach) != null
+}
+
+/**
+ * Detect platform from the actual URL (more accurate than CSV column)
+ */
+function detectPlatformFromUrl(url: string): string | null {
+  if (/instagram\.com/i.test(url)) return 'instagram'
+  if (/facebook\.com/i.test(url)) return 'facebook'
+  if (/tiktok\.com/i.test(url)) return 'tiktok'
+  if (/threads\.net/i.test(url)) return 'threads'
+  if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube'
+  return null // Unknown URL → fall back to CSV platform column
 }
 
 /**
