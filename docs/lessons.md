@@ -137,6 +137,9 @@
 
 ### Deployment (Zeabur) — Uncommitted Changes
 - Zeabur deploys from git, not local files. If local changes aren't committed and pushed, the remote build uses stale code. Always verify uncommitted changes (`git status`) before troubleshooting Zeabur build failures — the fix may already exist locally but hasn't been pushed.
+- Common failure pattern: adding new utility files (e.g. `lib/weather/weatherUtils.ts`) and importing them from multiple pages, but forgetting to commit the new file. Webpack error: `Cannot read properties of undefined (reading 'call')` — this means a module is missing in the build, not a code bug. Check `git status` for untracked (`??`) files that are imported elsewhere.
+- Invalid Tailwind classes like `mb--2` (should be `-mb-2`) won't fail the build but cause runtime styling issues. Double-check negative utility classes use the correct `-prefix` syntax.
+- Pre-deploy checklist: `git status` → `git add` → `git commit` → `git push` → then trigger Zeabur deploy. Never assume local working = Zeabur working.
 
 ### Weather Integration
 - CWA observation API (`O-A0001-001`) returns real-time temperature, not daily max/min — `temp_high` and `temp_low` will be the same value. To get true high/low, would need the daily climate report API (`C-B0024-001`).
