@@ -21,6 +21,7 @@ import {
   Save,
   X,
 } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/context'
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -92,23 +93,25 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 const ALL_PLATFORMS = ['instagram', 'facebook', 'tiktok', 'threads', 'youtube', 'blogger'] as const
 
-const FEE_TYPE_LABELS: Record<string, string> = {
-  cash: '現金',
-  product: '產品',
-  hybrid: '混合',
-}
-
-const RANGE_PRESETS = [
-  { label: '近 30 天', days: 30 },
-  { label: '近 90 天', days: 90 },
-  { label: '近 180 天', days: 180 },
-  { label: '近 1 年', days: 365 },
-  { label: '全部', days: 9999 },
-] as const
-
 // ─── Main Page ───────────────────────────────────────────────────
 
 export default function KolPage() {
+  const { t } = useI18n()
+
+  const FEE_TYPE_LABELS: Record<string, string> = {
+    cash: t('kol.costCash'),
+    product: t('kol.costProduct'),
+    hybrid: t('kol.costMixed'),
+  }
+
+  const RANGE_PRESETS = [
+    { label: t('ads.last30'), days: 30 },
+    { label: t('ads.last90'), days: 90 },
+    { label: t('digital.last180'), days: 180 },
+    { label: t('digital.last7').replace('7', '365'), days: 365 },
+    { label: t('common.all'), days: 9999 },
+  ] as const
+
   const [collabs, setCollabs] = useState<KolCollaboration[]>([])
   const [performance, setPerformance] = useState<PerformanceRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -284,7 +287,7 @@ export default function KolPage() {
         setUploadResult({ total: 0, processed: 0, errors: [{ row: 0, message: json.error }] })
       }
     } catch {
-      setUploadResult({ total: 0, processed: 0, errors: [{ row: 0, message: '上傳失敗' }] })
+      setUploadResult({ total: 0, processed: 0, errors: [{ row: 0, message: t('common.uploadFailed') }] })
     } finally {
       setUploading(false)
       e.target.value = '' // reset file input
@@ -335,7 +338,7 @@ export default function KolPage() {
   }
 
   const handleDeletePost = async (postId: string) => {
-    if (!confirm('確定要刪除這則貼文記錄？')) return
+    if (!confirm(t('kol.deletePostConfirm'))) return
     try {
       await fetch(`/api/kol/posts/${postId}`, { method: 'DELETE' })
       fetchData()
@@ -372,7 +375,7 @@ export default function KolPage() {
     <div className="space-y-6">
       {/* Header + Date Range */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">KOL 合作管理</h1>
+        <h1 className="text-2xl font-bold">{t('kol.title')}</h1>
         <div className="flex items-center gap-2 flex-wrap">
           {RANGE_PRESETS.map(rp => (
             <button
@@ -398,14 +401,14 @@ export default function KolPage() {
       <div className="bg-white rounded-lg border p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium">批次上傳 KOL 合作記錄</h3>
-            <p className="text-xs text-gray-500 mt-1">上傳 CSV 檔案（格式：網紅合作流程追蹤表）</p>
+            <h3 className="font-medium">{t('kol.batchUpload')}</h3>
+            <p className="text-xs text-gray-500 mt-1">{t('kol.uploadCsvHint')}</p>
           </div>
           <label className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium cursor-pointer ${
             uploading ? 'bg-gray-300 text-gray-500' : 'bg-green-600 text-white hover:bg-green-700'
           }`}>
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            {uploading ? '上傳中...' : '選擇 CSV 檔案'}
+            {uploading ? t('common.uploading') : t('kol.selectCsv')}
             <input
               type="file"
               accept=".csv"
@@ -419,14 +422,14 @@ export default function KolPage() {
           <div className={`mt-3 p-3 rounded text-sm ${
             uploadResult.errors.length > 0 ? 'bg-yellow-50 text-yellow-800' : 'bg-green-50 text-green-800'
           }`}>
-            <p>共 {uploadResult.total} 筆，成功匯入 {uploadResult.processed} 筆</p>
+            <p>{t('kol.uploadSuccessPrefix')} {uploadResult.total} {t('kol.uploadSuccessSuffix')} {uploadResult.processed} {t('common.records')}</p>
             {uploadResult.errors.length > 0 && (
               <ul className="mt-1 text-xs space-y-0.5">
                 {uploadResult.errors.slice(0, 5).map((e, i) => (
-                  <li key={i}>第 {e.row} 列: {e.message}</li>
+                  <li key={i}>{t('kol.uploadRowPrefix')} {e.row} {t('kol.uploadRowSuffix')}: {e.message}</li>
                 ))}
                 {uploadResult.errors.length > 5 && (
-                  <li>...還有 {uploadResult.errors.length - 5} 筆錯誤</li>
+                  <li>...{t('common.moreErrors')} {uploadResult.errors.length - 5} {t('common.errors')}</li>
                 )}
               </ul>
             )}
@@ -436,10 +439,10 @@ export default function KolPage() {
 
       {/* ─── Section 1: KPI Cards ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Users} title="本月合作 KOL" value={monthCollabs.length.toString()} />
-        <KpiCard icon={Eye} title="本月總觸及" value={monthViews.toLocaleString()} />
-        <KpiCard icon={Heart} title="平均互動率" value={`${avgEngRate.toFixed(2)}%`} />
-        <KpiCard icon={DollarSign} title="本月合作費用" value={`NT$${monthFees.toLocaleString()}`} />
+        <KpiCard icon={Users} title={t('kol.monthlyKol')} value={monthCollabs.length.toString()} />
+        <KpiCard icon={Eye} title={t('kol.monthlyReach')} value={monthViews.toLocaleString()} />
+        <KpiCard icon={Heart} title={t('kol.avgEngagement')} value={`${avgEngRate.toFixed(2)}%`} />
+        <KpiCard icon={DollarSign} title={t('kol.monthlyCost')} value={`NT$${monthFees.toLocaleString()}`} />
       </div>
 
       {/* ─── Section 2: New Collaboration Form ─── */}
@@ -449,14 +452,14 @@ export default function KolPage() {
           className="flex items-center gap-2 text-blue-600 font-medium hover:text-blue-700"
         >
           <Plus className="w-4 h-4" />
-          新增 KOL 合作
+          {t('kol.addCollab')}
           {showForm ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
 
         {showForm && (
           <form onSubmit={handleCreateCollab} className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">KOL 名稱 *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.kolName')} *</label>
               <input
                 type="text"
                 required
@@ -467,7 +470,7 @@ export default function KolPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">KOL 帳號</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.kolHandle')}</label>
               <input
                 type="text"
                 value={formData.kol_handle}
@@ -477,7 +480,7 @@ export default function KolPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">合作日期 *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.collabDate')} *</label>
               <input
                 type="date"
                 required
@@ -487,17 +490,16 @@ export default function KolPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">合作商品（逗號分隔）</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.collabProducts')}</label>
               <input
                 type="text"
                 value={formData.featured_products}
                 onChange={e => setFormData({ ...formData, featured_products: e.target.value })}
                 className="w-full border rounded px-3 py-2 text-sm"
-                placeholder="招牌拿鐵, 可頌"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">合作費用 (NTD)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.collabCost')} (NTD)</label>
               <input
                 type="number"
                 value={formData.collaboration_fee}
@@ -507,19 +509,19 @@ export default function KolPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">費用類型</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.costType')}</label>
               <select
                 value={formData.fee_type}
                 onChange={e => setFormData({ ...formData, fee_type: e.target.value })}
                 className="w-full border rounded px-3 py-2 text-sm"
               >
-                <option value="cash">現金</option>
-                <option value="product">產品</option>
-                <option value="hybrid">混合</option>
+                <option value="cash">{t('kol.costCash')}</option>
+                <option value="product">{t('kol.costProduct')}</option>
+                <option value="hybrid">{t('kol.costMixed')}</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">負責人</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.manager')}</label>
               <input
                 type="text"
                 value={formData.responsible_staff}
@@ -528,7 +530,7 @@ export default function KolPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">備註</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('common.notes')}</label>
               <input
                 type="text"
                 value={formData.notes}
@@ -542,7 +544,7 @@ export default function KolPage() {
                 disabled={submitting}
                 className="bg-blue-600 text-white px-6 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                {submitting ? '建立中...' : '建立合作'}
+                {submitting ? t('kol.creating') : t('kol.createCollab')}
               </button>
             </div>
           </form>
@@ -552,7 +554,7 @@ export default function KolPage() {
       {/* ─── Section 3: Post URL Input ─── */}
       {activeCollabId && (
         <div ref={postInputRef} className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-medium text-blue-800 mb-3">新增貼文連結</h3>
+          <h3 className="font-medium text-blue-800 mb-3">{t('kol.addPostLink')}</h3>
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
               <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -560,7 +562,7 @@ export default function KolPage() {
                 type="url"
                 value={postUrl}
                 onChange={e => setPostUrl(e.target.value)}
-                placeholder="貼上貼文連結（IG / TikTok / Blog / YouTube 等）"
+                placeholder={t('kol.pastePostLink')}
                 className="w-full border rounded px-3 py-2 pl-10 text-sm"
               />
             </div>
@@ -575,7 +577,7 @@ export default function KolPage() {
                 onChange={e => setManualPlatform(e.target.value)}
                 className="border rounded px-2 py-2 text-sm"
               >
-                <option value="">選擇平台</option>
+                <option value="">{t('kol.selectPlatform')}</option>
                 {ALL_PLATFORMS.map(p => (
                   <option key={p} value={p}>{PLATFORM_LABELS[p]}</option>
                 ))}
@@ -586,7 +588,7 @@ export default function KolPage() {
                 type="number"
                 value={manualViews}
                 onChange={e => setManualViews(e.target.value)}
-                placeholder="觀看數"
+                placeholder={t('kol.viewCount')}
                 className="border rounded px-3 py-2 text-sm w-28"
               />
             )}
@@ -596,19 +598,19 @@ export default function KolPage() {
               className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
             >
               {addingPost ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              新增
+              {t('common.add')}
             </button>
           </div>
           <p className="text-xs text-blue-600 mt-2">
             {isBlogger
-              ? 'Blog 文章需手動輸入觀看數，不支援自動抓取'
-              : '社群平台貼文會自動透過 Apify 抓取互動數據，約需 30-60 秒'}
+              ? t('kol.blogManualHint')
+              : t('kol.socialAutoHint')}
           </p>
           <button
             onClick={() => { setActiveCollabId(null); setManualPlatform(''); setManualViews('') }}
             className="text-xs text-gray-500 mt-1 hover:text-gray-700"
           >
-            關閉
+            {t('common.close')}
           </button>
         </div>
       )}
@@ -616,23 +618,23 @@ export default function KolPage() {
       {/* ─── Section 4: Collaboration List ─── */}
       <div className="bg-white rounded-lg border">
         <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="font-semibold text-lg">合作列表</h2>
+          <h2 className="font-semibold text-lg">{t('kol.collabList')}</h2>
           <button
             onClick={fetchData}
             className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            重新整理
+            {t('kol.refresh')}
           </button>
         </div>
 
         {loading ? (
           <div className="p-8 text-center text-gray-400">
             <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-            載入中...
+            {t('common.loading')}
           </div>
         ) : collabs.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">尚無合作記錄</div>
+          <div className="p-8 text-center text-gray-400">{t('kol.noRecords')}</div>
         ) : (
           <div className="divide-y">
             {collabs.map(collab => {
@@ -653,7 +655,7 @@ export default function KolPage() {
                         )}
                         <span className="text-xs text-gray-400">{collab.collaboration_date}</span>
                         {collab.status === 'completed' && (
-                          <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded">完成</span>
+                          <span className="text-xs bg-green-100 text-green-700 px-1.5 rounded">{t('kol.completed')}</span>
                         )}
                       </div>
                       {(collab.featured_products || []).length > 0 && (
@@ -667,9 +669,9 @@ export default function KolPage() {
                       )}
                       <div className="flex gap-3 mt-1 text-xs text-gray-500">
                         {collab.collaboration_fee != null && (
-                          <span>費用: NT${collab.collaboration_fee.toLocaleString()} ({FEE_TYPE_LABELS[collab.fee_type || ''] || collab.fee_type})</span>
+                          <span>{t('kol.cost')}: NT${collab.collaboration_fee.toLocaleString()} ({FEE_TYPE_LABELS[collab.fee_type || ''] || collab.fee_type})</span>
                         )}
-                        <span>貼文: {posts.length} 則</span>
+                        <span>{t('kol.posts')}: {posts.length} {t('kol.postsCount')}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -680,7 +682,7 @@ export default function KolPage() {
                         }}
                         className="text-xs text-blue-600 hover:text-blue-700"
                       >
-                        + 貼文
+                        + {t('kol.posts')}
                       </button>
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </div>
@@ -700,32 +702,31 @@ export default function KolPage() {
                               value={editForm.post_url}
                               onChange={e => setEditForm({ ...editForm, post_url: e.target.value })}
                               className="flex-1 border rounded px-2 py-1 text-xs"
-                              placeholder="貼文連結"
                             />
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <label className="flex items-center gap-1 text-xs text-gray-500">
-                              觀看 <input type="number" value={editForm.views} onChange={e => setEditForm({ ...editForm, views: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                              {t('kol.views')} <input type="number" value={editForm.views} onChange={e => setEditForm({ ...editForm, views: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
                             </label>
                             <label className="flex items-center gap-1 text-xs text-gray-500">
-                              讚 <input type="number" value={editForm.likes} onChange={e => setEditForm({ ...editForm, likes: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                              {t('kol.likes')} <input type="number" value={editForm.likes} onChange={e => setEditForm({ ...editForm, likes: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
                             </label>
                             <label className="flex items-center gap-1 text-xs text-gray-500">
-                              留言 <input type="number" value={editForm.comments} onChange={e => setEditForm({ ...editForm, comments: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                              {t('kol.comments')} <input type="number" value={editForm.comments} onChange={e => setEditForm({ ...editForm, comments: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
                             </label>
                             <label className="flex items-center gap-1 text-xs text-gray-500">
-                              分享 <input type="number" value={editForm.shares} onChange={e => setEditForm({ ...editForm, shares: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                              {t('kol.shares')} <input type="number" value={editForm.shares} onChange={e => setEditForm({ ...editForm, shares: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
                             </label>
                             <label className="flex items-center gap-1 text-xs text-gray-500">
-                              儲存 <input type="number" value={editForm.saves} onChange={e => setEditForm({ ...editForm, saves: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
+                              {t('kol.saves')} <input type="number" value={editForm.saves} onChange={e => setEditForm({ ...editForm, saves: e.target.value })} className="border rounded px-1.5 py-0.5 w-20 text-xs" />
                             </label>
                           </div>
                           <div className="flex gap-2 justify-end">
                             <button onClick={() => setEditingPostId(null)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
-                              <X className="w-3 h-3" /> 取消
+                              <X className="w-3 h-3" /> {t('common.cancel')}
                             </button>
                             <button onClick={handleSavePost} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
-                              <Save className="w-3 h-3" /> 儲存
+                              <Save className="w-3 h-3" /> {t('common.save')}
                             </button>
                           </div>
                         </div>
@@ -751,21 +752,21 @@ export default function KolPage() {
                           <div className="flex items-center gap-3 text-xs text-gray-600 whitespace-nowrap">
                             {post.sync_status === 'synced' && (
                               <>
-                                {post.views != null && <span>觀看 {post.views.toLocaleString()}</span>}
-                                {post.likes != null && <span>讚 {post.likes.toLocaleString()}</span>}
-                                {post.comments != null && <span>留言 {post.comments.toLocaleString()}</span>}
-                                {post.shares != null && <span>分享 {post.shares.toLocaleString()}</span>}
+                                {post.views != null && <span>{t('kol.views')} {post.views.toLocaleString()}</span>}
+                                {post.likes != null && <span>{t('kol.likes')} {post.likes.toLocaleString()}</span>}
+                                {post.comments != null && <span>{t('kol.comments')} {post.comments.toLocaleString()}</span>}
+                                {post.shares != null && <span>{t('kol.shares')} {post.shares.toLocaleString()}</span>}
                               </>
                             )}
                             {post.sync_status === 'pending' && (
                               <span className="flex items-center gap-1 text-yellow-600">
-                                <Clock className="w-3.5 h-3.5" /> 同步中
+                                <Clock className="w-3.5 h-3.5" /> {t('kol.syncInProgress')}
                               </span>
                             )}
                             {post.sync_status === 'failed' && (
                               <div className="flex flex-col items-end gap-0.5">
                                 <span className="flex items-center gap-1 text-red-500">
-                                  <AlertCircle className="w-3.5 h-3.5" /> 失敗
+                                  <AlertCircle className="w-3.5 h-3.5" /> {t('kol.syncFailed')}
                                 </span>
                                 {post.sync_error && (
                                   <span className="text-[10px] text-red-400 max-w-[200px] truncate" title={post.sync_error}>
@@ -777,14 +778,14 @@ export default function KolPage() {
                             {/* Action buttons */}
                             <div className="flex items-center gap-1 ml-1 border-l pl-2">
                               {post.sync_status === 'failed' && (
-                                <button onClick={() => handleResync(post.id)} className="text-blue-600 hover:text-blue-700" title="重新同步">
+                                <button onClick={() => handleResync(post.id)} className="text-blue-600 hover:text-blue-700" title={t('kol.resync')}>
                                   <RefreshCw className="w-3.5 h-3.5" />
                                 </button>
                               )}
-                              <button onClick={() => handleEditPost(post)} className="text-gray-400 hover:text-gray-600" title="編輯">
+                              <button onClick={() => handleEditPost(post)} className="text-gray-400 hover:text-gray-600" title={t('common.edit')}>
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
-                              <button onClick={() => handleDeletePost(post.id)} className="text-gray-400 hover:text-red-500" title="刪除">
+                              <button onClick={() => handleDeletePost(post.id)} className="text-gray-400 hover:text-red-500" title={t('common.delete')}>
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -795,7 +796,7 @@ export default function KolPage() {
                   )}
 
                   {isExpanded && posts.length === 0 && (
-                    <p className="mt-3 text-sm text-gray-400">尚未新增貼文連結</p>
+                    <p className="mt-3 text-sm text-gray-400">{t('kol.noPosts')}</p>
                   )}
                 </div>
               )
@@ -807,19 +808,19 @@ export default function KolPage() {
       {/* ─── Section 5: Performance Comparison Table ─── */}
       <div className="bg-white rounded-lg border">
         <div className="p-4 border-b">
-          <h2 className="font-semibold text-lg">KOL 效益對比</h2>
+          <h2 className="font-semibold text-lg">{t('kol.comparison')}</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left text-gray-600">
                 <th className="px-4 py-3 font-medium">KOL</th>
-                <th className="px-4 py-3 font-medium">平台</th>
-                <th className="px-4 py-3 font-medium text-right">觸及</th>
-                <th className="px-4 py-3 font-medium text-right">互動率</th>
-                <th className="px-4 py-3 font-medium text-right">費用</th>
-                <th className="px-4 py-3 font-medium text-right">發文後業績變化</th>
-                <th className="px-4 py-3 font-medium text-right">ROI</th>
+                <th className="px-4 py-3 font-medium">{t('ads.platform')}</th>
+                <th className="px-4 py-3 font-medium text-right">{t('kol.reach')}</th>
+                <th className="px-4 py-3 font-medium text-right">{t('kol.engagementRate')}</th>
+                <th className="px-4 py-3 font-medium text-right">{t('kol.cost')}</th>
+                <th className="px-4 py-3 font-medium text-right">{t('kol.salesChange')}</th>
+                <th className="px-4 py-3 font-medium text-right">{t('kol.roi')}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -864,7 +865,7 @@ export default function KolPage() {
                         </span>
                       ) : '—'}
                       {row.has_typhoon_warning && (
-                        <div className="text-xs text-amber-600 mt-0.5">🌀 含颱風日，數據可能失真</div>
+                        <div className="text-xs text-amber-600 mt-0.5">🌀 {t('kol.typhoonDisclaimer')}</div>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
@@ -881,7 +882,7 @@ export default function KolPage() {
               {performance.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
-                    尚無效益數據
+                    {t('kol.noPerformanceData')}
                   </td>
                 </tr>
               )}

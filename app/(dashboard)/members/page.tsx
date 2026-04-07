@@ -10,6 +10,7 @@ import RFMTrendChart from '@/components/members/RFMTrendChart'
 import RFMDistributionChart from '@/components/members/RFMDistributionChart'
 import DormantAlert from '@/components/members/DormantAlert'
 import DemographicsPanel from '@/components/members/DemographicsPanel'
+import { useI18n } from '@/lib/i18n/context'
 
 interface DailySales {
   date: string
@@ -55,17 +56,19 @@ interface HotelConversion {
 
 type RangeKey = '7d' | '30d' | '90d' | 'this_month' | 'last_month' | 'ytd' | 'custom'
 
-const rangeOptions: { key: RangeKey; label: string }[] = [
-  { key: '7d', label: '7 天' },
-  { key: '30d', label: '30 天' },
-  { key: '90d', label: '90 天' },
-  { key: 'this_month', label: '本月' },
-  { key: 'last_month', label: '上月' },
-  { key: 'ytd', label: '今年至今' },
-  { key: 'custom', label: '自訂' },
-]
-
 export default function MembersPage() {
+  const { t } = useI18n()
+
+  const rangeOptions: { key: RangeKey; label: string }[] = [
+    { key: '7d', label: t('trends.7days') },
+    { key: '30d', label: t('trends.30days') },
+    { key: '90d', label: t('trends.90days') },
+    { key: 'this_month', label: t('members.thisMonth') },
+    { key: 'last_month', label: t('members.lastMonth') },
+    { key: 'ytd', label: t('members.yearToDate') },
+    { key: 'custom', label: t('trends.custom') },
+  ]
+
   const [data, setData] = useState<DailySales[]>([])
   const [rfmData, setRfmData] = useState<RFMSnapshot[]>([])
   const [weatherMap, setWeatherMap] = useState<Map<string, WeatherDaily>>(new Map())
@@ -146,7 +149,7 @@ export default function MembersPage() {
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          會員概覽
+          {t('members.title')}
         </button>
         <button
           onClick={() => setActiveTab('rfm')}
@@ -156,7 +159,7 @@ export default function MembersPage() {
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          RFM 分析
+          {t('members.rfmTab')}
         </button>
         <button
           onClick={() => {
@@ -176,7 +179,7 @@ export default function MembersPage() {
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          人口統計
+          {t('members.demographicTab')}
         </button>
         {hotelConfigured && (
           <button
@@ -197,7 +200,7 @@ export default function MembersPage() {
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            住客轉換
+            {t('members.guestConversionTab')}
           </button>
         )}
       </div>
@@ -240,27 +243,27 @@ export default function MembersPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <KpiCard
-              title="期間會員來客數"
+              title={t('members.periodGuests')}
               value={data.length > 0 ? data.reduce((s, d) => s + (d.member_visits || 0), 0).toLocaleString() : '--'}
               icon={<Users size={20} />}
             />
             <KpiCard
-              title="期間新會員"
+              title={t('members.periodNewMembers')}
               value={data.length > 0 ? data.reduce((s, d) => s + (d.new_members || 0), 0).toLocaleString() : '--'}
               icon={<UserPlus size={20} />}
             />
             <KpiCard
-              title="總會員數"
+              title={t('members.totalMembers')}
               value={data.length > 0 && data[0]?.total_members != null ? data[0].total_members.toLocaleString() : '--'}
               icon={<UserCheck size={20} />}
             />
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h3 className="text-base font-semibold text-slate-900 mb-4">會員來客趨勢</h3>
+            <h3 className="text-base font-semibold text-slate-900 mb-4">{t('members.guestTrend')}</h3>
             {loading ? (
               <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
-                載入中...
+                {t('common.loading')}
               </div>
             ) : (
               <>
@@ -282,7 +285,7 @@ export default function MembersPage() {
                     <div className="mt-3 flex flex-wrap gap-2">
                       {typhoonDays.map(d => (
                         <span key={d.date} className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-700 text-xs rounded-lg">
-                          🌀 {d.date} 颱風日 — 來客數極低，新會員數不具參考性
+                          🌀 {d.date} {t('members.typhoonGuestNote')}
                         </span>
                       ))}
                     </div>
@@ -303,19 +306,19 @@ export default function MembersPage() {
           {latestRfm && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <KpiCard
-                title="總客戶數"
+                title={t('members.totalCustomers')}
                 value={latestRfm.total_customers?.toLocaleString() || '--'}
               />
               <KpiCard
-                title="金牌會員"
+                title={t('members.goldMembers')}
                 value={Number(latestRfm.gold_count)?.toLocaleString() || '--'}
               />
               <KpiCard
-                title="一般會員"
+                title={t('members.regularMembers')}
                 value={Number(latestRfm.regular_count)?.toLocaleString() || '--'}
               />
               <KpiCard
-                title="沉睡會員"
+                title={t('members.dormantMembers')}
                 value={Number(latestRfm.dormant_count)?.toLocaleString() || '--'}
               />
             </div>
@@ -323,9 +326,9 @@ export default function MembersPage() {
 
           {/* RFM Trend Chart */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h4 className="text-sm font-semibold text-slate-900 mb-4">RFM 分群趨勢</h4>
+            <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('members.rfmTrend')}</h4>
             {loading ? (
-              <div className="flex items-center justify-center h-64 text-slate-400 text-sm">載入中...</div>
+              <div className="flex items-center justify-center h-64 text-slate-400 text-sm">{t('common.loading')}</div>
             ) : (
               <RFMTrendChart data={rfmData} />
             )}
@@ -336,21 +339,21 @@ export default function MembersPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="bg-white rounded-xl border border-slate-200 p-5">
                 <RFMDistributionChart
-                  title="R (最近消費) 分佈"
+                  title={t('members.rfmRecency')}
                   data={latestRfm.r_distribution}
                   color="#3b82f6"
                 />
               </div>
               <div className="bg-white rounded-xl border border-slate-200 p-5">
                 <RFMDistributionChart
-                  title="F (消費頻率) 分佈"
+                  title={t('members.rfmFrequency')}
                   data={latestRfm.f_distribution}
                   color="#10b981"
                 />
               </div>
               <div className="bg-white rounded-xl border border-slate-200 p-5">
                 <RFMDistributionChart
-                  title="M (消費金額) 分佈"
+                  title={t('members.rfmMonetary')}
                   data={latestRfm.m_distribution}
                   color="#f59e0b"
                 />
@@ -360,7 +363,7 @@ export default function MembersPage() {
 
           {!latestRfm && !loading && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center">
-              <p className="text-sm text-amber-800">尚無 RFM 分析資料。請先上傳 Ocard RFM 報表。</p>
+              <p className="text-sm text-amber-800">{t('members.noRfmData')}</p>
             </div>
           )}
         </>
@@ -382,16 +385,16 @@ export default function MembersPage() {
                   const res = await fetch('/api/hotel/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
                   const json = await res.json()
                   if (json.success) {
-                    setHotelSyncResult(`同步完成：${json.data.synced} 位住客，${json.data.matched} 位匹配 (${json.data.match_rate})`)
+                    setHotelSyncResult(`${t('members.syncDone')}：${json.data.synced} ${t('members.guestCount')}，${json.data.matched} ${t('members.matchCount')} (${json.data.match_rate})`)
                     // Refresh data
                     const convRes = await fetch('/api/hotel/conversion')
                     const convJson = await convRes.json()
                     if (convJson.success) setHotelData(convJson.data)
                   } else {
-                    setHotelSyncResult(`同步失敗：${json.error}`)
+                    setHotelSyncResult(`${t('members.syncFailed')}：${json.error}`)
                   }
                 } catch {
-                  setHotelSyncResult('同步失敗')
+                  setHotelSyncResult(t('members.syncFailed'))
                 }
                 setHotelSyncing(false)
               }}
@@ -399,38 +402,38 @@ export default function MembersPage() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               <RefreshCw size={14} className={hotelSyncing ? 'animate-spin' : ''} />
-              {hotelSyncing ? '同步中...' : 'Sync Cloudbeds'}
+              {hotelSyncing ? t('common.syncing') : 'Sync Cloudbeds'}
             </button>
           </div>
 
           {hotelSyncResult && (
-            <div className={`text-sm px-4 py-2 rounded-lg ${hotelSyncResult.includes('完成') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            <div className={`text-sm px-4 py-2 rounded-lg ${hotelSyncResult.includes(t('members.syncDone')) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
               {hotelSyncResult}
             </div>
           )}
 
           {/* Hotel KPIs */}
           {hotelLoading ? (
-            <div className="flex items-center justify-center h-32 text-slate-400 text-sm">載入中...</div>
+            <div className="flex items-center justify-center h-32 text-slate-400 text-sm">{t('common.loading')}</div>
           ) : hotelData ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <KpiCard
-                  title="總住客數"
+                  title={t('members.totalGuests')}
                   value={hotelData.total_guests.toLocaleString()}
                   icon={<Hotel size={20} />}
                 />
                 <KpiCard
-                  title="已匹配會員"
+                  title={t('members.matchedMembers')}
                   value={hotelData.matched_guests.toLocaleString()}
                   icon={<UserCheck size={20} />}
                 />
                 <KpiCard
-                  title="轉換率"
+                  title={t('members.conversionRate')}
                   value={`${hotelData.conversion_rate}%`}
                 />
                 <KpiCard
-                  title="住客平均消費"
+                  title={t('members.avgGuestSpend')}
                   value={`NT$ ${hotelData.avg_guest_spend.toLocaleString()}`}
                 />
               </div>
@@ -438,20 +441,20 @@ export default function MembersPage() {
               {/* Recent mappings table */}
               <div className="bg-white rounded-xl border border-slate-200">
                 <div className="px-5 py-3 border-b border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-900">近期住客匹配</h4>
+                  <h4 className="text-sm font-semibold text-slate-900">{t('members.recentMatches')}</h4>
                 </div>
                 {hotelData.recent_mappings.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 text-sm">尚無住客資料</div>
+                  <div className="p-8 text-center text-slate-400 text-sm">{t('members.noGuestData')}</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-200">
-                          <th className="text-left py-3 px-4 text-slate-500 font-medium">住客姓名</th>
-                          <th className="text-left py-3 px-4 text-slate-500 font-medium">入住</th>
-                          <th className="text-left py-3 px-4 text-slate-500 font-medium">退房</th>
-                          <th className="text-left py-3 px-4 text-slate-500 font-medium">匹配狀態</th>
-                          <th className="text-right py-3 px-4 text-slate-500 font-medium">信心度</th>
+                          <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('members.guestName')}</th>
+                          <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('members.checkIn')}</th>
+                          <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('members.checkOut')}</th>
+                          <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('members.matchStatus')}</th>
+                          <th className="text-right py-3 px-4 text-slate-500 font-medium">{t('members.confidence')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -462,9 +465,9 @@ export default function MembersPage() {
                             <td className="py-3 px-4 text-slate-500">{m.check_out}</td>
                             <td className="py-3 px-4">
                               {m.ocard_member_id ? (
-                                <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">已匹配</span>
+                                <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">{t('members.matched')}</span>
                               ) : (
-                                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-xs font-medium">未匹配</span>
+                                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-xs font-medium">{t('members.unmatched')}</span>
                               )}
                             </td>
                             <td className="py-3 px-4 text-right text-slate-500">
@@ -480,7 +483,7 @@ export default function MembersPage() {
             </>
           ) : (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center">
-              <p className="text-sm text-amber-800">請先點擊「Sync Cloudbeds」同步住客資料。</p>
+              <p className="text-sm text-amber-800">Please click &ldquo;Sync Cloudbeds&rdquo; to sync guest data.</p>
             </div>
           )}
         </>

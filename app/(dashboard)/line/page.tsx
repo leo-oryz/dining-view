@@ -6,6 +6,7 @@ import { MessageSquare, FileText } from 'lucide-react'
 import BroadcastForm from '@/components/line/BroadcastForm'
 import FriendTrendChart from '@/components/line/FriendTrendChart'
 import BroadcastImpactChart from '@/components/line/BroadcastImpactChart'
+import { useI18n } from '@/lib/i18n/context'
 
 interface Broadcast {
   id: string
@@ -38,15 +39,17 @@ interface ImpactRow {
 
 type TimeRange = '7d' | '30d' | '90d'
 
-const TIME_OPTIONS: { value: TimeRange; label: string }[] = [
-  { value: '7d', label: '7 天' },
-  { value: '30d', label: '30 天' },
-  { value: '90d', label: '90 天' },
-]
-
 const DAYS_MAP: Record<TimeRange, number> = { '7d': 7, '30d': 30, '90d': 90 }
 
 export default function LinePage() {
+  const { t } = useI18n()
+
+  const TIME_OPTIONS: { value: TimeRange; label: string }[] = [
+    { value: '7d', label: '7 ' + t('trends.7days').replace('7 ', '') },
+    { value: '30d', label: '30 ' + t('trends.30days').replace('30 ', '') },
+    { value: '90d', label: '90 ' + t('trends.90days').replace('90 ', '') },
+  ]
+
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
   const [friendTrend, setFriendTrend] = useState<FriendTrendPoint[]>([])
   const [impact, setImpact] = useState<ImpactRow[]>([])
@@ -96,7 +99,7 @@ export default function LinePage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageSquare size={20} className="text-green-600" />
-          <h3 className="text-base font-semibold text-slate-900">LINE 推播成效追蹤</h3>
+          <h3 className="text-base font-semibold text-slate-900">{t('line.title')}</h3>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -107,7 +110,7 @@ export default function LinePage() {
           }`}
         >
           <FileText size={14} />
-          {showForm ? '取消' : '新增紀錄'}
+          {showForm ? t('common.cancel') : t('line.addRecord')}
         </button>
       </div>
 
@@ -129,7 +132,7 @@ export default function LinePage() {
           ))}
         </div>
         <p className="text-xs text-slate-400">
-          好友數每日自動同步 · <span className="inline-block w-2.5 h-2.5 bg-amber-400 rounded-full align-middle" /> = 有推播
+          {t('line.autoSyncNote')} · <span className="inline-block w-2.5 h-2.5 bg-amber-400 rounded-full align-middle" /> = {t('line.hasBroadcast')}
         </p>
       </div>
 
@@ -139,11 +142,11 @@ export default function LinePage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h4 className="text-sm font-semibold text-slate-900 mb-4">好友數趨勢</h4>
+          <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('line.friendsTrend')}</h4>
           <FriendTrendChart data={friendTrend} />
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h4 className="text-sm font-semibold text-slate-900 mb-4">推播營收效果 (D+1 ~ D+3)</h4>
+          <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('line.broadcastRevenue')}</h4>
           <BroadcastImpactChart data={impact} />
         </div>
       </div>
@@ -151,23 +154,23 @@ export default function LinePage() {
       {/* Broadcast list */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-3 border-b border-slate-200">
-          <h4 className="text-sm font-semibold text-slate-900">推播紀錄</h4>
+          <h4 className="text-sm font-semibold text-slate-900">{t('line.broadcastRecords')}</h4>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-slate-400 text-sm">載入中...</div>
+          <div className="p-8 text-center text-slate-400 text-sm">{t('common.loading')}</div>
         ) : displayBroadcasts.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">此區間尚無推播紀錄</div>
+          <div className="p-8 text-center text-slate-400 text-sm">{t('line.noRecords')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium">日期</th>
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium">標題</th>
-                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">送達</th>
-                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">開封</th>
-                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">點擊</th>
-                  <th className="text-right py-3 px-4 text-slate-500 font-medium">好友數</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('common.date')}</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('line.titleColumn')}</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">{t('line.delivered')}</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">{t('line.opened')}</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">{t('line.clicked')}</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium">{t('line.friendCount')}</th>
                 </tr>
               </thead>
               <tbody>

@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { Pencil, Trash2 } from 'lucide-react'
-
-const DAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
+import { useI18n } from '@/lib/i18n/context'
 
 interface Campaign {
   id: string
@@ -38,6 +37,10 @@ const emptyForm: FormState = {
 }
 
 export default function CampaignsPage() {
+  const { t } = useI18n()
+
+  const DAY_LABELS = t('campaigns.weekdays').split('/')
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -120,17 +123,17 @@ export default function CampaignsPage() {
         setForm({ ...emptyForm })
         fetchCampaigns()
       } else {
-        setError(json.error || (editingId ? '更新失敗' : '建立活動失敗，請稍後再試'))
+        setError(json.error || (editingId ? t('campaigns.updateFailed') : t('campaigns.createFailed')))
       }
     } catch {
-      setError('網路錯誤，請檢查連線後再試')
+      setError(t('campaigns.networkError'))
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDelete = async (c: Campaign) => {
-    if (!window.confirm(`確定要刪除活動「${c.name}」？此操作無法復原。`)) return
+    if (!window.confirm(`${t('campaigns.deleteConfirm')}「${c.name}」？${t('campaigns.deleteWarning')}。`)) return
 
     try {
       const res = await fetch(`/api/campaigns/${c.id}`, { method: 'DELETE' })
@@ -138,10 +141,10 @@ export default function CampaignsPage() {
       if (json.success) {
         fetchCampaigns()
       } else {
-        alert(`刪除失敗：${json.error}`)
+        alert(`${t('campaigns.deleteFailed')}：${json.error}`)
       }
     } catch {
-      alert('刪除失敗')
+      alert(t('campaigns.deleteFailed'))
     }
   }
 
@@ -155,7 +158,7 @@ export default function CampaignsPage() {
   const formatDateColumn = (c: Campaign) => {
     if (c.recurrence_type === 'weekly' && c.recurrence_days) {
       const days = c.recurrence_days.map((d) => DAY_LABELS[d]).join('、')
-      return `每週${days}`
+      return `${t('campaigns.weekly')}${days}`
     }
     const start = c.start_date ? format(new Date(c.start_date), 'yyyy/M/d') : '-'
     const end = c.end_date ? ` ~ ${format(new Date(c.end_date), 'M/d')}` : ''
@@ -165,12 +168,12 @@ export default function CampaignsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900">活動列表</h3>
+        <h3 className="text-base font-semibold text-slate-900">{t('campaigns.title')}</h3>
         <button
           onClick={() => showForm ? (setShowForm(false), setEditingId(null)) : openCreate()}
           className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
         >
-          {showForm ? '取消' : '新增活動'}
+          {showForm ? t('common.cancel') : t('campaigns.addCampaign')}
         </button>
       </div>
 
@@ -178,12 +181,12 @@ export default function CampaignsPage() {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
           <h4 className="text-sm font-semibold text-slate-900">
-            {editingId ? '編輯活動' : '新增活動'}
+            {editingId ? t('campaigns.editCampaign') : t('campaigns.addCampaign')}
           </h4>
 
           {/* Recurrence type radio */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">活動類型</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">{t('campaigns.type')}</label>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -194,7 +197,7 @@ export default function CampaignsPage() {
                   onChange={() => setForm({ ...form, recurrence_type: 'once', recurrence_days: [] })}
                   className="text-blue-600"
                 />
-                <span className="text-sm text-slate-700">一次性活動</span>
+                <span className="text-sm text-slate-700">{t('campaigns.typeOneTime')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -205,14 +208,14 @@ export default function CampaignsPage() {
                   onChange={() => setForm({ ...form, recurrence_type: 'weekly' })}
                   className="text-blue-600"
                 />
-                <span className="text-sm text-slate-700">週期性活動</span>
+                <span className="text-sm text-slate-700">{t('campaigns.typePeriodic')}</span>
               </label>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">活動名稱 *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('campaigns.campaignName')} *</label>
               <input
                 type="text"
                 required
@@ -222,25 +225,25 @@ export default function CampaignsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">類型</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('campaigns.type')}</label>
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">請選擇</option>
-                <option value="discount">折扣</option>
-                <option value="event">活動</option>
-                <option value="holiday">節日</option>
-                <option value="new_product">新品上市</option>
-                <option value="other">其他</option>
+                <option value="">{t('campaigns.selectType')}</option>
+                <option value="discount">{t('campaigns.typeDiscount')}</option>
+                <option value="event">{t('campaigns.typeEvent')}</option>
+                <option value="holiday">{t('campaigns.typeHoliday')}</option>
+                <option value="new_product">{t('campaigns.typeNewProduct')}</option>
+                <option value="other">{t('campaigns.typeOther')}</option>
               </select>
             </div>
 
             {/* Weekly: day-of-week checkboxes */}
             {form.recurrence_type === 'weekly' && (
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">重複星期 *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t('campaigns.repeatDays')} *</label>
                 <div className="flex gap-2">
                   {DAY_LABELS.map((label, idx) => (
                     <button
@@ -262,7 +265,7 @@ export default function CampaignsPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                {form.recurrence_type === 'weekly' ? '生效開始日期' : '開始日期'}
+                {form.recurrence_type === 'weekly' ? t('campaigns.effectiveStart') : t('campaigns.startDate')}
               </label>
               <input
                 type="date"
@@ -273,7 +276,7 @@ export default function CampaignsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                {form.recurrence_type === 'weekly' ? '生效結束日期（選填）' : '結束日期'}
+                {form.recurrence_type === 'weekly' ? t('campaigns.effectiveEnd') : t('campaigns.endDate')}
               </label>
               <input
                 type="date"
@@ -283,7 +286,7 @@ export default function CampaignsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">預算 (NT$)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">{t('campaigns.budget')}</label>
               <input
                 type="number"
                 value={form.budget}
@@ -295,7 +298,7 @@ export default function CampaignsPage() {
             {/* Status selector — only show when editing */}
             {editingId && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">狀態</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('common.status')}</label>
                 <select
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
@@ -310,7 +313,7 @@ export default function CampaignsPage() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">說明</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t('campaigns.description')}</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -329,14 +332,14 @@ export default function CampaignsPage() {
               disabled={submitting || (form.recurrence_type === 'weekly' && form.recurrence_days.length === 0)}
               className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {submitting ? (editingId ? '更新中...' : '建立中...') : (editingId ? '更新活動' : '建立活動')}
+              {submitting ? (editingId ? t('campaigns.updating') : t('campaigns.creating')) : (editingId ? t('campaigns.updateCampaign') : t('campaigns.createCampaign'))}
             </button>
             <button
               type="button"
               onClick={() => { setShowForm(false); setEditingId(null) }}
               className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors"
             >
-              取消
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -345,19 +348,19 @@ export default function CampaignsPage() {
       {/* Campaign list */}
       <div className="bg-white rounded-xl border border-slate-200">
         {loading ? (
-          <div className="p-8 text-center text-slate-400 text-sm">載入中...</div>
+          <div className="p-8 text-center text-slate-400 text-sm">{t('common.loading')}</div>
         ) : campaigns.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">尚無活動紀錄</div>
+          <div className="p-8 text-center text-slate-400 text-sm">{t('campaigns.noRecords')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium">活動名稱</th>
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">類型</th>
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium">日期</th>
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium">狀態</th>
-                  <th className="text-right py-3 px-4 text-slate-500 font-medium">操作</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('campaigns.campaignName')}</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">{t('campaigns.type')}</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('common.date')}</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('common.status')}</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium">{t('campaigns.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -366,9 +369,9 @@ export default function CampaignsPage() {
                     <td className="py-3 px-4">
                       <span className="font-medium text-slate-900">{c.name}</span>
                       {c.recurrence_type === 'weekly' ? (
-                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">週期</span>
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">{t('campaigns.cycle')}</span>
                       ) : (
-                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">單次</span>
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">{t('campaigns.oneTime')}</span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-slate-500 hidden sm:table-cell">{c.type || '-'}</td>
@@ -383,14 +386,14 @@ export default function CampaignsPage() {
                         <button
                           onClick={() => openEdit(c)}
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="編輯"
+                          title={t('common.edit')}
                         >
                           <Pencil size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(c)}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="刪除"
+                          title={t('common.delete')}
                         >
                           <Trash2 size={14} />
                         </button>

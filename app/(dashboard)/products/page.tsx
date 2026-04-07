@@ -6,6 +6,7 @@ import { BasketPairs } from '@/components/charts/BasketPairs'
 import { ProductAnomalyTab } from '@/components/charts/ProductAnomalyTab'
 import { format, subDays, differenceInDays, parseISO } from 'date-fns'
 import { type WeatherDaily } from '@/lib/weather/weatherUtils'
+import { useI18n } from '@/lib/i18n/context'
 
 interface ProductSalesData {
   product_name: string
@@ -25,6 +26,7 @@ interface BasketPairData {
 type Tab = 'ranking' | 'anomaly'
 
 export default function ProductsPage() {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<Tab>('ranking')
   const [data, setData] = useState<ProductSalesData[]>([])
   const [basketData, setBasketData] = useState<BasketPairData[]>([])
@@ -73,7 +75,7 @@ export default function ProductsPage() {
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          商品排行
+          {t('products.title')}
         </button>
         <button
           onClick={() => setActiveTab('anomaly')}
@@ -83,7 +85,7 @@ export default function ProductsPage() {
               : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          銷量異常
+          {t('products.anomaly')}
         </button>
       </div>
 
@@ -91,7 +93,7 @@ export default function ProductsPage() {
         <>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-500">從</label>
+              <label className="text-sm text-slate-500">{t('common.from')}</label>
               <input
                 type="date"
                 value={startDate}
@@ -100,7 +102,7 @@ export default function ProductsPage() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-500">到</label>
+              <label className="text-sm text-slate-500">{t('common.to')}</label>
               <input
                 type="date"
                 value={endDate}
@@ -110,16 +112,16 @@ export default function ProductsPage() {
             </div>
             {weatherData.length > 0 && (
               <div className="flex items-center gap-2">
-                <label className="text-sm text-slate-500">天氣</label>
+                <label className="text-sm text-slate-500">{t('products.weather')}</label>
                 <select
                   value={weatherFilter}
                   onChange={(e) => setWeatherFilter(e.target.value as typeof weatherFilter)}
                   className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">全部天氣</option>
-                  <option value="sunny_cloudy">☀️ 晴天/多雲</option>
-                  <option value="rainy">🌧 雨天</option>
-                  <option value="typhoon">🌀 颱風日</option>
+                  <option value="all">{t('products.allWeather')}</option>
+                  <option value="sunny_cloudy">☀️ {t('products.sunny')}</option>
+                  <option value="rainy">🌧 {t('products.rainy')}</option>
+                  <option value="typhoon">🌀 {t('products.typhoonDay')}</option>
                 </select>
               </div>
             )}
@@ -127,18 +129,18 @@ export default function ProductsPage() {
 
           {weatherFilter === 'typhoon' && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-700">
-              颱風日數據僅供參考
+              {t('products.typhoonDisclaimer')}
             </div>
           )}
 
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <div className="flex items-baseline gap-2 mb-4">
-              <h3 className="text-base font-semibold text-slate-900">商品銷售排行</h3>
-              <span className="text-xs text-slate-400">商品名稱以 eat365 報表語言顯示</span>
+              <h3 className="text-base font-semibold text-slate-900">{t('products.salesRanking')}</h3>
+              <span className="text-xs text-slate-400">{t('products.nameDisclaimer')}</span>
             </div>
             {loading ? (
               <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
-                載入中...
+                {t('common.loading')}
               </div>
             ) : (
               <ProductRanking data={data} />
@@ -147,17 +149,17 @@ export default function ProductsPage() {
 
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <div className="flex items-baseline gap-2 mb-4">
-              <h3 className="text-base font-semibold text-slate-900">商品組合分析</h3>
-              <span className="text-xs text-slate-400">常一起被點購的商品組合</span>
+              <h3 className="text-base font-semibold text-slate-900">{t('products.comboAnalysis')}</h3>
+              <span className="text-xs text-slate-400">{t('products.comboDescription')}</span>
             </div>
             {daySpan < 14 && (
               <p className="text-xs text-amber-600 mb-3">
-                建議選擇至少 30 天的範圍以獲得更準確的組合分析
+                {t('products.comboSuggestion')}
               </p>
             )}
             {basketLoading ? (
               <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
-                載入中...
+                {t('common.loading')}
               </div>
             ) : (
               <BasketPairs data={basketData} totalOrders={totalOrders} />

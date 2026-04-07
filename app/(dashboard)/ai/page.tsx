@@ -13,19 +13,7 @@ import {
   parseStarProductsReport,
   parseRetireCandidatesReport,
 } from '@/lib/ai/reportRenderer'
-
-const reportTypeOptions: { value: ReportType; label: string; defaultDays: number }[] = [
-  { value: 'attribution', label: '營收歸因分析', defaultDays: 30 },
-  { value: 'star_products', label: '明星商品分析', defaultDays: 60 },
-  { value: 'retire_candidates', label: '下架候選分析', defaultDays: 90 },
-]
-
-const RANGE_PRESETS = [
-  { label: '近 7 天', days: 7 },
-  { label: '近 30 天', days: 30 },
-  { label: '近 60 天', days: 60 },
-  { label: '近 90 天', days: 90 },
-] as const
+import { useI18n } from '@/lib/i18n/context'
 
 function toDateStr(d: Date): string {
   return d.toISOString().slice(0, 10)
@@ -38,6 +26,21 @@ function daysAgo(days: number): string {
 }
 
 export default function AiPage() {
+  const { t } = useI18n()
+
+  const reportTypeOptions: { value: ReportType; label: string; defaultDays: number }[] = [
+    { value: 'attribution', label: t('ai.revenueAttribution'), defaultDays: 30 },
+    { value: 'star_products', label: t('ai.starProducts'), defaultDays: 60 },
+    { value: 'retire_candidates', label: t('ai.discontinueCandidates'), defaultDays: 90 },
+  ]
+
+  const RANGE_PRESETS = [
+    { label: t('ai.last7'), days: 7 },
+    { label: t('ai.last30'), days: 30 },
+    { label: t('ai.last60'), days: 60 },
+    { label: t('ai.last90'), days: 90 },
+  ] as const
+
   const [reports, setReports] = useState<ReportRecord[]>([])
   const [activeReport, setActiveReport] = useState<ReportRecord | null>(null)
   const [loading, setLoading] = useState(true)
@@ -89,7 +92,7 @@ export default function AiPage() {
         setError(null)
       }
     } catch {
-      setError('無法載入報告')
+      setError(t('ai.loadFailed'))
     }
   }
 
@@ -108,10 +111,10 @@ export default function AiPage() {
         setActiveReport(json.data)
         fetchReports()
       } else {
-        setError(json.error || '分析失敗')
+        setError(json.error || t('ai.analysisFailed'))
       }
     } catch {
-      setError('分析請求失敗')
+      setError(t('ai.requestFailed'))
     } finally {
       setGenerating(false)
     }
@@ -123,15 +126,15 @@ export default function AiPage() {
     switch (activeReport.report_type) {
       case 'attribution': {
         const parsed = parseAttributionReport(activeReport.content)
-        return parsed ? <AttributionReportView data={parsed} /> : <p className="text-sm text-red-500">報告格式無效</p>
+        return parsed ? <AttributionReportView data={parsed} /> : <p className="text-sm text-red-500">{t('ai.invalidFormat')}</p>
       }
       case 'star_products': {
         const parsed = parseStarProductsReport(activeReport.content)
-        return parsed ? <StarProductsReportView data={parsed} /> : <p className="text-sm text-red-500">報告格式無效</p>
+        return parsed ? <StarProductsReportView data={parsed} /> : <p className="text-sm text-red-500">{t('ai.invalidFormat')}</p>
       }
       case 'retire_candidates': {
         const parsed = parseRetireCandidatesReport(activeReport.content)
-        return parsed ? <RetireCandidatesReportView data={parsed} /> : <p className="text-sm text-red-500">報告格式無效</p>
+        return parsed ? <RetireCandidatesReportView data={parsed} /> : <p className="text-sm text-red-500">{t('ai.invalidFormat')}</p>
       }
       default:
         return <pre className="text-xs bg-slate-50 p-4 rounded overflow-auto">{JSON.stringify(activeReport.content, null, 2)}</pre>
@@ -146,7 +149,7 @@ export default function AiPage() {
           <div className="bg-purple-50 rounded-full p-2">
             <Brain size={20} className="text-purple-500" />
           </div>
-          <h3 className="text-base font-semibold text-slate-900">AI 分析報告</h3>
+          <h3 className="text-base font-semibold text-slate-900">{t('ai.title')}</h3>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -169,7 +172,7 @@ export default function AiPage() {
               className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {generating && <Loader2 size={16} className="animate-spin" />}
-              {generating ? '分析中...' : '產生分析報告'}
+              {generating ? t('ai.analyzing') : t('ai.generateReport')}
             </button>
           </div>
 
@@ -177,7 +180,7 @@ export default function AiPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex items-center gap-1.5 text-sm text-slate-500">
               <Calendar size={14} />
-              <span>分析期間</span>
+              <span>{t('ai.analysisPeriod')}</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {RANGE_PRESETS.map((p) => (
@@ -222,9 +225,9 @@ export default function AiPage() {
         {/* History sidebar */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <h4 className="text-sm font-semibold text-slate-900 mb-3">歷史報告</h4>
+            <h4 className="text-sm font-semibold text-slate-900 mb-3">{t('ai.historicalReports')}</h4>
             {loading ? (
-              <div className="text-center text-slate-400 text-sm py-4">載入中...</div>
+              <div className="text-center text-slate-400 text-sm py-4">{t('common.loading')}</div>
             ) : (
               <ReportHistory
                 reports={reports}
@@ -243,7 +246,7 @@ export default function AiPage() {
             ) : (
               <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                 <Brain size={32} className="mb-3 opacity-50" />
-                <p className="text-sm">選擇歷史報告或產生新的分析</p>
+                <p className="text-sm">{t('ai.selectHistorical')}</p>
               </div>
             )}
           </div>

@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import { KpiCard } from '@/components/dashboard/KpiCard'
 import { type WeatherDaily, isTyphoon, buildWeatherMap } from '@/lib/weather/weatherUtils'
+import { useI18n } from '@/lib/i18n/context'
 
 interface DeliveryKpis {
   total_gross_revenue: number
@@ -30,6 +31,7 @@ interface ComparisonRow {
 interface DeliveryRow { [key: string]: any }
 
 export default function DeliveryPage() {
+  const { t } = useI18n()
   const [kpis, setKpis] = useState<DeliveryKpis | null>(null)
   const [delivery, setDelivery] = useState<DeliveryRow[]>([])
   const [comparison, setComparison] = useState<ComparisonRow[]>([])
@@ -75,13 +77,13 @@ export default function DeliveryPage() {
       const res = await fetch('/api/upload/uber-eats', { method: 'POST', body: fd })
       const json = await res.json()
       if (json.success) {
-        setUploadResult(`成功匯入 ${json.data.imported} 筆資料`)
+        setUploadResult(`${t('delivery.importSuccess')} ${json.data.imported} ${t('delivery.importRecords')}`)
         fetchData()
       } else {
-        setUploadResult(`錯誤：${json.error}`)
+        setUploadResult(`${t('delivery.importError')}：${json.error}`)
       }
     } catch {
-      setUploadResult('上傳失敗')
+      setUploadResult(t('common.uploadFailed'))
     }
     setUploading(false)
     e.target.value = ''
@@ -128,12 +130,12 @@ export default function DeliveryPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Truck size={20} className="text-orange-600" />
-          <h3 className="text-base font-semibold text-slate-900">外送平台</h3>
+          <h3 className="text-base font-semibold text-slate-900">{t('delivery.title')}</h3>
         </div>
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg cursor-pointer hover:bg-green-700 transition">
             <Upload size={16} />
-            {uploading ? '上傳中...' : '上傳 Uber Eats CSV'}
+            {uploading ? t('common.uploading') : t('delivery.uploadUber')}
             <input type="file" accept=".csv" className="hidden" onChange={handleUpload} disabled={uploading} />
           </label>
           <button onClick={fetchData} className="p-2 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100">
@@ -143,19 +145,19 @@ export default function DeliveryPage() {
       </div>
 
       {uploadResult && (
-        <div className={`text-sm px-4 py-2 rounded-lg ${uploadResult.includes('成功') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={`text-sm px-4 py-2 rounded-lg ${uploadResult.includes(t('delivery.importSuccess')) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
           {uploadResult}
         </div>
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-slate-400">載入中...</div>
+        <div className="text-center py-12 text-slate-400">{t('common.loading')}</div>
       ) : !hasData ? (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center">
           <Truck size={32} className="mx-auto mb-3 text-amber-400" />
-          <p className="text-sm text-amber-800 font-medium">尚無外送數據</p>
+          <p className="text-sm text-amber-800 font-medium">{t('delivery.noData')}</p>
           <p className="text-xs text-amber-600 mt-1">
-            請從 Uber Eats 商家後台匯出 CSV 報表後上傳
+            {t('delivery.noDataHint')}
           </p>
         </div>
       ) : (
@@ -163,34 +165,34 @@ export default function DeliveryPage() {
           {/* KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <KpiCard
-              title="總營收 (毛)"
+              title={t('delivery.grossRevenue')}
               value={`NT$${(kpis?.total_gross_revenue || 0).toLocaleString()}`}
             />
             <KpiCard
-              title="淨收入"
+              title={t('delivery.netIncome')}
               value={`NT$${(kpis?.total_net_revenue || 0).toLocaleString()}`}
             />
             <KpiCard
-              title="總訂單"
+              title={t('delivery.totalOrders')}
               value={(kpis?.total_orders || 0).toLocaleString()}
             />
             <KpiCard
-              title="平均佣金率"
+              title={t('delivery.avgCommission')}
               value={`${((kpis?.avg_commission_rate || 0) * 100).toFixed(1)}%`}
             />
             <KpiCard
-              title="取消率"
+              title={t('delivery.cancelRate')}
               value={`${((kpis?.avg_cancellation_rate || 0) * 100).toFixed(1)}%`}
             />
             <KpiCard
-              title="平台評分"
+              title={t('delivery.platformRating')}
               value={kpis?.avg_rating ? kpis.avg_rating.toFixed(1) : '—'}
             />
           </div>
 
           {/* Gross vs Net Revenue */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h4 className="text-sm font-semibold text-slate-900 mb-4">毛營收 vs 淨收入趨勢</h4>
+            <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('delivery.revenueVsNet')}</h4>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -198,18 +200,18 @@ export default function DeliveryPage() {
                 <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
                 <Tooltip formatter={(val) => [`NT$${Number(val).toLocaleString()}`]} />
                 <Legend />
-                <Line type="monotone" dataKey="gross" name="毛營收" stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
-                <Line type="monotone" dataKey="net" name="淨收入" stroke="#10b981" strokeWidth={2} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="gross" name={t('delivery.grossRevenueLegend')} stroke="#f59e0b" strokeWidth={2} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="net" name={t('delivery.netIncomeLegend')} stroke="#10b981" strokeWidth={2} dot={{ r: 2 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* Order Count Trend + Weather */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h4 className="text-sm font-semibold text-slate-900 mb-1">訂單數趨勢</h4>
+            <h4 className="text-sm font-semibold text-slate-900 mb-1">{t('delivery.ordersTrend')}</h4>
             {hasWeather && (
               <p className="text-xs text-slate-400 mb-4">
-                下雨天外送訂單通常增加 20-40%，高降雨量日的數據可作為備貨參考
+                {t('delivery.rainyOrdersHint')}
               </p>
             )}
             <ResponsiveContainer width="100%" height={250}>
@@ -222,17 +224,17 @@ export default function DeliveryPage() {
                 )}
                 <Tooltip
                   formatter={(value, name) => {
-                    if (name === '降雨量') return [`${value}mm`, name]
+                    if (name === t('delivery.rainfall')) return [`${value}mm`, name]
                     return [value, name]
                   }}
                 />
                 <Legend />
-                <Bar yAxisId="left" dataKey="orders" name="訂單數" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="left" dataKey="orders" name={t('delivery.ordersLegend')} fill="#6366f1" radius={[4, 4, 0, 0]} />
                 {hasWeather && (
-                  <Bar yAxisId="right" dataKey="precipitation" name="降雨量" fill="#93c5fd" opacity={0.4} radius={[2, 2, 0, 0]} />
+                  <Bar yAxisId="right" dataKey="precipitation" name={t('delivery.rainfall')} fill="#93c5fd" opacity={0.4} radius={[2, 2, 0, 0]} />
                 )}
                 {typhoonDays.map(d => (
-                  <ReferenceLine key={d.rawDate} yAxisId="left" x={d.date} stroke="#ef4444" strokeWidth={2} label={{ value: '颱風', position: 'top', fontSize: 11, fill: '#ef4444' }} />
+                  <ReferenceLine key={d.rawDate} yAxisId="left" x={d.date} stroke="#ef4444" strokeWidth={2} label={{ value: t('delivery.typhoon'), position: 'top', fontSize: 11, fill: '#ef4444' }} />
                 ))}
               </ComposedChart>
             </ResponsiveContainer>
@@ -240,7 +242,7 @@ export default function DeliveryPage() {
 
           {/* Dine-in vs Delivery Comparison */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h4 className="text-sm font-semibold text-slate-900 mb-4">內用 vs 外送營收比較</h4>
+            <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('delivery.dineInVsDelivery')}</h4>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={comparisonData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -248,8 +250,8 @@ export default function DeliveryPage() {
                 <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
                 <Tooltip formatter={(val) => [`NT$${Number(val).toLocaleString()}`]} />
                 <Legend />
-                <Bar dataKey="dine_in" name="內用" fill="#3b82f6" radius={[4, 4, 0, 0]} stackId="revenue" />
-                <Bar dataKey="delivery" name="外送" fill="#f97316" radius={[4, 4, 0, 0]} stackId="revenue" />
+                <Bar dataKey="dine_in" name={t('delivery.dineIn')} fill="#3b82f6" radius={[4, 4, 0, 0]} stackId="revenue" />
+                <Bar dataKey="delivery" name={t('delivery.deliveryLabel')} fill="#f97316" radius={[4, 4, 0, 0]} stackId="revenue" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -257,25 +259,25 @@ export default function DeliveryPage() {
           {/* Cancellation Rate & Rating */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h4 className="text-sm font-semibold text-slate-900 mb-4">取消率趨勢</h4>
+              <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('delivery.cancelRateTrend')}</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#94a3b8" />
                   <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" unit="%" />
-                  <Tooltip formatter={(val) => [`${Number(val).toFixed(1)}%`, '取消率']} />
+                  <Tooltip formatter={(val) => [`${Number(val).toFixed(1)}%`, t('delivery.cancelRate')]} />
                   <Line type="monotone" dataKey="cancel" stroke="#ef4444" strokeWidth={2} dot={{ r: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-5">
-              <h4 className="text-sm font-semibold text-slate-900 mb-4">平台評分趨勢</h4>
+              <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('delivery.ratingTrend')}</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#94a3b8" />
                   <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" domain={[0, 5]} />
-                  <Tooltip formatter={(val) => [Number(val).toFixed(1), '評分']} />
+                  <Tooltip formatter={(val) => [Number(val).toFixed(1), t('delivery.platformRating')]} />
                   <Line type="monotone" dataKey="rating" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 2 }} />
                 </LineChart>
               </ResponsiveContainer>

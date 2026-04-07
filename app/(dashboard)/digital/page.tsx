@@ -5,6 +5,7 @@ import { TrendingUp, Search, MousePointerClick, Users, ArrowUpRight, ArrowDownRi
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
 } from 'recharts'
+import { useI18n } from '@/lib/i18n/context'
 
 type GscRow = {
   date: string
@@ -54,13 +55,6 @@ function KpiCard({ title, value, icon: Icon, change }: {
   )
 }
 
-const RANGE_OPTIONS = [
-  { label: '近 7 天', days: 7 },
-  { label: '近 30 天', days: 30 },
-  { label: '近 90 天', days: 90 },
-  { label: '近 180 天', days: 180 },
-] as const
-
 function toDateStr(d: Date) {
   return d.toISOString().slice(0, 10)
 }
@@ -72,11 +66,19 @@ function defaultEnd() {
 }
 
 export default function DigitalPage() {
+  const { t } = useI18n()
   const [gscData, setGscData] = useState<GscRow[]>([])
   const [ga4Data, setGa4Data] = useState<Ga4Row[]>([])
   const [conversionData, setConversionData] = useState<ConversionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [activePreset, setActivePreset] = useState<number | null>(30)
+
+  const RANGE_OPTIONS = [
+    { label: t('digital.last7'), days: 7 },
+    { label: t('digital.last30'), days: 30 },
+    { label: t('digital.last90'), days: 90 },
+    { label: t('digital.last180'), days: 180 },
+  ] as const
 
   const end = defaultEnd()
   const start = new Date(end)
@@ -169,7 +171,7 @@ export default function DigitalPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-slate-400">載入中...</div>
+        <div className="text-slate-400">{t('common.loading')}</div>
       </div>
     )
   }
@@ -182,10 +184,10 @@ export default function DigitalPage() {
         <div className="bg-blue-50 rounded-full p-4 mb-4">
           <TrendingUp size={32} className="text-blue-500" />
         </div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">數位行銷數據</h2>
-        <p className="text-slate-500 text-sm mb-4">尚未同步 Google 數據</p>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">{t('digital.title')}</h2>
+        <p className="text-slate-500 text-sm mb-4">{t('digital.noData')}</p>
         <p className="text-slate-400 text-xs">
-          請設定 Google Service Account 並執行 POST /api/google/sync 同步數據
+          Please set up Google Service Account and run POST /api/google/sync
         </p>
       </div>
     )
@@ -228,16 +230,16 @@ export default function DigitalPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="品牌搜尋點擊" value={totalClicks.toLocaleString()} icon={MousePointerClick} />
-        <KpiCard title="搜尋曝光" value={totalImpressions.toLocaleString()} icon={Search} />
-        <KpiCard title="網站工作階段" value={totalSessions.toLocaleString()} icon={TrendingUp} />
-        <KpiCard title="新使用者" value={totalNewUsers.toLocaleString()} icon={Users} />
+        <KpiCard title={t('digital.brandClicks')} value={totalClicks.toLocaleString()} icon={MousePointerClick} />
+        <KpiCard title={t('digital.searchImpressions')} value={totalImpressions.toLocaleString()} icon={Search} />
+        <KpiCard title={t('digital.sessions')} value={totalSessions.toLocaleString()} icon={TrendingUp} />
+        <KpiCard title={t('digital.newUsers')} value={totalNewUsers.toLocaleString()} icon={Users} />
       </div>
 
       {/* GSC Brand Search Chart */}
       {gscChartData.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">品牌搜尋趨勢 (Google Search Console)</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-4">{t('digital.brandSearchTrend')} (Google Search Console)</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={gscChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -245,8 +247,8 @@ export default function DigitalPage() {
               <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="clicks" name="點擊" stroke="#3b82f6" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="impressions" name="曝光" stroke="#94a3b8" strokeWidth={1} dot={false} />
+              <Line type="monotone" dataKey="clicks" name={t('digital.clicks')} stroke="#3b82f6" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="impressions" name={t('digital.impressions')} stroke="#94a3b8" strokeWidth={1} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -255,7 +257,7 @@ export default function DigitalPage() {
       {/* GA4 Sessions Chart */}
       {ga4ChartData.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">網站流量趨勢 (Google Analytics)</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-4">{t('digital.trafficTrend')} (Google Analytics)</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={ga4ChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -263,8 +265,8 @@ export default function DigitalPage() {
               <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="sessions" name="工作階段" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="newUsers" name="新使用者" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="sessions" name={t('digital.sessionsLabel')} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="newUsers" name={t('digital.newUsers')} fill="#10b981" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -273,7 +275,7 @@ export default function DigitalPage() {
       {/* Conversion Chart */}
       {convChartData.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">會員轉換追蹤 (GA4 點擊 → Ocard 新會員)</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-4">{t('digital.memberConversion')} (GA4 {t('digital.clicks')} → Ocard {t('digital.newMembers')})</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={convChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -281,8 +283,8 @@ export default function DigitalPage() {
               <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="clicks" name="GA4 點擊" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="newMembers" name="新會員" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="clicks" name={t('digital.ga4Clicks')} fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="newMembers" name={t('digital.newMembers')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -291,16 +293,16 @@ export default function DigitalPage() {
       {/* Top Queries Table */}
       {gscData.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">熱門搜尋關鍵字</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-4">{t('digital.topKeywords')}</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-2 text-slate-500 font-medium">關鍵字</th>
-                  <th className="text-right py-2 text-slate-500 font-medium">點擊</th>
-                  <th className="text-right py-2 text-slate-500 font-medium">曝光</th>
-                  <th className="text-right py-2 text-slate-500 font-medium">CTR</th>
-                  <th className="text-right py-2 text-slate-500 font-medium">排名</th>
+                  <th className="text-left py-2 text-slate-500 font-medium">{t('digital.keyword')}</th>
+                  <th className="text-right py-2 text-slate-500 font-medium">{t('digital.clicks')}</th>
+                  <th className="text-right py-2 text-slate-500 font-medium">{t('digital.impressions')}</th>
+                  <th className="text-right py-2 text-slate-500 font-medium">{t('digital.ctr')}</th>
+                  <th className="text-right py-2 text-slate-500 font-medium">{t('digital.ranking')}</th>
                 </tr>
               </thead>
               <tbody>

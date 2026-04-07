@@ -7,16 +7,10 @@ import {
 } from 'recharts'
 import { Star, TrendingDown, MessageSquare, AlertTriangle } from 'lucide-react'
 import clsx from 'clsx'
+import { useI18n } from '@/lib/i18n/context'
 
 type TimeRange = '1m' | '3m' | '6m' | 'all'
 type Granularity = 'week' | 'month'
-
-const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
-  { value: '1m', label: '近 1 個月' },
-  { value: '3m', label: '近 3 個月' },
-  { value: '6m', label: '近 6 個月' },
-  { value: 'all', label: '全部' },
-]
 
 function getStartDate(range: TimeRange): string | null {
   if (range === 'all') return null
@@ -53,6 +47,26 @@ interface DailySales {
 }
 
 export default function ReviewsPage() {
+  const { t } = useI18n()
+
+  const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
+    { value: '1m', label: t('reviews.last1Month') },
+    { value: '3m', label: t('reviews.last3Months') },
+    { value: '6m', label: t('reviews.last6Months') },
+    { value: 'all', label: t('reviews.all') },
+  ]
+
+  const sentimentLabel: Record<string, string> = {
+    improving: t('reviews.improving'),
+    stable: t('reviews.stable'),
+    declining: t('reviews.declining'),
+  }
+  const sentimentColor: Record<string, string> = {
+    improving: 'text-green-600',
+    stable: 'text-slate-600',
+    declining: 'text-red-600',
+  }
+
   const [reviews, setReviews] = useState<Review[]>([])
   const [latestSummary, setLatestSummary] = useState<Snapshot | null>(null)
   const [salesData, setSalesData] = useState<DailySales[]>([])
@@ -139,21 +153,10 @@ export default function ReviewsPage() {
   // Rating vs Revenue dual-axis chart (weekly, built from individual reviews)
   const ratingRevenueData = useMemo(() => buildRatingRevenueData(reviews, salesData), [reviews, salesData])
 
-  const sentimentLabel: Record<string, string> = {
-    improving: '改善中',
-    stable: '穩定',
-    declining: '下滑中',
-  }
-  const sentimentColor: Record<string, string> = {
-    improving: 'text-green-600',
-    stable: 'text-slate-600',
-    declining: 'text-red-600',
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-slate-400">
-        載入中...
+        {t('common.loading')}
       </div>
     )
   }
@@ -184,27 +187,27 @@ export default function ReviewsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={Star}
-          label="目前評分"
+          label={t('reviews.currentRating')}
           value={avgRating != null ? avgRating.toFixed(2) : 'N/A'}
           color="text-yellow-500"
-          sub={latest?.total_reviews ? `共 ${latest.total_reviews} 則評論` : undefined}
+          sub={latest?.total_reviews ? `${t('common.total')} ${latest.total_reviews} ${t('reviews.totalReviews')}` : undefined}
         />
         <KpiCard
           icon={MessageSquare}
-          label="本週新評論"
+          label={t('reviews.weeklyNewReviews')}
           value={String(newReviews)}
           color="text-blue-500"
         />
         <KpiCard
           icon={TrendingDown}
-          label="負評率"
+          label={t('reviews.negativeRate')}
           value={negativeRate != null ? `${negativeRate}%` : 'N/A'}
           color={negativeRate && Number(negativeRate) > 20 ? 'text-red-500' : 'text-slate-500'}
-          sub={latest?.negative_count ? `${latest.negative_count} 則負評` : undefined}
+          sub={latest?.negative_count ? `${latest.negative_count} ${t('reviews.negativeReviews')}` : undefined}
         />
         <KpiCard
           icon={AlertTriangle}
-          label="評價趨勢"
+          label={t('reviews.ratingTrend')}
           value={latest?.ai_sentiment_trend ? sentimentLabel[latest.ai_sentiment_trend] || latest.ai_sentiment_trend : 'N/A'}
           color={latest?.ai_sentiment_trend ? sentimentColor[latest.ai_sentiment_trend] || 'text-slate-500' : 'text-slate-500'}
         />
@@ -214,7 +217,7 @@ export default function ReviewsPage() {
       <div className="bg-white rounded-xl border border-slate-200 p-4 lg:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-semibold text-slate-900">
-            評分趨勢
+            {t('reviews.ratingChart')}
           </h3>
           <div className="flex bg-slate-100 rounded-md p-0.5">
             {(['week', 'month'] as const).map(g => (
@@ -228,7 +231,7 @@ export default function ReviewsPage() {
                     : 'text-slate-500 hover:text-slate-700'
                 )}
               >
-                {g === 'week' ? '按週' : '按月'}
+                {g === 'week' ? t('reviews.byWeek') : t('reviews.byMonth')}
               </button>
             ))}
           </div>
@@ -241,7 +244,7 @@ export default function ReviewsPage() {
               <YAxis yAxisId="rating" domain={[1, 5]} fontSize={12} orientation="left" />
               <YAxis yAxisId="reviews" fontSize={12} orientation="right" />
               <Tooltip formatter={(value, name) => {
-                if (name === '平均評分') return Number(value).toFixed(2)
+                if (name === t('reviews.avgRating')) return Number(value).toFixed(2)
                 return value
               }} />
               <Legend />
@@ -250,7 +253,7 @@ export default function ReviewsPage() {
                 dataKey="new_reviews"
                 fill="#93c5fd"
                 opacity={0.7}
-                name="新評論數"
+                name={t('reviews.newReviewCount')}
               />
               <Line
                 yAxisId="rating"
@@ -258,21 +261,21 @@ export default function ReviewsPage() {
                 dataKey="avg_rating"
                 stroke="#eab308"
                 strokeWidth={2}
-                name="平均評分"
+                name={t('reviews.avgRating')}
                 dot={{ fill: '#eab308' }}
               />
             </ComposedChart>
           </ResponsiveContainer>
         ) : (
           <div className="h-48 flex items-center justify-center text-slate-400">
-            尚無評分數據
+            {t('reviews.noRatingData')}
           </div>
         )}
       </div>
 
       {/* AI Negative Review Summary */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 lg:p-6">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">AI 負評摘要</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">{t('reviews.aiSummary')}</h3>
         {latest?.ai_negative_summary ? (
           <div className="space-y-4">
             <p className="text-sm text-slate-700 leading-relaxed">
@@ -292,14 +295,14 @@ export default function ReviewsPage() {
             )}
           </div>
         ) : (
-          <p className="text-sm text-slate-400">尚無 AI 分析摘要</p>
+          <p className="text-sm text-slate-400">{t('reviews.noAiSummary')}</p>
         )}
       </div>
 
       {/* Recent Reviews List */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 lg:p-6">
         <h3 className="text-base font-semibold text-slate-900 mb-4">
-          最近評論
+          {t('reviews.recentReviews')}
         </h3>
         {reviews.length > 0 ? (
           <div className="space-y-3">
@@ -313,7 +316,7 @@ export default function ReviewsPage() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-slate-900">
-                    {r.reviewer_name || '匿名'}
+                    {r.reviewer_name || t('reviews.anonymous')}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500">{r.review_date}</span>
@@ -338,13 +341,13 @@ export default function ReviewsPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-400">尚無評論數據</p>
+          <p className="text-sm text-slate-400">{t('reviews.noReviewData')}</p>
         )}
       </div>
 
       {/* Rating vs Revenue Dual-Axis Chart */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 lg:p-6">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">評分 vs 業績</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">{t('reviews.ratingVsRevenue')}</h3>
         {ratingRevenueData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={ratingRevenueData}>
@@ -354,7 +357,7 @@ export default function ReviewsPage() {
               <YAxis yAxisId="revenue" fontSize={12} orientation="right" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(value, name) => {
                 const v = Number(value)
-                if (name === '平均評分') return v.toFixed(2)
+                if (name === t('reviews.avgRating')) return v.toFixed(2)
                 return `NT$${v.toLocaleString()}`
               }} />
               <Legend />
@@ -364,7 +367,7 @@ export default function ReviewsPage() {
                 dataKey="avg_rating"
                 stroke="#eab308"
                 strokeWidth={2}
-                name="平均評分"
+                name={t('reviews.avgRating')}
                 dot={{ fill: '#eab308' }}
               />
               <Bar
@@ -372,13 +375,13 @@ export default function ReviewsPage() {
                 dataKey="weekly_revenue"
                 fill="#3b82f6"
                 opacity={0.6}
-                name="週營收"
+                name={t('reviews.weeklyRevenue')}
               />
             </ComposedChart>
           </ResponsiveContainer>
         ) : (
           <div className="h-48 flex items-center justify-center text-slate-400">
-            需要評分和營收數據才能顯示
+            {t('reviews.needBothData')}
           </div>
         )}
       </div>

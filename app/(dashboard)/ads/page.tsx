@@ -5,6 +5,7 @@ import { format, subDays } from 'date-fns'
 import { BarChart3, RefreshCw, Calendar } from 'lucide-react'
 import AdCampaignForm from '@/components/ads/AdCampaignForm'
 import AdPerformanceChart from '@/components/ads/AdPerformanceChart'
+import { useI18n } from '@/lib/i18n/context'
 
 interface AdCampaign {
   id: string
@@ -31,19 +32,20 @@ const platformLabels: Record<string, string> = {
   meta: 'Meta',
   tiktok: 'TikTok',
   google: 'Google',
-  other: '其他',
 }
 
 type PlatformFilter = 'all' | 'meta' | 'tiktok'
 
-const RANGE_PRESETS = [
-  { label: '近 7 天', days: 7 },
-  { label: '近 14 天', days: 14 },
-  { label: '近 30 天', days: 30 },
-  { label: '近 90 天', days: 90 },
-] as const
-
 export default function AdsPage() {
+  const { t } = useI18n()
+
+  const RANGE_PRESETS = [
+    { label: t('ads.last7'), days: 7 },
+    { label: t('ads.last14'), days: 14 },
+    { label: t('ads.last30'), days: 30 },
+    { label: t('ads.last90'), days: 90 },
+  ] as const
+
   const [campaigns, setCampaigns] = useState<AdCampaign[]>([])
   const [correlation, setCorrelation] = useState<CorrelationRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -94,13 +96,13 @@ export default function AdsPage() {
       })
       const json = await res.json()
       if (json.success) {
-        setSyncResult(`Meta 同步完成：${json.data.synced} 筆（${json.data.days} 天）`)
+        setSyncResult(`Meta sync done: ${json.data.synced} rows (${json.data.days} days)`)
         fetchData()
       } else {
-        setSyncResult(`Meta 同步失敗：${json.error}`)
+        setSyncResult(`Meta sync failed: ${json.error}`)
       }
     } catch {
-      setSyncResult('Meta 同步失敗')
+      setSyncResult('Meta sync failed')
     }
     setSyncing(false)
   }
@@ -116,13 +118,13 @@ export default function AdsPage() {
       })
       const json = await res.json()
       if (json.success) {
-        setSyncResult(`TikTok 同步完成：${json.data.synced} 筆 (${json.data.date || json.data.days + ' 天'})`)
+        setSyncResult(`TikTok sync done: ${json.data.synced} rows (${json.data.date || json.data.days + ' days'})`)
         fetchData()
       } else {
-        setSyncResult(`TikTok 同步失敗：${json.error}`)
+        setSyncResult(`TikTok sync failed: ${json.error}`)
       }
     } catch {
-      setSyncResult('TikTok 同步失敗')
+      setSyncResult('TikTok sync failed')
     }
     setSyncing(false)
   }
@@ -144,7 +146,7 @@ export default function AdsPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <BarChart3 size={20} className="text-indigo-600" />
-          <h3 className="text-base font-semibold text-slate-900">廣告管理</h3>
+          <h3 className="text-base font-semibold text-slate-900">{t('ads.title')}</h3>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -153,7 +155,7 @@ export default function AdsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-            {syncing ? '同步中...' : 'Sync Meta'}
+            {syncing ? t('common.syncing') : 'Sync Meta'}
           </button>
           <button
             onClick={handleSyncTiktok}
@@ -161,13 +163,13 @@ export default function AdsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-900 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-            {syncing ? '同步中...' : 'Sync TikTok'}
+            {syncing ? t('common.syncing') : 'Sync TikTok'}
           </button>
           <button
             onClick={() => setShowForm(!showForm)}
             className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
           >
-            {showForm ? '取消' : '新增廣告紀錄'}
+            {showForm ? t('common.cancel') : t('ads.addRecord')}
           </button>
         </div>
       </div>
@@ -176,7 +178,7 @@ export default function AdsPage() {
       <div className="bg-white rounded-xl border border-slate-200 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Calendar size={16} className="text-slate-400" />
-          <span className="text-sm font-medium text-slate-700">資料區間</span>
+          <span className="text-sm font-medium text-slate-700">{t('ads.dateRange')}</span>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
@@ -220,14 +222,14 @@ export default function AdsPage() {
                 : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            {p === 'all' ? '全部' : platformLabels[p] || p}
+            {p === 'all' ? t('common.all') : platformLabels[p] || p}
           </button>
         ))}
       </div>
 
       {/* Sync status */}
       {syncResult && (
-        <div className={`text-sm px-4 py-2 rounded-lg ${syncResult.includes('完成') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={`text-sm px-4 py-2 rounded-lg ${syncResult.includes('done') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
           {syncResult}
         </div>
       )}
@@ -238,49 +240,49 @@ export default function AdsPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-xs text-slate-500 mb-1">總花費</p>
+          <p className="text-xs text-slate-500 mb-1">{t('ads.totalSpend')}</p>
           <p className="text-lg font-semibold text-slate-900">NT$ {totalSpend.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-xs text-slate-500 mb-1">總點擊</p>
+          <p className="text-xs text-slate-500 mb-1">{t('ads.totalClicks')}</p>
           <p className="text-lg font-semibold text-slate-900">{totalClicks.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-xs text-slate-500 mb-1">總曝光</p>
+          <p className="text-xs text-slate-500 mb-1">{t('ads.totalImpressions')}</p>
           <p className="text-lg font-semibold text-slate-900">{totalImpressions.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-xs text-slate-500 mb-1">平均 CTR</p>
+          <p className="text-xs text-slate-500 mb-1">{t('ads.avgCtr')}</p>
           <p className="text-lg font-semibold text-slate-900">{avgCtr.toFixed(2)}%</p>
         </div>
       </div>
 
       {/* Performance chart */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h4 className="text-sm font-semibold text-slate-900 mb-4">廣告花費 vs 營收</h4>
+        <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('ads.spendVsRevenue')}</h4>
         <AdPerformanceChart data={correlation} />
       </div>
 
       {/* Campaign list */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-3 border-b border-slate-200">
-          <h4 className="text-sm font-semibold text-slate-900">廣告紀錄</h4>
+          <h4 className="text-sm font-semibold text-slate-900">{t('ads.recordList')}</h4>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-slate-400 text-sm">載入中...</div>
+          <div className="p-8 text-center text-slate-400 text-sm">{t('common.loading')}</div>
         ) : filteredCampaigns.length === 0 ? (
-          <div className="p-8 text-center text-slate-400 text-sm">此區間無廣告紀錄</div>
+          <div className="p-8 text-center text-slate-400 text-sm">{t('ads.noRecords')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium">日期</th>
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium">平台</th>
-                  <th className="text-left py-3 px-4 text-slate-500 font-medium">活動名稱</th>
-                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">花費</th>
-                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">點擊</th>
-                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden md:table-cell">CTR</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('common.date')}</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('ads.platform')}</th>
+                  <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('ads.campaignName')}</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">{t('ads.spend')}</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden sm:table-cell">{t('digital.clicks')}</th>
+                  <th className="text-right py-3 px-4 text-slate-500 font-medium hidden md:table-cell">{t('digital.ctr')}</th>
                   <th className="text-right py-3 px-4 text-slate-500 font-medium hidden md:table-cell">CPC</th>
                 </tr>
               </thead>
