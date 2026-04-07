@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { FileText, Download } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/context'
 
 export default function ReportsPage() {
+  const { t } = useI18n()
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,7 +39,7 @@ export default function ReportsPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch {
-      setError('產生報告失敗，請稍後再試')
+      setError(t('reports.generateFailed'))
     }
     setGenerating(false)
   }
@@ -46,23 +48,23 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <FileText size={20} className="text-emerald-600" />
-        <h3 className="text-base font-semibold text-slate-900">投資人報告</h3>
+        <h3 className="text-base font-semibold text-slate-900">{t('reports.title')}</h3>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h4 className="font-semibold text-slate-900 mb-2">月度投資人報告 (PDF)</h4>
+        <h4 className="font-semibold text-slate-900 mb-2">{t('reports.subtitle')}</h4>
         <p className="text-sm text-slate-500 mb-6">
-          產生包含月營收趨勢、會員成長、熱銷產品、毛利率及關鍵 KPI 的 PDF 報告。
+          {t('reports.description')}
         </p>
 
         <div className="bg-slate-50 rounded-lg p-4 mb-6">
-          <p className="text-xs text-slate-500 font-medium mb-2">報告內容</p>
+          <p className="text-xs text-slate-500 font-medium mb-2">{t('reports.contents')}</p>
           <ul className="text-sm text-slate-600 space-y-1">
-            <li>1. 月營收趨勢 (最近 12 個月)</li>
-            <li>2. 會員成長曲線</li>
-            <li>3. Top 10 熱銷產品</li>
-            <li>4. 毛利率摘要</li>
-            <li>5. 關鍵 KPI：客單價、翻桌率、新會員率</li>
+            <li>1. {t('reports.monthlyRevenue')}</li>
+            <li>2. {t('reports.memberGrowth')}</li>
+            <li>3. {t('reports.topProducts')}</li>
+            <li>4. {t('reports.marginSummary')}</li>
+            <li>5. {t('reports.keyKpi')}</li>
           </ul>
         </div>
 
@@ -78,7 +80,7 @@ export default function ReportsPage() {
           className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
         >
           <Download size={18} />
-          {generating ? '產生中...' : '下載投資人報告'}
+          {generating ? t('reports.generating') : t('reports.download')}
         </button>
       </div>
     </div>

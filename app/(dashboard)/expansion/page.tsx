@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { Brain, Loader2 } from 'lucide-react'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
 import { ExpansionReport } from '@/components/ai/ExpansionReport'
+import { useI18n } from '@/lib/i18n/context'
 
 const TimeSlotHeatmap = dynamic(
   () => import('@/components/expansion/TimeSlotHeatmap').then((m) => ({ default: m.TimeSlotHeatmap })),
@@ -34,6 +35,7 @@ interface MonthlyData { month: string; total_revenue: number }
 type ExpansionReportData = any
 
 export default function ExpansionPage() {
+  const { t } = useI18n()
   const [loading, setLoading] = useState(true)
   const [timeSlots, setTimeSlots] = useState<TimeSlotData[]>([])
   const [categories, setCategories] = useState<CategoryData[]>([])
@@ -85,7 +87,7 @@ export default function ExpansionPage() {
       if (prodJson.success && prodJson.data) {
         const catMap = new Map<string, { revenue: number; qty: number }>()
         for (const p of prodJson.data) {
-          const cat = p.category || '未分類'
+          const cat = p.category || t('expansion.uncategorized')
           const existing = catMap.get(cat) || { revenue: 0, qty: 0 }
           existing.revenue += Number(p.revenue) || 0
           existing.qty += Number(p.quantity_sold) || 0
@@ -183,49 +185,49 @@ export default function ExpansionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">展店決策分析</h1>
-        <p className="text-sm text-slate-500 mt-1">基於現有門店數據，分析新店選址與型態建議</p>
+        <h1 className="text-xl font-bold text-slate-900">{t('expansion.title')}</h1>
+        <p className="text-sm text-slate-500 mt-1">{t('expansion.subtitle')}</p>
       </div>
 
       {/* Revenue per seat KPI */}
       {revenuePerSeat !== null && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="text-sm text-slate-500">每席位日均營收基準</div>
+          <div className="text-sm text-slate-500">{t('expansion.seatRevenue')}</div>
           <div className="text-2xl font-bold text-slate-900 mt-1">
             NT${revenuePerSeat.toLocaleString()}
           </div>
-          <div className="text-xs text-slate-400 mt-1">以 40 席計算</div>
+          <div className="text-xs text-slate-400 mt-1">{t('expansion.seatBasis')}</div>
         </div>
       )}
 
       {/* Time slot performance */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">最佳營業時段</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">{t('expansion.peakHours')}</h3>
         <TimeSlotHeatmap data={timeSlots} />
       </div>
 
       {/* Top revenue categories */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">營收主力品類</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">{t('expansion.revenueCategories')}</h3>
         <CategoryBreakdown data={categories} />
       </div>
 
       {/* Member demographics */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">會員人口統計</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">{t('expansion.memberDemographics')}</h3>
         <DemographicProfile data={demographics} />
       </div>
 
       {/* Seasonal pattern */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">月度營收趨勢</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">{t('expansion.monthlyRevenueTrend')}</h3>
         <SeasonalHeatmap data={monthly} />
       </div>
 
       {/* AI Expansion Report */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-900">AI 展店準備度報告</h3>
+          <h3 className="text-base font-semibold text-slate-900">{t('expansion.aiReport')}</h3>
           <button
             onClick={generateReport}
             disabled={aiLoading}
@@ -234,12 +236,12 @@ export default function ExpansionPage() {
             {aiLoading ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                分析中...
+                {t('ai.generating')}
               </>
             ) : (
               <>
                 <Brain size={16} />
-                {aiReport ? '重新分析' : '產生報告'}
+                {aiReport ? t('expansion.reanalyze') : t('expansion.generateReport')}
               </>
             )}
           </button>
@@ -255,7 +257,7 @@ export default function ExpansionPage() {
           <ExpansionReport data={aiReport} />
         ) : (
           <div className="text-center py-8 text-slate-400 text-sm">
-            點擊「產生報告」讓 AI 分析展店準備度
+            {t('expansion.generateHint')}
           </div>
         )}
       </div>

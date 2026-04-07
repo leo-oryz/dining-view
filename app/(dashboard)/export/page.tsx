@@ -3,15 +3,18 @@
 import { useState } from 'react'
 import { Download, FileSpreadsheet, Loader2 } from 'lucide-react'
 import { format, subDays } from 'date-fns'
-
-const EXPORT_TYPES = [
-  { key: 'daily-sales', label: '每日營收', desc: '日期、營收、來客數、訂單數、客單價、翻桌率、新會員、天氣' },
-  { key: 'products', label: '商品銷售', desc: '日期、商品名稱、分類、銷量、營收、毛利率' },
-  { key: 'orders', label: '訂單明細', desc: '訂單編號、日期、時間、類型、金額、品項數' },
-  { key: 'members', label: '會員數據', desc: '日期、總會員數、新會員、回訪率、VIP 分級' },
-] as const
+import { useI18n } from '@/lib/i18n/context'
 
 export default function ExportPage() {
+  const { t } = useI18n()
+
+  const EXPORT_TYPES = [
+    { key: 'daily-sales', label: t('export.dailyRevenue'), desc: t('export.dailyRevenueDesc') },
+    { key: 'products', label: t('export.productSales'), desc: t('export.productSalesDesc') },
+    { key: 'orders', label: t('export.orderDetails'), desc: t('export.orderDetailsDesc') },
+    { key: 'members', label: t('export.memberData'), desc: t('export.memberDataDesc') },
+  ] as const
+
   const today = format(new Date(), 'yyyy-MM-dd')
   const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd')
 
@@ -52,16 +55,16 @@ export default function ExportPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">資料匯出</h1>
-        <p className="text-sm text-slate-500 mt-1">選擇資料類型和日期範圍，下載 Excel 檔案</p>
+        <h1 className="text-xl font-bold text-slate-900">{t('export.title')}</h1>
+        <p className="text-sm text-slate-500 mt-1">{t('export.subtitle')}</p>
       </div>
 
       {/* Date range picker */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">日期範圍</h3>
+        <h3 className="text-sm font-semibold text-slate-700 mb-3">{t('export.dateRange')}</h3>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            <label className="block text-xs text-slate-500 mb-1">開始日期</label>
+            <label className="block text-xs text-slate-500 mb-1">{t('export.startDate')}</label>
             <input
               type="date"
               value={fromDate}
@@ -70,7 +73,7 @@ export default function ExportPage() {
             />
           </div>
           <div className="flex-1">
-            <label className="block text-xs text-slate-500 mb-1">結束日期</label>
+            <label className="block text-xs text-slate-500 mb-1">{t('export.endDate')}</label>
             <input
               type="date"
               value={toDate}
@@ -80,7 +83,7 @@ export default function ExportPage() {
             />
           </div>
         </div>
-        <p className="text-xs text-slate-400 mt-2">最長可匯出 366 天的資料</p>
+        <p className="text-xs text-slate-400 mt-2">{t('export.maxDays')}</p>
       </div>
 
       {error && (
@@ -111,12 +114,12 @@ export default function ExportPage() {
               {loading === type.key ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  匯出中...
+                  {t('export.exporting')}
                 </>
               ) : (
                 <>
                   <Download size={16} />
-                  下載 Excel
+                  {t('export.downloadExcel')}
                 </>
               )}
             </button>

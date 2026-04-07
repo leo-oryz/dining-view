@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { HourlyHeatmap } from '@/components/charts/HourlyHeatmap'
 import { format } from 'date-fns'
+import { useI18n } from '@/lib/i18n/context'
 
 interface HourlySalesData {
   hour: number
@@ -12,6 +13,7 @@ interface HourlySalesData {
 }
 
 export default function HeatmapPage() {
+  const { t } = useI18n()
   const [data, setData] = useState<HourlySalesData[]>([])
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [loading, setLoading] = useState(true)
@@ -40,11 +42,11 @@ export default function HeatmapPage() {
 
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <h3 className="text-base font-semibold text-slate-900 mb-4">
-          時段銷售分布 — {date}
+          {t('heatmap.title')} — {date}
         </h3>
         {loading ? (
           <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
-            載入中...
+            {t('common.loading')}
           </div>
         ) : (
           <HourlyHeatmap data={data} />
@@ -54,15 +56,15 @@ export default function HeatmapPage() {
       {/* Summary table */}
       {data.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h3 className="text-base font-semibold text-slate-900 mb-4">時段明細</h3>
+          <h3 className="text-base font-semibold text-slate-900 mb-4">{t('heatmap.detail')}</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-2 px-2 text-slate-500">時段</th>
-                  <th className="text-right py-2 px-2 text-slate-500">淨銷售額</th>
-                  <th className="text-right py-2 px-2 text-slate-500">交易數</th>
-                  <th className="text-right py-2 px-2 text-slate-500">來客數</th>
+                  <th className="text-left py-2 px-2 text-slate-500">{t('heatmap.hour')}</th>
+                  <th className="text-right py-2 px-2 text-slate-500">{t('heatmap.netSales')}</th>
+                  <th className="text-right py-2 px-2 text-slate-500">{t('heatmap.transactions')}</th>
+                  <th className="text-right py-2 px-2 text-slate-500">{t('heatmap.guests')}</th>
                 </tr>
               </thead>
               <tbody>

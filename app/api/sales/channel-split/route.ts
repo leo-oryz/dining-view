@@ -16,17 +16,29 @@ export async function GET(request: NextRequest) {
     const supabase = createServiceClient()
 
     // Fetch all __order__ rows from order_items for eat365
-    const { data: rows, error } = await supabase
-      .from('order_items')
-      .select('date, order_type, time, item_amount, guest_count')
-      .eq('store_id', storeId)
-      .eq('item_name', '__order__')
-      .eq('source', 'eat365')
-      .gte('date', startDate)
-      .lte('date', endDate)
+    // Paginate to bypass Supabase 1000-row default limit
+    const PAGE_SIZE = 1000
+    let allRows: { date: string; order_type: string; time: string; item_amount: number; guest_count: number }[] = []
+    let from = 0
+    while (true) {
+      const { data: page, error: pageError } = await supabase
+        .from('order_items')
+        .select('date, order_type, time, item_amount, guest_count')
+        .eq('store_id', storeId)
+        .eq('item_name', '__order__')
+        .eq('source', 'eat365')
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .range(from, from + PAGE_SIZE - 1)
+      if (pageError) return apiError(pageError.message, 500)
+      if (!page || page.length === 0) break
+      allRows = allRows.concat(page)
+      if (page.length < PAGE_SIZE) break
+      from += PAGE_SIZE
+    }
 
-    if (error) return apiError(error.message, 500)
-    if (!rows || rows.length === 0) {
+    const rows = allRows
+    if (rows.length === 0) {
       return apiSuccess({
         summary: {
           dine_in: { order_count: 0, revenue: 0, avg_spend: 0, order_pct: 0, revenue_pct: 0 },

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { GitCompareArrows } from 'lucide-react'
 import { format, subDays } from 'date-fns'
 import StoreCompareTable from '@/components/compare/StoreCompareTable'
+import { useI18n } from '@/lib/i18n/context'
 
 interface StoreComparison {
   store_id: string
@@ -15,6 +16,7 @@ interface StoreComparison {
 }
 
 export default function ComparePage() {
+  const { t } = useI18n()
   const [stores, setStores] = useState<StoreComparison[]>([])
   const [loading, setLoading] = useState(true)
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'))
@@ -39,11 +41,11 @@ export default function ComparePage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2">
           <GitCompareArrows size={20} className="text-violet-600" />
-          <h3 className="text-base font-semibold text-slate-900">跨店對比</h3>
+          <h3 className="text-base font-semibold text-slate-900">{t('compare.title')}</h3>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm">
-            <label className="text-slate-500">起始</label>
+            <label className="text-slate-500">{t('compare.start')}</label>
             <input
               type="date"
               value={startDate}
@@ -52,7 +54,7 @@ export default function ComparePage() {
             />
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <label className="text-slate-500">結束</label>
+            <label className="text-slate-500">{t('compare.end')}</label>
             <input
               type="date"
               value={endDate}
@@ -65,13 +67,13 @@ export default function ComparePage() {
 
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-3 border-b border-slate-200">
-          <h4 className="text-sm font-semibold text-slate-900">門店 KPI 比較</h4>
+          <h4 className="text-sm font-semibold text-slate-900">{t('compare.kpiComparison')}</h4>
           <p className="text-xs text-slate-400 mt-0.5">
-            {startDate} ~ {endDate} vs 上一同期
+            {startDate} ~ {endDate} {t('compare.vsPrevPeriod')}
           </p>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-slate-400 text-sm">載入中...</div>
+          <div className="p-8 text-center text-slate-400 text-sm">{t('common.loading')}</div>
         ) : (
           <StoreCompareTable stores={stores} />
         )}

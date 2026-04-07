@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { CsvDropzone } from '@/components/upload/CsvDropzone'
 import { format } from 'date-fns'
+import { useI18n } from '@/lib/i18n/context'
 
 interface UploadRecord {
   id: string
@@ -14,6 +15,7 @@ interface UploadRecord {
 }
 
 export default function UploadPage() {
+  const { t } = useI18n()
   const [history, setHistory] = useState<UploadRecord[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -40,35 +42,35 @@ export default function UploadPage() {
   return (
     <div className="space-y-8">
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">上傳報表</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-4">{t('upload.title')}</h3>
         <CsvDropzone />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-900">上傳紀錄</h3>
+          <h3 className="text-base font-semibold text-slate-900">{t('upload.history')}</h3>
           <button
             onClick={fetchHistory}
             className="text-sm text-blue-600 hover:text-blue-700"
           >
-            重新整理
+            {t('upload.refresh')}
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center text-slate-400 text-sm py-8">載入中...</div>
+          <div className="text-center text-slate-400 text-sm py-8">{t('common.loading')}</div>
         ) : history.length === 0 ? (
-          <div className="text-center text-slate-400 text-sm py-8">尚無上傳紀錄</div>
+          <div className="text-center text-slate-400 text-sm py-8">{t('upload.noRecords')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-2 px-2 text-slate-500 font-medium">檔案名稱</th>
-                  <th className="text-left py-2 px-2 text-slate-500 font-medium hidden sm:table-cell">類型</th>
-                  <th className="text-right py-2 px-2 text-slate-500 font-medium">筆數</th>
-                  <th className="text-left py-2 px-2 text-slate-500 font-medium">狀態</th>
-                  <th className="text-left py-2 px-2 text-slate-500 font-medium hidden md:table-cell">時間</th>
+                  <th className="text-left py-2 px-2 text-slate-500 font-medium">{t('upload.fileName')}</th>
+                  <th className="text-left py-2 px-2 text-slate-500 font-medium hidden sm:table-cell">{t('upload.type')}</th>
+                  <th className="text-right py-2 px-2 text-slate-500 font-medium">{t('upload.rowCount')}</th>
+                  <th className="text-left py-2 px-2 text-slate-500 font-medium">{t('common.status')}</th>
+                  <th className="text-left py-2 px-2 text-slate-500 font-medium hidden md:table-cell">{t('upload.time')}</th>
                 </tr>
               </thead>
               <tbody>
