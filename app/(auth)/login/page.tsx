@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useI18n } from '@/lib/i18n/context'
+import { LocaleSwitcher } from '@/components/ui/LocaleSwitcher'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useI18n()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,7 +27,7 @@ export default function LoginPage() {
 
     if (authError) {
       setError(authError.message === 'Invalid login credentials'
-        ? '帳號或密碼錯誤'
+        ? t('login.invalidCredentials')
         : authError.message)
       setLoading(false)
       return
@@ -63,10 +66,10 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                  密碼
+                  {t('login.password')}
                 </label>
                 <a href="/forgot-password" className="text-xs text-blue-600 hover:text-blue-700">
-                  忘記密碼？
+                  {t('login.forgotPassword')}
                 </a>
               </div>
               <input
@@ -75,7 +78,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="請輸入密碼"
+                placeholder={t('login.passwordPlaceholder')}
                 required
               />
             </div>
@@ -89,9 +92,13 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {loading ? '登入中...' : '登入'}
+              {loading ? t('login.submitting') : t('login.submit')}
             </button>
           </form>
+
+          <div className="mt-6 flex justify-center">
+            <LocaleSwitcher className="text-slate-400" />
+          </div>
         </div>
       </div>
     </div>

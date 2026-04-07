@@ -31,82 +31,81 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { createClient } from '@/lib/supabase/client'
+import { useI18n, type TranslationKey } from '@/lib/i18n/context'
+import { LocaleSwitcher } from '@/components/ui/LocaleSwitcher'
 
 interface NavItem {
   href: string
-  label: string
+  labelKey: TranslationKey
   icon: LucideIcon
   ownerOnly?: boolean
 }
 
 interface NavGroup {
-  title: string
+  titleKey: TranslationKey
   items: NavItem[]
   iconColor?: string
 }
 
 const navGroups: NavGroup[] = [
   {
-    title: '營運總覽',
+    titleKey: 'nav.operations',
     items: [
-      { href: '/dashboard', label: '最新概覽', icon: LayoutDashboard },
-      { href: '/trends', label: '趨勢分析', icon: TrendingUp },
-      { href: '/alerts', label: '異常警報', icon: Bell },
+      { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+      { href: '/trends', labelKey: 'nav.trends', icon: TrendingUp },
+      { href: '/alerts', labelKey: 'nav.alerts', icon: Bell },
     ],
   },
   {
-    title: '產品與營收',
+    titleKey: 'nav.products',
     items: [
-      { href: '/products', label: '商品排行', icon: ShoppingBag },
-      { href: '/delivery', label: '外送平台', icon: Truck },
+      { href: '/products', labelKey: 'nav.productRanking', icon: ShoppingBag },
+      { href: '/delivery', labelKey: 'nav.delivery', icon: Truck },
     ],
   },
   {
-    title: '行銷成效',
+    titleKey: 'nav.marketing',
     items: [
-      { href: '/digital', label: '數位行銷', icon: TrendingUp },
-      { href: '/ads', label: '廣告管理', icon: BarChart3 },
-      { href: '/kol', label: 'KOL 合作', icon: Users },
-      { href: '/line', label: 'LINE 推播', icon: MessageSquare },
-      { href: '/campaigns', label: '活動管理', icon: Megaphone },
+      { href: '/digital', labelKey: 'nav.digital', icon: TrendingUp },
+      { href: '/ads', labelKey: 'nav.ads', icon: BarChart3 },
+      { href: '/kol', labelKey: 'nav.kol', icon: Users },
+      { href: '/line', labelKey: 'nav.line', icon: MessageSquare },
+      { href: '/campaigns', labelKey: 'nav.campaigns', icon: Megaphone },
     ],
   },
   {
-    title: '會員經營',
+    titleKey: 'nav.members',
     items: [
-      { href: '/members', label: '會員趨勢', icon: Users },
-      { href: '/reviews', label: '顧客評論', icon: Star },
+      { href: '/members', labelKey: 'nav.memberTrends', icon: Users },
+      { href: '/reviews', labelKey: 'nav.reviews', icon: Star },
     ],
   },
   {
-    title: 'AI 決策輔助',
+    titleKey: 'nav.ai',
     iconColor: 'text-purple-400',
     items: [
-      { href: '/ai', label: 'AI 分析', icon: Brain },
-      { href: '/expansion', label: '展店分析', icon: Building2 },
+      { href: '/ai', labelKey: 'nav.aiAnalysis', icon: Brain },
+      { href: '/expansion', labelKey: 'nav.expansion', icon: Building2 },
     ],
   },
   {
-    title: '管理',
+    titleKey: 'nav.management',
     items: [
-      { href: '/upload', label: '資料上傳', icon: Upload },
-      { href: '/export', label: '資料匯出', icon: Download },
-      { href: '/compare', label: '跨店對比', icon: GitCompareArrows, ownerOnly: true },
-      { href: '/reports', label: '投資人報告', icon: FileText, ownerOnly: true },
-      { href: '/settings', label: '系統設定', icon: Settings, ownerOnly: true },
+      { href: '/upload', labelKey: 'nav.upload', icon: Upload },
+      { href: '/export', labelKey: 'nav.export', icon: Download },
+      { href: '/compare', labelKey: 'nav.compare', icon: GitCompareArrows, ownerOnly: true },
+      { href: '/reports', labelKey: 'nav.reports', icon: FileText, ownerOnly: true },
+      { href: '/settings', labelKey: 'nav.settings', icon: Settings, ownerOnly: true },
     ],
   },
 ]
 
-// Flat list for page title lookup
-const allNavItems = navGroups.flatMap((g) => g.items)
-
 // Bottom tab bar items for mobile (4 fixed + "more")
 const mobileTabItems: NavItem[] = [
-  { href: '/dashboard', label: '最新概覽', icon: LayoutDashboard },
-  { href: '/trends', label: '趨勢分析', icon: TrendingUp },
-  { href: '/products', label: '商品排行', icon: ShoppingBag },
-  { href: '/ai', label: 'AI 分析', icon: Brain },
+  { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+  { href: '/trends', labelKey: 'nav.trends', icon: TrendingUp },
+  { href: '/products', labelKey: 'nav.productRanking', icon: ShoppingBag },
+  { href: '/ai', labelKey: 'nav.aiAnalysis', icon: Brain },
 ]
 
 type UserProfile = {
@@ -128,12 +127,16 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useI18n()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [activeStore, setActiveStore] = useState<string | null>(null)
   const [storeDropdownOpen, setStoreDropdownOpen] = useState(false)
+
+  // Flat list for page title lookup
+  const allNavItems = navGroups.flatMap((g) => g.items)
 
   useEffect(() => {
     async function loadProfile() {
@@ -262,16 +265,16 @@ export default function DashboardLayout({
 
         <nav className="mt-4 px-3 overflow-y-auto max-h-[calc(100vh-180px)]">
           {filteredGroups.map((group, gi) => (
-            <div key={group.title} className={clsx(gi > 0 && 'mt-6')}>
+            <div key={group.titleKey} className={clsx(gi > 0 && 'mt-6')}>
               <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                {group.title}
+                {t(group.titleKey)}
               </div>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href
                   const isAI = group.iconColor === 'text-purple-400'
-                  const isOperations = group.title === '營運總覽'
+                  const isOperations = group.titleKey === 'nav.operations'
                   return (
                     <Link
                       key={item.href}
@@ -290,7 +293,7 @@ export default function DashboardLayout({
                           isActive ? 'text-white' : isAI ? 'text-purple-400' : isOperations ? 'text-white' : ''
                         )}
                       />
-                      <span className="flex-1">{item.label}</span>
+                      <span className="flex-1">{t(item.labelKey)}</span>
                       {item.ownerOnly && (
                         <Lock size={12} className="text-gray-400" />
                       )}
@@ -303,6 +306,9 @@ export default function DashboardLayout({
         </nav>
 
         <div className="absolute bottom-4 left-0 right-0 px-3">
+          <div className="px-3 mb-2">
+            <LocaleSwitcher />
+          </div>
           <div className="px-3 py-2">
             <div className="flex items-center gap-1.5">
               {profile?.name && (
@@ -313,7 +319,7 @@ export default function DashboardLayout({
               <button
                 onClick={handleLogout}
                 className="text-slate-500 hover:text-white transition-colors shrink-0 p-1"
-                title="登出"
+                title={t('nav.logout')}
               >
                 <LogOut size={14} />
               </button>
@@ -336,7 +342,10 @@ export default function DashboardLayout({
             <Menu size={24} />
           </button>
           <h2 className="text-lg font-semibold text-slate-900">
-            {allNavItems.find((item) => item.href === pathname)?.label || 'FnB Pulse'}
+            {(() => {
+              const item = allNavItems.find((item) => item.href === pathname)
+              return item ? t(item.labelKey) : 'FnB Pulse'
+            })()}
           </h2>
         </header>
 
@@ -362,7 +371,7 @@ export default function DashboardLayout({
                 )}
               >
                 <Icon size={20} />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
               </Link>
             )
           })}
@@ -372,7 +381,7 @@ export default function DashboardLayout({
             className="flex flex-col items-center justify-center gap-0.5 min-w-[44px] min-h-[44px] px-2 text-slate-400"
           >
             <MoreHorizontal size={20} />
-            <span className="text-[10px] font-medium">更多</span>
+            <span className="text-[10px] font-medium">{t('nav.more')}</span>
           </button>
         </div>
       </nav>
@@ -390,7 +399,7 @@ export default function DashboardLayout({
           <div className="w-10 h-1 bg-slate-300 rounded-full" />
         </div>
         <div className="px-4 pb-2 flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-900">更多功能</span>
+          <span className="text-sm font-semibold text-slate-900">{t('nav.moreFeatures')}</span>
           <button
             onClick={() => setDrawerOpen(false)}
             className="text-slate-400 hover:text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -400,9 +409,9 @@ export default function DashboardLayout({
         </div>
         <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: 'calc(80vh - 60px)' }}>
           {drawerGroups.map((group, gi) => (
-            <div key={group.title} className={clsx(gi > 0 && 'mt-4')}>
+            <div key={group.titleKey} className={clsx(gi > 0 && 'mt-4')}>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                {group.title}
+                {t(group.titleKey)}
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {group.items.map((item) => {
@@ -426,7 +435,7 @@ export default function DashboardLayout({
                         )}
                       />
                       <span className="text-xs font-medium leading-tight">
-                        {item.label}
+                        {t(item.labelKey)}
                       </span>
                       {item.ownerOnly && (
                         <Lock size={10} className="text-gray-400" />
