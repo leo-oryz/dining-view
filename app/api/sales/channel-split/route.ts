@@ -12,24 +12,27 @@ export async function GET(request: NextRequest) {
       return apiError('start_date and end_date are required', 400)
     }
 
-    // Fetch all __order__ rows via REST API to bypass 1000-row JS client limit
+    // Fetch all __order__ rows via paginated REST API (Supabase caps at 1000/request)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const restUrl = `${supabaseUrl}/rest/v1/order_items?select=date,order_type,time,item_amount,guest_count&store_id=eq.${storeId}&item_name=eq.__order__&source=eq.eat365&date=gte.${startDate}&date=lte.${endDate}&order=date.asc`
+    const baseUrl = `${supabaseUrl}/rest/v1/order_items?select=date,order_type,time,item_amount,guest_count&store_id=eq.${storeId}&item_name=eq.__order__&source=eq.eat365&date=gte.${startDate}&date=lte.${endDate}&order=date.asc,time.asc`
 
-    const restRes = await fetch(restUrl, {
-      headers: {
-        'apikey': serviceKey,
-        'Authorization': `Bearer ${serviceKey}`,
-        'Range': '0-99999',
-      },
-    })
-
-    if (!restRes.ok) {
-      return apiError(`Failed to fetch order data: ${restRes.status}`, 500)
+    const rows: { date: string; order_type: string; time: string; item_amount: number; guest_count: number }[] = []
+    let offset = 0
+    const PAGE = 1000
+    while (true) {
+      const res = await fetch(`${baseUrl}&offset=${offset}&limit=${PAGE}`, {
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+      })
+      if (!res.ok) return apiError(`Failed to fetch order data: ${res.status}`, 500)
+      const page = await res.json()
+      rows.push(...page)
+      if (page.length < PAGE) break
+      offset += PAGE
     }
-
-    const rows: { date: string; order_type: string; time: string; item_amount: number; guest_count: number }[] = await restRes.json()
     if (rows.length === 0) {
       return apiSuccess({
         summary: {

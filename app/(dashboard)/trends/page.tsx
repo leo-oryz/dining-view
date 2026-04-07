@@ -187,6 +187,7 @@ export default function TrendsPage() {
 
   useEffect(() => {
     setLoading(true)
+    setChannelData(null) // Reset so stale data doesn't persist
     const params = `start_date=${startDate}&end_date=${endDate}`
     const prevParams = `start_date=${prevStartDate}&end_date=${prevEndDate}`
     const tStartMonth = format(startOfMonth(parseISO(startDate)), 'yyyy-MM-dd')
@@ -201,12 +202,12 @@ export default function TrendsPage() {
       fetch(`/api/sales/channel-split?start_date=${startDate}&end_date=${endDate}`).then((r) => r.json()).catch(() => ({ success: false })),
     ])
       .then(([dailyJson, hourlyJson, targetsJson, weatherJson, prevJson, channelJson]) => {
-        if (dailyJson.success) setData(dailyJson.data || [])
-        if (hourlyJson.success) setHourlyData(hourlyJson.data || [])
-        if (targetsJson.success) setTargets(targetsJson.data || [])
-        if (weatherJson.success) setWeatherData(weatherJson.data || [])
-        if (prevJson.success) setPrevData(prevJson.data || [])
-        if (channelJson.success) setChannelData(channelJson.data)
+        setData(dailyJson.success ? dailyJson.data || [] : [])
+        setHourlyData(hourlyJson.success ? hourlyJson.data || [] : [])
+        setTargets(targetsJson.success ? targetsJson.data || [] : [])
+        setWeatherData(weatherJson.success ? weatherJson.data || [] : [])
+        setPrevData(prevJson.success ? prevJson.data || [] : [])
+        setChannelData(channelJson.success ? channelJson.data : null)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
