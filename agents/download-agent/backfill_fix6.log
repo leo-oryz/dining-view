@@ -1,0 +1,233 @@
+[backfill] Range: 2026-03-23 → 2026-04-05 (14 days)
+[backfill] eat365: ON, ocard: SKIP, dry-run: false
+
+[backfill] === 2026-03-23 (1/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-23...
+[eat365] Downloaded: eat365-summary_2026-03-23.xlsx
+[eat365] Loading eat365-hourly for 2026-03-23...
+[eat365] Downloaded: eat365-hourly_2026-03-23.xls
+[eat365] Loading eat365-items for 2026-03-23...
+[eat365] Downloaded: eat365-items_2026-03-23.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-23.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-23.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-23.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-24 (2/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-24...
+[eat365] Downloaded: eat365-summary_2026-03-24.xlsx
+[eat365] Loading eat365-hourly for 2026-03-24...
+[eat365] Downloaded: eat365-hourly_2026-03-24.xls
+[eat365] Loading eat365-items for 2026-03-24...
+[eat365] Downloaded: eat365-items_2026-03-24.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-24.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-24.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-24.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-25 (3/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-25...
+[eat365] Downloaded: eat365-summary_2026-03-25.xlsx
+[eat365] Loading eat365-hourly for 2026-03-25...
+[eat365] Downloaded: eat365-hourly_2026-03-25.xls
+[eat365] Loading eat365-items for 2026-03-25...
+[eat365] Downloaded: eat365-items_2026-03-25.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-25.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-25.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-25.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-26 (4/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-26...
+[eat365] Downloaded: eat365-summary_2026-03-26.xlsx
+[eat365] Loading eat365-hourly for 2026-03-26...
+[eat365] Downloaded: eat365-hourly_2026-03-26.xls
+[eat365] Loading eat365-items for 2026-03-26...
+[eat365] Downloaded: eat365-items_2026-03-26.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-26.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-26.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-26.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-27 (5/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-27...
+[eat365] Downloaded: eat365-summary_2026-03-27.xlsx
+[eat365] Loading eat365-hourly for 2026-03-27...
+[eat365] Downloaded: eat365-hourly_2026-03-27.xls
+[eat365] Loading eat365-items for 2026-03-27...
+[eat365] Downloaded: eat365-items_2026-03-27.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-27.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-27.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-27.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-28 (6/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-28...
+[eat365] Downloaded: eat365-summary_2026-03-28.xlsx
+[eat365] Loading eat365-hourly for 2026-03-28...
+[eat365] Downloaded: eat365-hourly_2026-03-28.xls
+[eat365] Loading eat365-items for 2026-03-28...
+[eat365] Downloaded: eat365-items_2026-03-28.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-28.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-28.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-28.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-29 (7/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-29...
+[eat365] Downloaded: eat365-summary_2026-03-29.xlsx
+[eat365] Loading eat365-hourly for 2026-03-29...
+[eat365] Downloaded: eat365-hourly_2026-03-29.xls
+[eat365] Loading eat365-items for 2026-03-29...
+[eat365] Downloaded: eat365-items_2026-03-29.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-29.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-29.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-29.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-30 (8/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-30...
+[eat365] Downloaded: eat365-summary_2026-03-30.xlsx
+[eat365] Loading eat365-hourly for 2026-03-30...
+[eat365] Downloaded: eat365-hourly_2026-03-30.xls
+[eat365] Loading eat365-items for 2026-03-30...
+[eat365] Downloaded: eat365-items_2026-03-30.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-30.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-30.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-30.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-31 (9/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-31...
+[eat365] Downloaded: eat365-summary_2026-03-31.xlsx
+[eat365] Loading eat365-hourly for 2026-03-31...
+[eat365] Downloaded: eat365-hourly_2026-03-31.xls
+[eat365] Loading eat365-items for 2026-03-31...
+[eat365] Downloaded: eat365-items_2026-03-31.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-03-31.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-03-31.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-03-31.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-01 (10/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-01...
+[eat365] Downloaded: eat365-summary_2026-04-01.xlsx
+[eat365] Loading eat365-hourly for 2026-04-01...
+[eat365] Downloaded: eat365-hourly_2026-04-01.xls
+[eat365] Loading eat365-items for 2026-04-01...
+[eat365] Downloaded: eat365-items_2026-04-01.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-04-01.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-04-01.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-04-01.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-02 (11/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-02...
+[eat365] Downloaded: eat365-summary_2026-04-02.xlsx
+[eat365] Loading eat365-hourly for 2026-04-02...
+[eat365] Downloaded: eat365-hourly_2026-04-02.xls
+[eat365] Loading eat365-items for 2026-04-02...
+[eat365] Downloaded: eat365-items_2026-04-02.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-04-02.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-04-02.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-04-02.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-03 (12/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-03...
+[eat365] Downloaded: eat365-summary_2026-04-03.xlsx
+[eat365] Loading eat365-hourly for 2026-04-03...
+[eat365] Downloaded: eat365-hourly_2026-04-03.xls
+[eat365] Loading eat365-items for 2026-04-03...
+[eat365] Downloaded: eat365-items_2026-04-03.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-04-03.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-04-03.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-04-03.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-04 (13/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-04...
+[eat365] Downloaded: eat365-summary_2026-04-04.xlsx
+[eat365] Loading eat365-hourly for 2026-04-04...
+[eat365] Downloaded: eat365-hourly_2026-04-04.xls
+[eat365] Loading eat365-items for 2026-04-04...
+[eat365] Downloaded: eat365-items_2026-04-04.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-04-04.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-04-04.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-04-04.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-05 (14/14) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-05...
+[eat365] Downloaded: eat365-summary_2026-04-05.xlsx
+[eat365] Loading eat365-hourly for 2026-04-05...
+[eat365] Downloaded: eat365-hourly_2026-04-05.xls
+[eat365] Loading eat365-items for 2026-04-05...
+[eat365] Downloaded: eat365-items_2026-04-05.xls
+[backfill] eat365: 3 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-summary (eat365-summary_2026-04-05.xlsx)
+[upload] eat365-summary: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-hourly (eat365-hourly_2026-04-05.xls)
+[upload] eat365-hourly: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/eat365-items (eat365-items_2026-04-05.xls)
+[upload] eat365-items: success
+
+[backfill] ========== SUMMARY ==========
+[backfill] Days processed: 14
+[backfill] Files downloaded: 42
+[backfill] Files uploaded: 42
+[backfill] Errors: 0
+[backfill] Done.

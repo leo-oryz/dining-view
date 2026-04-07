@@ -1,0 +1,784 @@
+[backfill] Range: 2026-03-04 → 2026-04-03 (31 days)
+[backfill] eat365: ON, ocard: SKIP, dry-run: false
+
+[backfill] === 2026-03-04 (1/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-04...
+[eat365] Downloaded: eat365-summary_2026-03-04.xlsx
+[eat365] Loading eat365-hourly for 2026-03-04...
+[eat365] Downloaded: eat365-hourly_2026-03-04.xls
+[eat365] Loading eat365-items for 2026-03-04...
+[eat365] Downloaded: eat365-items_2026-03-04.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-04.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-04: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-04.xls)
+[upload] eat365-hourly: success
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-04.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-05 (2/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-05...
+[eat365] No Export button found for eat365-summary
+[eat365] Loading eat365-hourly for 2026-03-05...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-05+00:00&endDate=2026-03-05+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-05+00:00&endDate=2026-03-05+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-05...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-05+00:00&endDate=2026-03-05+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-05+00:00&endDate=2026-03-05+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-06 (3/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-06...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-06+00:00&endDate=2026-03-06+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-06+00:00&endDate=2026-03-06+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-06...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-06+00:00&endDate=2026-03-06+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-06+00:00&endDate=2026-03-06+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-06...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-06+00:00&endDate=2026-03-06+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-06+00:00&endDate=2026-03-06+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-07 (4/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-07...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-07+00:00&endDate=2026-03-07+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-07+00:00&endDate=2026-03-07+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-07...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-07+00:00&endDate=2026-03-07+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-07+00:00&endDate=2026-03-07+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-07...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-07+00:00&endDate=2026-03-07+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-07+00:00&endDate=2026-03-07+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-08 (5/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-08...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-08+00:00&endDate=2026-03-08+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-08+00:00&endDate=2026-03-08+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-08...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-08+00:00&endDate=2026-03-08+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-08+00:00&endDate=2026-03-08+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-08...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-08+00:00&endDate=2026-03-08+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-08+00:00&endDate=2026-03-08+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-09 (6/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-09...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-09+00:00&endDate=2026-03-09+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-09+00:00&endDate=2026-03-09+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-09...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-09+00:00&endDate=2026-03-09+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-09+00:00&endDate=2026-03-09+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-09...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-09+00:00&endDate=2026-03-09+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-09+00:00&endDate=2026-03-09+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-10 (7/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-10...
+[eat365] No Export button found for eat365-summary
+[eat365] Loading eat365-hourly for 2026-03-10...
+[eat365] No Export button found for eat365-hourly
+[eat365] Loading eat365-items for 2026-03-10...
+[eat365] Failed to download eat365-items: page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-10+00:00&endDate=2026-03-10+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-11 (8/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-11...
+[eat365] Downloaded: eat365-summary_2026-03-11.xlsx
+[eat365] Loading eat365-hourly for 2026-03-11...
+[eat365] Downloaded: eat365-hourly_2026-03-11.xls
+[eat365] Loading eat365-items for 2026-03-11...
+[eat365] Downloaded: eat365-items_2026-03-11.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-11.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-11: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-11.xls)
+[backfill] Upload failed eat365-hourly 2026-03-11: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-11.xls)
+[backfill] Upload failed eat365-items 2026-03-11: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-12 (9/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-12...
+[eat365] Failed to download eat365-summary: page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-12+00:00&endDate=2026-03-12+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[eat365] Loading eat365-hourly for 2026-03-12...
+[eat365] Downloaded: eat365-hourly_2026-03-12.xls
+[eat365] Loading eat365-items for 2026-03-12...
+[eat365] Downloaded: eat365-items_2026-03-12.xls
+[backfill] eat365: 2 files
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-12.xls)
+[backfill] Upload failed eat365-hourly 2026-03-12: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-12.xls)
+[backfill] Upload failed eat365-items 2026-03-12: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-13 (10/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-13...
+[eat365] No Export button found for eat365-summary
+[eat365] Loading eat365-hourly for 2026-03-13...
+[eat365] No Export button found for eat365-hourly
+[eat365] Loading eat365-items for 2026-03-13...
+[eat365] Downloaded: eat365-items_2026-03-13.xls
+[backfill] eat365: 1 files
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-13.xls)
+[backfill] Upload failed eat365-items 2026-03-13: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-14 (11/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-14...
+[eat365] Failed to download eat365-summary: page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-14+00:00&endDate=2026-03-14+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[eat365] Loading eat365-hourly for 2026-03-14...
+[eat365] Downloaded: eat365-hourly_2026-03-14.xls
+[eat365] Loading eat365-items for 2026-03-14...
+[eat365] Downloaded: eat365-items_2026-03-14.xls
+[backfill] eat365: 2 files
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-14.xls)
+[backfill] Upload failed eat365-hourly 2026-03-14: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-14.xls)
+[backfill] Upload failed eat365-items 2026-03-14: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-15 (12/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-15...
+[eat365] No Export button found for eat365-summary
+[eat365] Loading eat365-hourly for 2026-03-15...
+[eat365] Downloaded: eat365-hourly_2026-03-15.xls
+[eat365] Loading eat365-items for 2026-03-15...
+[eat365] Downloaded: eat365-items_2026-03-15.xls
+[backfill] eat365: 2 files
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-15.xls)
+[backfill] Upload failed eat365-hourly 2026-03-15: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-15.xls)
+[backfill] Upload failed eat365-items 2026-03-15: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-16 (13/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-16...
+[eat365] No Export button found for eat365-summary
+[eat365] Loading eat365-hourly for 2026-03-16...
+[eat365] Downloaded: eat365-hourly_2026-03-16.xls
+[eat365] Loading eat365-items for 2026-03-16...
+[eat365] Downloaded: eat365-items_2026-03-16.xls
+[backfill] eat365: 2 files
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-16.xls)
+[backfill] Upload failed eat365-hourly 2026-03-16: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-16.xls)
+[backfill] Upload failed eat365-items 2026-03-16: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-17 (14/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-17...
+[eat365] Downloaded: eat365-summary_2026-03-17.xlsx
+[eat365] Loading eat365-hourly for 2026-03-17...
+[eat365] Downloaded: eat365-hourly_2026-03-17.xls
+[eat365] Loading eat365-items for 2026-03-17...
+[eat365] Downloaded: eat365-items_2026-03-17.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-17.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-17: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-17.xls)
+[backfill] Upload failed eat365-hourly 2026-03-17: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-17.xls)
+[backfill] Upload failed eat365-items 2026-03-17: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-18 (15/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-18...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-18+00:00&endDate=2026-03-18+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-18+00:00&endDate=2026-03-18+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-18...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-18+00:00&endDate=2026-03-18+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-18+00:00&endDate=2026-03-18+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-18...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-18+00:00&endDate=2026-03-18+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-18+00:00&endDate=2026-03-18+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-19 (16/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-19...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-19+00:00&endDate=2026-03-19+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-19+00:00&endDate=2026-03-19+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-19...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-19+00:00&endDate=2026-03-19+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-19+00:00&endDate=2026-03-19+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-19...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-19+00:00&endDate=2026-03-19+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-19+00:00&endDate=2026-03-19+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-20 (17/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-20...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-20+00:00&endDate=2026-03-20+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-20+00:00&endDate=2026-03-20+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-20...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-20+00:00&endDate=2026-03-20+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-20+00:00&endDate=2026-03-20+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-20...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-20+00:00&endDate=2026-03-20+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-20+00:00&endDate=2026-03-20+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-21 (18/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-21...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-21+00:00&endDate=2026-03-21+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-21+00:00&endDate=2026-03-21+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-21...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-21+00:00&endDate=2026-03-21+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-21+00:00&endDate=2026-03-21+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-21...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-21+00:00&endDate=2026-03-21+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-21+00:00&endDate=2026-03-21+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-22 (19/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-22...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-22+00:00&endDate=2026-03-22+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-22+00:00&endDate=2026-03-22+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-22...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-22+00:00&endDate=2026-03-22+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-22+00:00&endDate=2026-03-22+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-22...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-22+00:00&endDate=2026-03-22+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-22+00:00&endDate=2026-03-22+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-23 (20/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-23...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-23+00:00&endDate=2026-03-23+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-23+00:00&endDate=2026-03-23+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-23...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-23+00:00&endDate=2026-03-23+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-23+00:00&endDate=2026-03-23+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-23...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-23+00:00&endDate=2026-03-23+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-23+00:00&endDate=2026-03-23+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-24 (21/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-24...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-24+00:00&endDate=2026-03-24+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-24+00:00&endDate=2026-03-24+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-24...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-24+00:00&endDate=2026-03-24+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-24+00:00&endDate=2026-03-24+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-24...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-24+00:00&endDate=2026-03-24+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-24+00:00&endDate=2026-03-24+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-25 (22/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-25...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-25+00:00&endDate=2026-03-25+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-25+00:00&endDate=2026-03-25+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-25...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_INTERNET_DISCONNECTED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-25+00:00&endDate=2026-03-25+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-25+00:00&endDate=2026-03-25+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-25...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_NETWORK_CHANGED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-25+00:00&endDate=2026-03-25+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-25+00:00&endDate=2026-03-25+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-26 (23/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-26...
+[eat365] Downloaded: eat365-summary_2026-03-26.xlsx
+[eat365] Loading eat365-hourly for 2026-03-26...
+[eat365] No Export button found for eat365-hourly
+[eat365] Loading eat365-items for 2026-03-26...
+[eat365] No Export button found for eat365-items
+[backfill] eat365: 1 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-26.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-26: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-27 (24/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-27...
+[eat365] Downloaded: eat365-summary_2026-03-27.xlsx
+[eat365] Loading eat365-hourly for 2026-03-27...
+[eat365] Downloaded: eat365-hourly_2026-03-27.xls
+[eat365] Loading eat365-items for 2026-03-27...
+[eat365] Failed to download eat365-items: page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-27+00:00&endDate=2026-03-27+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[backfill] eat365: 2 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-27.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-27: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-27.xls)
+[backfill] Upload failed eat365-hourly 2026-03-27: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-28 (25/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-28...
+[eat365] Failed to download eat365-summary: page.waitForEvent: Timeout 15000ms exceeded while waiting for event "download"
+=========================== logs ===========================
+waiting for event "download"
+============================================================
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:94:16)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[eat365] Loading eat365-hourly for 2026-03-28...
+[eat365] Downloaded: eat365-hourly_2026-03-28.xls
+[eat365] Loading eat365-items for 2026-03-28...
+[eat365] No Export button found for eat365-items
+[backfill] eat365: 1 files
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-28.xls)
+[backfill] Upload failed eat365-hourly 2026-03-28: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-29 (26/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-29...
+[eat365] Failed to download eat365-summary: page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-29+00:00&endDate=2026-03-29+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[eat365] Loading eat365-hourly for 2026-03-29...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_NETWORK_CHANGED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-29+00:00&endDate=2026-03-29+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-29+00:00&endDate=2026-03-29+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-29...
+[eat365] Failed to download eat365-items: page.goto: Navigation to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-29+00:00&endDate=2026-03-29+23:59" is interrupted by another navigation to "chrome-error://chromewebdata/"
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-29+00:00&endDate=2026-03-29+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-30 (27/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-30...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_NETWORK_CHANGED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-30+00:00&endDate=2026-03-30+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-30+00:00&endDate=2026-03-30+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-30...
+[eat365] Failed to download eat365-hourly: page.goto: Navigation to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-30+00:00&endDate=2026-03-30+23:59" is interrupted by another navigation to "chrome-error://chromewebdata/"
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-30+00:00&endDate=2026-03-30+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-30...
+[eat365] Failed to download eat365-items: page.goto: Navigation to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-30+00:00&endDate=2026-03-30+23:59" is interrupted by another navigation to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-30+00:00&endDate=2026-03-30+23:59"
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-30+00:00&endDate=2026-03-30+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-03-31 (28/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-31...
+[eat365] Failed to download eat365-summary: page.goto: net::ERR_NETWORK_CHANGED at https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-31+00:00&endDate=2026-03-31+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-31+00:00&endDate=2026-03-31+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-hourly for 2026-03-31...
+[eat365] Failed to download eat365-hourly: page.goto: Navigation to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-31+00:00&endDate=2026-03-31+23:59" is interrupted by another navigation to "chrome-error://chromewebdata/"
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-31+00:00&endDate=2026-03-31+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-03-31...
+[eat365] Failed to download eat365-items: page.goto: Navigation to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-31+00:00&endDate=2026-03-31+23:59" is interrupted by another navigation to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-31+00:00&endDate=2026-03-31+23:59"
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-03-31+00:00&endDate=2026-03-31+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-04-01 (29/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-01...
+[eat365] Failed to download eat365-summary: page.waitForEvent: Timeout 15000ms exceeded while waiting for event "download"
+=========================== logs ===========================
+waiting for event "download"
+============================================================
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:94:16)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[eat365] Loading eat365-hourly for 2026-04-01...
+[eat365] No Export button found for eat365-hourly
+[eat365] Loading eat365-items for 2026-04-01...
+[eat365] Failed to download eat365-items: page.waitForEvent: Timeout 15000ms exceeded while waiting for event "download"
+=========================== logs ===========================
+waiting for event "download"
+============================================================
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:94:16)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-04-02 (30/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-02...
+[eat365] Failed to download eat365-summary: page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-02+00:00&endDate=2026-04-02+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[eat365] Loading eat365-hourly for 2026-04-02...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_NETWORK_CHANGED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-02+00:00&endDate=2026-04-02+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-02+00:00&endDate=2026-04-02+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-04-02...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_NETWORK_CHANGED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-02+00:00&endDate=2026-04-02+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-02+00:00&endDate=2026-04-02+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] === 2026-04-03 (31/31) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-03...
+[eat365] Failed to download eat365-summary: page.goto: Timeout 30000ms exceeded.
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales_summary?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-03+00:00&endDate=2026-04-03+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'TimeoutError'
+}
+[eat365] Loading eat365-hourly for 2026-04-03...
+[eat365] Failed to download eat365-hourly: page.goto: net::ERR_NETWORK_CHANGED at https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-03+00:00&endDate=2026-04-03+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/hourly_sales_report?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-03+00:00&endDate=2026-04-03+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[eat365] Loading eat365-items for 2026-04-03...
+[eat365] Failed to download eat365-items: page.goto: net::ERR_NETWORK_CHANGED at https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-03+00:00&endDate=2026-04-03+23:59
+Call log:
+[2m  - navigating to "https://mpphk.eats365pos.com/v2/report/sales/sales_by_items?restaurantCode=TWTP001206&u=0&organizationUID=114791&brandUID=117072&startDate=2026-04-03+00:00&endDate=2026-04-03+23:59", waiting until "domcontentloaded"[22m
+
+    at downloadEat365Reports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/eat365.ts:78:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:47:23) {
+  name: 'Error'
+}
+[backfill] eat365: 0 files
+
+[backfill] ========== SUMMARY ==========
+[backfill] Days processed: 31
+[backfill] Files downloaded: 22
+[backfill] Files uploaded: 2
+[backfill] Errors: 20
+[backfill] Failed dates (0 files): 2026-03-05, 2026-03-06, 2026-03-07, 2026-03-08, 2026-03-09, 2026-03-10, 2026-03-18, 2026-03-19, 2026-03-20, 2026-03-21, 2026-03-22, 2026-03-23, 2026-03-24, 2026-03-25, 2026-03-29, 2026-03-30, 2026-03-31, 2026-04-01, 2026-04-02, 2026-04-03
+[backfill] Done.

@@ -1,0 +1,499 @@
+[backfill] Range: 2025-12-04 → 2025-12-27 (24 days)
+[backfill] eat365: SKIP, ocard: ON, dry-run: false
+
+[backfill] === 2025-12-04 (1/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-04.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-04.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-04.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-04.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-04.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-04.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-04.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-04.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-04.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-04.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-05 (2/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-05.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-05.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-05.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-05.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-05.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-05.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-05.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-05.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-05.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-05.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-06 (3/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-06.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-06.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-06.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-06.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-06.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-06.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-06.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-06.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-06.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-06.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-07 (4/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-07.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-07.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-07.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-07.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-07.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-07.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-07.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-07.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-07.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-07.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-08 (5/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-08.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-08.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-08.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-08.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-08.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-08.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-08.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-08.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-08.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-08.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-09 (6/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-09.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-09.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-09.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-09.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-09.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-09.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-09.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-09.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-09.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-09.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-10 (7/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-10.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-10.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-10.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-10.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-10.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-10.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-10.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-10.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-10.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-10.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-11 (8/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-11.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-11.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-11.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-11.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-11.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-11.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-11.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-11.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-11.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-11.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-12 (9/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-12.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-12.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-12.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-12.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-12.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-12.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-12.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-12.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-12.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-12.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-13 (10/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-13.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-13.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-13.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-13.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-13.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-13.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-13.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-13.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-13.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-13.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-14 (11/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-14.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-14.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-14.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-14.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-14.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-14.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-14.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-14.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-14.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-14.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-15 (12/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-15.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-15.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-15.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-15.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-15.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-15.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-15.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-15.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-15.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-15.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-16 (13/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-16.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-16.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-16.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-16.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-16.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-16.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-16.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-16.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-16.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-16.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-17 (14/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-17.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-17.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-17.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-17.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-17.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-17.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-17.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-17.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-17.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-17.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-18 (15/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-18.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-18.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-18.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-18.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-18.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-18.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-18.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-18.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-18.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-18.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-19 (16/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-19.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-19.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-19.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-19.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-19.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-19.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-19.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-19.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-19.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-19.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-20 (17/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-20.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-20.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-20.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-20.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-20.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-20.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-20.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-20.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-20.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-20.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-21 (18/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-21.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-21.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-21.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-21.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-21.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-21.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-21.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-21.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-21.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-21.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-22 (19/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-22.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-22.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-22.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-22.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-22.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-22.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-22.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-22.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-22.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-22.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-23 (20/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-23.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-23.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-23.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-23.csv
+[ocard] Loading ocard-members...
+[ocard] Downloaded: ocard-members_2025-12-23.csv
+[backfill] ocard: 5 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-23.xlsx)
+[upload] ocard-dashboard: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-recruit (ocard-recruit_2025-12-23.csv)
+[upload] ocard-recruit: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-consumption (ocard-consumption_2025-12-23.csv)
+[upload] ocard-consumption: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-rfm (ocard-rfm_2025-12-23.csv)
+[upload] ocard-rfm: success
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-members (ocard-members_2025-12-23.csv)
+[upload] ocard-members: success
+
+[backfill] === 2025-12-24 (21/24) ===
+[ocard] Logged in successfully
+[ocard] Loading ocard-dashboard...
+[ocard] Downloaded: ocard-dashboard_2025-12-24.xlsx
+[ocard] Loading ocard-recruit...
+[ocard] Downloaded: ocard-recruit_2025-12-24.csv
+[ocard] Loading ocard-consumption...
+[ocard] Downloaded: ocard-consumption_2025-12-24.csv
+[ocard] Loading ocard-rfm...
+[ocard] Downloaded: ocard-rfm_2025-12-24.csv
+[ocard] Loading ocard-members...
+[ocard] Failed to download ocard-members: page.waitForTimeout: Target page, context or browser has been closed
+    at downloadOcardReports (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/ocard.ts:131:20)
+    at async backfill (/Users/macbook/Desktop/Fnb Pulse/agents/download-agent/backfill.ts:59:23)
+[backfill] ocard: 4 files
+[upload] POST https://fnb-pluse.zeabur.app/api/upload/ocard-dashboard (ocard-dashboard_2025-12-24.xlsx)

@@ -1,0 +1,537 @@
+[backfill] Range: 2026-03-04 → 2026-04-05 (33 days)
+[backfill] eat365: ON, ocard: SKIP, dry-run: false
+
+[backfill] === 2026-03-04 (1/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-04...
+[eat365] Downloaded: eat365-summary_2026-03-04.xlsx
+[eat365] Loading eat365-hourly for 2026-03-04...
+[eat365] Downloaded: eat365-hourly_2026-03-04.xls
+[eat365] Loading eat365-items for 2026-03-04...
+[eat365] Downloaded: eat365-items_2026-03-04.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-04.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-04: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-04.xls)
+[backfill] Upload failed eat365-hourly 2026-03-04: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-04.xls)
+[backfill] Upload failed eat365-items 2026-03-04: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-05 (2/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-05...
+[eat365] Downloaded: eat365-summary_2026-03-05.xlsx
+[eat365] Loading eat365-hourly for 2026-03-05...
+[eat365] Downloaded: eat365-hourly_2026-03-05.xls
+[eat365] Loading eat365-items for 2026-03-05...
+[eat365] Downloaded: eat365-items_2026-03-05.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-05.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-05: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-05.xls)
+[backfill] Upload failed eat365-hourly 2026-03-05: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-05.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-06 (3/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-06...
+[eat365] Downloaded: eat365-summary_2026-03-06.xlsx
+[eat365] Loading eat365-hourly for 2026-03-06...
+[eat365] Downloaded: eat365-hourly_2026-03-06.xls
+[eat365] Loading eat365-items for 2026-03-06...
+[eat365] Downloaded: eat365-items_2026-03-06.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-06.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-06: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-06.xls)
+[backfill] Upload failed eat365-hourly 2026-03-06: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-06.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-07 (4/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-07...
+[eat365] Downloaded: eat365-summary_2026-03-07.xlsx
+[eat365] Loading eat365-hourly for 2026-03-07...
+[eat365] Downloaded: eat365-hourly_2026-03-07.xls
+[eat365] Loading eat365-items for 2026-03-07...
+[eat365] Downloaded: eat365-items_2026-03-07.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-07.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-07: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-07.xls)
+[backfill] Upload failed eat365-hourly 2026-03-07: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-07.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-08 (5/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-08...
+[eat365] Downloaded: eat365-summary_2026-03-08.xlsx
+[eat365] Loading eat365-hourly for 2026-03-08...
+[eat365] Downloaded: eat365-hourly_2026-03-08.xls
+[eat365] Loading eat365-items for 2026-03-08...
+[eat365] Downloaded: eat365-items_2026-03-08.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-08.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-08: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-08.xls)
+[backfill] Upload failed eat365-hourly 2026-03-08: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-08.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-09 (6/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-09...
+[eat365] Downloaded: eat365-summary_2026-03-09.xlsx
+[eat365] Loading eat365-hourly for 2026-03-09...
+[eat365] Downloaded: eat365-hourly_2026-03-09.xls
+[eat365] Loading eat365-items for 2026-03-09...
+[eat365] Downloaded: eat365-items_2026-03-09.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-09.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-09: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-09.xls)
+[backfill] Upload failed eat365-hourly 2026-03-09: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-09.xls)
+[backfill] Upload failed eat365-items 2026-03-09: Unexpected token '<', ..."          <pre>missi"... is not valid JSON
+
+[backfill] === 2026-03-10 (7/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-10...
+[eat365] Downloaded: eat365-summary_2026-03-10.xlsx
+[eat365] Loading eat365-hourly for 2026-03-10...
+[eat365] Downloaded: eat365-hourly_2026-03-10.xls
+[eat365] Loading eat365-items for 2026-03-10...
+[eat365] Downloaded: eat365-items_2026-03-10.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-10.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-10: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-10.xls)
+[backfill] Upload failed eat365-hourly 2026-03-10: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-10.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-11 (8/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-11...
+[eat365] Downloaded: eat365-summary_2026-03-11.xlsx
+[eat365] Loading eat365-hourly for 2026-03-11...
+[eat365] Downloaded: eat365-hourly_2026-03-11.xls
+[eat365] Loading eat365-items for 2026-03-11...
+[eat365] Downloaded: eat365-items_2026-03-11.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-11.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-11: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-11.xls)
+[backfill] Upload failed eat365-hourly 2026-03-11: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-11.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-12 (9/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-12...
+[eat365] Downloaded: eat365-summary_2026-03-12.xlsx
+[eat365] Loading eat365-hourly for 2026-03-12...
+[eat365] Downloaded: eat365-hourly_2026-03-12.xls
+[eat365] Loading eat365-items for 2026-03-12...
+[eat365] Downloaded: eat365-items_2026-03-12.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-12.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-12: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-12.xls)
+[backfill] Upload failed eat365-hourly 2026-03-12: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-12.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-13 (10/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-13...
+[eat365] Downloaded: eat365-summary_2026-03-13.xlsx
+[eat365] Loading eat365-hourly for 2026-03-13...
+[eat365] Downloaded: eat365-hourly_2026-03-13.xls
+[eat365] Loading eat365-items for 2026-03-13...
+[eat365] Downloaded: eat365-items_2026-03-13.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-13.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-13: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-13.xls)
+[backfill] Upload failed eat365-hourly 2026-03-13: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-13.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-14 (11/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-14...
+[eat365] Downloaded: eat365-summary_2026-03-14.xlsx
+[eat365] Loading eat365-hourly for 2026-03-14...
+[eat365] Downloaded: eat365-hourly_2026-03-14.xls
+[eat365] Loading eat365-items for 2026-03-14...
+[eat365] Downloaded: eat365-items_2026-03-14.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-14.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-14: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-14.xls)
+[backfill] Upload failed eat365-hourly 2026-03-14: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-14.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-15 (12/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-15...
+[eat365] Downloaded: eat365-summary_2026-03-15.xlsx
+[eat365] Loading eat365-hourly for 2026-03-15...
+[eat365] Downloaded: eat365-hourly_2026-03-15.xls
+[eat365] Loading eat365-items for 2026-03-15...
+[eat365] Downloaded: eat365-items_2026-03-15.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-15.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-15: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-15.xls)
+[backfill] Upload failed eat365-hourly 2026-03-15: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-15.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-16 (13/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-16...
+[eat365] Downloaded: eat365-summary_2026-03-16.xlsx
+[eat365] Loading eat365-hourly for 2026-03-16...
+[eat365] Downloaded: eat365-hourly_2026-03-16.xls
+[eat365] Loading eat365-items for 2026-03-16...
+[eat365] Downloaded: eat365-items_2026-03-16.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-16.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-16: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-16.xls)
+[backfill] Upload failed eat365-hourly 2026-03-16: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-16.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-17 (14/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-17...
+[eat365] Downloaded: eat365-summary_2026-03-17.xlsx
+[eat365] Loading eat365-hourly for 2026-03-17...
+[eat365] Downloaded: eat365-hourly_2026-03-17.xls
+[eat365] Loading eat365-items for 2026-03-17...
+[eat365] Downloaded: eat365-items_2026-03-17.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-17.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-17: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-17.xls)
+[backfill] Upload failed eat365-hourly 2026-03-17: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-17.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-18 (15/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-18...
+[eat365] Downloaded: eat365-summary_2026-03-18.xlsx
+[eat365] Loading eat365-hourly for 2026-03-18...
+[eat365] Downloaded: eat365-hourly_2026-03-18.xls
+[eat365] Loading eat365-items for 2026-03-18...
+[eat365] Downloaded: eat365-items_2026-03-18.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-18.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-18: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-18.xls)
+[backfill] Upload failed eat365-hourly 2026-03-18: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-18.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-19 (16/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-19...
+[eat365] Downloaded: eat365-summary_2026-03-19.xlsx
+[eat365] Loading eat365-hourly for 2026-03-19...
+[eat365] Downloaded: eat365-hourly_2026-03-19.xls
+[eat365] Loading eat365-items for 2026-03-19...
+[eat365] Downloaded: eat365-items_2026-03-19.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-19.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-19: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-19.xls)
+[backfill] Upload failed eat365-hourly 2026-03-19: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-19.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-20 (17/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-20...
+[eat365] Downloaded: eat365-summary_2026-03-20.xlsx
+[eat365] Loading eat365-hourly for 2026-03-20...
+[eat365] Downloaded: eat365-hourly_2026-03-20.xls
+[eat365] Loading eat365-items for 2026-03-20...
+[eat365] Downloaded: eat365-items_2026-03-20.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-20.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-20: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-20.xls)
+[backfill] Upload failed eat365-hourly 2026-03-20: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-20.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-21 (18/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-21...
+[eat365] Downloaded: eat365-summary_2026-03-21.xlsx
+[eat365] Loading eat365-hourly for 2026-03-21...
+[eat365] Downloaded: eat365-hourly_2026-03-21.xls
+[eat365] Loading eat365-items for 2026-03-21...
+[eat365] Downloaded: eat365-items_2026-03-21.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-21.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-21: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-21.xls)
+[backfill] Upload failed eat365-hourly 2026-03-21: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-21.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-22 (19/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-22...
+[eat365] Downloaded: eat365-summary_2026-03-22.xlsx
+[eat365] Loading eat365-hourly for 2026-03-22...
+[eat365] Downloaded: eat365-hourly_2026-03-22.xls
+[eat365] Loading eat365-items for 2026-03-22...
+[eat365] Downloaded: eat365-items_2026-03-22.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-22.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-22: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-22.xls)
+[backfill] Upload failed eat365-hourly 2026-03-22: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-22.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-23 (20/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-23...
+[eat365] Downloaded: eat365-summary_2026-03-23.xlsx
+[eat365] Loading eat365-hourly for 2026-03-23...
+[eat365] Downloaded: eat365-hourly_2026-03-23.xls
+[eat365] Loading eat365-items for 2026-03-23...
+[eat365] Downloaded: eat365-items_2026-03-23.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-23.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-23: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-23.xls)
+[backfill] Upload failed eat365-hourly 2026-03-23: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-23.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-24 (21/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-24...
+[eat365] Downloaded: eat365-summary_2026-03-24.xlsx
+[eat365] Loading eat365-hourly for 2026-03-24...
+[eat365] Downloaded: eat365-hourly_2026-03-24.xls
+[eat365] Loading eat365-items for 2026-03-24...
+[eat365] Downloaded: eat365-items_2026-03-24.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-24.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-24: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-24.xls)
+[backfill] Upload failed eat365-hourly 2026-03-24: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-24.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-25 (22/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-25...
+[eat365] Downloaded: eat365-summary_2026-03-25.xlsx
+[eat365] Loading eat365-hourly for 2026-03-25...
+[eat365] Downloaded: eat365-hourly_2026-03-25.xls
+[eat365] Loading eat365-items for 2026-03-25...
+[eat365] Downloaded: eat365-items_2026-03-25.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-25.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-25: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-25.xls)
+[backfill] Upload failed eat365-hourly 2026-03-25: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-25.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-26 (23/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-26...
+[eat365] Downloaded: eat365-summary_2026-03-26.xlsx
+[eat365] Loading eat365-hourly for 2026-03-26...
+[eat365] Downloaded: eat365-hourly_2026-03-26.xls
+[eat365] Loading eat365-items for 2026-03-26...
+[eat365] Downloaded: eat365-items_2026-03-26.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-26.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-26: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-26.xls)
+[backfill] Upload failed eat365-hourly 2026-03-26: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-26.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-27 (24/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-27...
+[eat365] Downloaded: eat365-summary_2026-03-27.xlsx
+[eat365] Loading eat365-hourly for 2026-03-27...
+[eat365] Downloaded: eat365-hourly_2026-03-27.xls
+[eat365] Loading eat365-items for 2026-03-27...
+[eat365] Downloaded: eat365-items_2026-03-27.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-27.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-27: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-27.xls)
+[backfill] Upload failed eat365-hourly 2026-03-27: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-27.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-28 (25/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-28...
+[eat365] Downloaded: eat365-summary_2026-03-28.xlsx
+[eat365] Loading eat365-hourly for 2026-03-28...
+[eat365] Downloaded: eat365-hourly_2026-03-28.xls
+[eat365] Loading eat365-items for 2026-03-28...
+[eat365] Downloaded: eat365-items_2026-03-28.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-28.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-28: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-28.xls)
+[backfill] Upload failed eat365-hourly 2026-03-28: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-28.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-29 (26/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-29...
+[eat365] Downloaded: eat365-summary_2026-03-29.xlsx
+[eat365] Loading eat365-hourly for 2026-03-29...
+[eat365] Downloaded: eat365-hourly_2026-03-29.xls
+[eat365] Loading eat365-items for 2026-03-29...
+[eat365] Downloaded: eat365-items_2026-03-29.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-29.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-29: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-29.xls)
+[backfill] Upload failed eat365-hourly 2026-03-29: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-29.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-30 (27/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-30...
+[eat365] Downloaded: eat365-summary_2026-03-30.xlsx
+[eat365] Loading eat365-hourly for 2026-03-30...
+[eat365] Downloaded: eat365-hourly_2026-03-30.xls
+[eat365] Loading eat365-items for 2026-03-30...
+[eat365] Downloaded: eat365-items_2026-03-30.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-30.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-30: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-30.xls)
+[backfill] Upload failed eat365-hourly 2026-03-30: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-30.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-03-31 (28/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-03-31...
+[eat365] Downloaded: eat365-summary_2026-03-31.xlsx
+[eat365] Loading eat365-hourly for 2026-03-31...
+[eat365] Downloaded: eat365-hourly_2026-03-31.xls
+[eat365] Loading eat365-items for 2026-03-31...
+[eat365] Downloaded: eat365-items_2026-03-31.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-03-31.xlsx)
+[backfill] Upload failed eat365-summary 2026-03-31: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-03-31.xls)
+[backfill] Upload failed eat365-hourly 2026-03-31: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-03-31.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-01 (29/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-01...
+[eat365] Downloaded: eat365-summary_2026-04-01.xlsx
+[eat365] Loading eat365-hourly for 2026-04-01...
+[eat365] Downloaded: eat365-hourly_2026-04-01.xls
+[eat365] Loading eat365-items for 2026-04-01...
+[eat365] Downloaded: eat365-items_2026-04-01.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-04-01.xlsx)
+[backfill] Upload failed eat365-summary 2026-04-01: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-04-01.xls)
+[backfill] Upload failed eat365-hourly 2026-04-01: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-04-01.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-02 (30/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-02...
+[eat365] Downloaded: eat365-summary_2026-04-02.xlsx
+[eat365] Loading eat365-hourly for 2026-04-02...
+[eat365] Downloaded: eat365-hourly_2026-04-02.xls
+[eat365] Loading eat365-items for 2026-04-02...
+[eat365] Downloaded: eat365-items_2026-04-02.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-04-02.xlsx)
+[backfill] Upload failed eat365-summary 2026-04-02: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-04-02.xls)
+[backfill] Upload failed eat365-hourly 2026-04-02: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-04-02.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-03 (31/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-03...
+[eat365] Downloaded: eat365-summary_2026-04-03.xlsx
+[eat365] Loading eat365-hourly for 2026-04-03...
+[eat365] Downloaded: eat365-hourly_2026-04-03.xls
+[eat365] Loading eat365-items for 2026-04-03...
+[eat365] Downloaded: eat365-items_2026-04-03.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-04-03.xlsx)
+[backfill] Upload failed eat365-summary 2026-04-03: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-04-03.xls)
+[backfill] Upload failed eat365-hourly 2026-04-03: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-04-03.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-04 (32/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-04...
+[eat365] Downloaded: eat365-summary_2026-04-04.xlsx
+[eat365] Loading eat365-hourly for 2026-04-04...
+[eat365] Downloaded: eat365-hourly_2026-04-04.xls
+[eat365] Loading eat365-items for 2026-04-04...
+[eat365] Downloaded: eat365-items_2026-04-04.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-04-04.xlsx)
+[backfill] Upload failed eat365-summary 2026-04-04: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-04-04.xls)
+[backfill] Upload failed eat365-hourly 2026-04-04: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-04-04.xls)
+[upload] eat365-items: success
+
+[backfill] === 2026-04-05 (33/33) ===
+[eat365] Using saved session
+[eat365] Loading eat365-summary for 2026-04-05...
+[eat365] Downloaded: eat365-summary_2026-04-05.xlsx
+[eat365] Loading eat365-hourly for 2026-04-05...
+[eat365] Downloaded: eat365-hourly_2026-04-05.xls
+[eat365] Loading eat365-items for 2026-04-05...
+[eat365] Downloaded: eat365-items_2026-04-05.xls
+[backfill] eat365: 3 files
+[upload] POST http://localhost:3000/api/upload/eat365-summary (eat365-summary_2026-04-05.xlsx)
+[backfill] Upload failed eat365-summary 2026-04-05: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-hourly (eat365-hourly_2026-04-05.xls)
+[backfill] Upload failed eat365-hourly 2026-04-05: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+[upload] POST http://localhost:3000/api/upload/eat365-items (eat365-items_2026-04-05.xls)
+[upload] eat365-items: success
+
+[backfill] ========== SUMMARY ==========
+[backfill] Days processed: 33
+[backfill] Files downloaded: 99
+[backfill] Files uploaded: 31
+[backfill] Errors: 68
+[backfill] Done.
