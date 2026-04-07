@@ -5,12 +5,26 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { WeekdayHeatmap } from '@/components/charts/WeekdayHeatmap'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
-import { DollarSign, Users, ShoppingCart, Target, TrendingUp, Receipt } from 'lucide-react'
+import { DollarSign, Users, ShoppingCart, Target, TrendingUp, Receipt, UtensilsCrossed, ShoppingBag } from 'lucide-react'
 import { format, subDays, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, getDaysInMonth, differenceInCalendarDays, parseISO } from 'date-fns'
 import { type WeatherDaily, getWeatherType, isRainy, buildWeatherMap } from '@/lib/weather/weatherUtils'
+import { useI18n } from '@/lib/i18n/context'
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
 
 type RangeKey = '7d' | '30d' | '90d' | 'ytd' | 'last_month' | 'this_month' | 'custom'
 type Metric = 'net_sales' | 'guests' | 'orders' | 'avg_spending'
+type TabKey = 'sales' | 'channel'
 
 interface DailySales {
   date: string
@@ -31,14 +45,27 @@ interface MonthlyTarget {
   revenue_target: number
 }
 
+interface ChannelSummary {
+  order_count: number
+  revenue: number
+  avg_spend: number
+  order_pct: number
+  revenue_pct: number
+}
+
+interface ChannelData {
+  summary: { dine_in: ChannelSummary; takeout: ChannelSummary }
+  daily: { date: string; dine_in_orders: number; takeout_orders: number; dine_in_revenue: number; takeout_revenue: number }[]
+  hourly: { hour: number; dine_in_orders: number; takeout_orders: number }[]
+}
+
 // Calculate the pro-rated target for a date range across multiple months
 function calcRangeTarget(targets: MonthlyTarget[], rangeStart: string, rangeEnd: string): number | null {
   if (targets.length === 0) return null
 
   const targetMap: Record<string, number> = {}
   for (const t of targets) {
-    // month is stored as YYYY-MM-DD (first of month)
-    const key = t.month.slice(0, 7) // "2026-04"
+    const key = t.month.slice(0, 7)
     targetMap[key] = t.revenue_target
   }
 
@@ -47,7 +74,6 @@ function calcRangeTarget(targets: MonthlyTarget[], rangeStart: string, rangeEnd:
   const start = parseISO(rangeStart)
   const end = parseISO(rangeEnd)
 
-  // Iterate each month that overlaps the range
   let cursor = startOfMonth(start)
   while (cursor <= end) {
     const monthKey = format(cursor, 'yyyy-MM')
@@ -58,7 +84,6 @@ function calcRangeTarget(targets: MonthlyTarget[], rangeStart: string, rangeEnd:
       const monthEnd = endOfMonth(cursor)
       const daysInThisMonth = getDaysInMonth(cursor)
 
-      // Overlap: max(rangeStart, monthStart) to min(rangeEnd, monthEnd)
       const overlapStart = start > monthStart ? start : monthStart
       const overlapEnd = end < monthEnd ? end : monthEnd
       const overlapDays = differenceInCalendarDays(overlapEnd, overlapStart) + 1
@@ -69,7 +94,6 @@ function calcRangeTarget(targets: MonthlyTarget[], rangeStart: string, rangeEnd:
       }
     }
 
-    // Move to next month
     const nextMonth = new Date(cursor)
     nextMonth.setMonth(nextMonth.getMonth() + 1)
     cursor = nextMonth
@@ -79,6 +103,7 @@ function calcRangeTarget(targets: MonthlyTarget[], rangeStart: string, rangeEnd:
 }
 
 export default function TrendsPage() {
+  const { t } = useI18n()
   const [data, setData] = useState<DailySales[]>([])
   const [hourlyData, setHourlyData] = useState<HourlyRecord[]>([])
   const [targets, setTargets] = useState<MonthlyTarget[]>([])
@@ -89,6 +114,9 @@ export default function TrendsPage() {
   const [heatmapWeatherFilter, setHeatmapWeatherFilter] = useState<'all' | 'sunny' | 'rainy'>('all')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
+  const [activeTab, setActiveTab] = useState<TabKey>('sales')
+  const [channelData, setChannelData] = useState<ChannelData | null>(null)
+  const [channelLoading, setChannelLoading] = useState(false)
 
   const { startDate, endDate } = useMemo(() => {
     if (rangeKey === 'custom' && customStart && customEnd) {
@@ -121,54 +149,47 @@ export default function TrendsPage() {
     }
   }, [rangeKey, customStart, customEnd])
 
-  // Calculate previous period dates for comparison
   const { prevStartDate, prevEndDate, changeLabel } = useMemo(() => {
     const s = parseISO(startDate)
     const e = parseISO(endDate)
     const days = differenceInCalendarDays(e, s) + 1
 
     if (rangeKey === 'ytd') {
-      // YoY: same period last year
       return {
         prevStartDate: format(subYears(s, 1), 'yyyy-MM-dd'),
         prevEndDate: format(subYears(e, 1), 'yyyy-MM-dd'),
-        changeLabel: 'vs 去年同期',
+        changeLabel: t('trends.vsLastYear'),
       }
     }
     if (rangeKey === 'last_month') {
-      // MoM: previous month
       const prevMonth = subMonths(s, 1)
       return {
         prevStartDate: format(startOfMonth(prevMonth), 'yyyy-MM-dd'),
         prevEndDate: format(endOfMonth(prevMonth), 'yyyy-MM-dd'),
-        changeLabel: 'vs 前月',
+        changeLabel: t('trends.vsPrevMonth'),
       }
     }
     if (rangeKey === 'this_month') {
-      // vs same days last month
       return {
         prevStartDate: format(subMonths(s, 1), 'yyyy-MM-dd'),
         prevEndDate: format(subMonths(e, 1), 'yyyy-MM-dd'),
-        changeLabel: 'vs 上月同期',
+        changeLabel: t('trends.vsLastMonthSame'),
       }
     }
-    // Default: same-length previous period
-    const labelMap: Record<string, string> = { '7d': 'vs 前 7 天', '30d': 'vs 前 30 天', '90d': 'vs 前 90 天' }
+    const labelMap: Record<string, string> = { '7d': t('trends.vsPrev7'), '30d': t('trends.vsPrev30'), '90d': t('trends.vsPrev90') }
     return {
       prevStartDate: format(subDays(s, days), 'yyyy-MM-dd'),
       prevEndDate: format(subDays(s, 1), 'yyyy-MM-dd'),
-      changeLabel: labelMap[rangeKey] || 'vs 前期',
+      changeLabel: labelMap[rangeKey] || t('trends.vsPrevPeriod'),
     }
-  }, [startDate, endDate, rangeKey])
+  }, [startDate, endDate, rangeKey, t])
 
-  // Fetch daily + hourly + targets + previous period for the range
   const [prevData, setPrevData] = useState<DailySales[]>([])
 
   useEffect(() => {
     setLoading(true)
     const params = `start_date=${startDate}&end_date=${endDate}`
     const prevParams = `start_date=${prevStartDate}&end_date=${prevEndDate}`
-    // Target months: need to cover all months in range
     const tStartMonth = format(startOfMonth(parseISO(startDate)), 'yyyy-MM-dd')
     const tEndMonth = format(startOfMonth(parseISO(endDate)), 'yyyy-MM-dd')
 
@@ -190,6 +211,19 @@ export default function TrendsPage() {
       .finally(() => setLoading(false))
   }, [startDate, endDate, prevStartDate, prevEndDate])
 
+  // Fetch channel data when tab is active
+  useEffect(() => {
+    if (activeTab !== 'channel') return
+    setChannelLoading(true)
+    fetch(`/api/sales/channel-split?start_date=${startDate}&end_date=${endDate}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setChannelData(json.data)
+      })
+      .catch(() => {})
+      .finally(() => setChannelLoading(false))
+  }, [activeTab, startDate, endDate])
+
   // Compute KPIs — current period
   const totalRevenue = data.reduce((sum, d) => sum + (d.net_sales ?? 0), 0)
   const totalGuests = data.reduce((sum, d) => sum + (d.guests ?? 0), 0)
@@ -206,7 +240,6 @@ export default function TrendsPage() {
   const prevAvgDaily = prevDaysWithData > 0 ? prevRevenue / prevDaysWithData : 0
   const prevAvgSpending = prevGuests > 0 ? prevRevenue / prevGuests : 0
 
-  // Period-over-period % change
   const pctChange = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : null
   const revenueChange = pctChange(totalRevenue, prevRevenue)
   const avgDailyChange = pctChange(avgDaily, prevAvgDaily)
@@ -214,30 +247,49 @@ export default function TrendsPage() {
   const ordersChange = pctChange(totalOrders, prevOrders)
   const avgSpendingChange = pctChange(avgSpending, prevAvgSpending)
 
-  // Target achievement for the selected range
   const rangeTarget = calcRangeTarget(targets, startDate, endDate)
   const achievementPct = rangeTarget != null && rangeTarget > 0 ? (totalRevenue / rangeTarget) * 100 : null
 
-  // Daily target for chart reference line (weighted average from targets in range)
   const totalDaysInRange = differenceInCalendarDays(parseISO(endDate), parseISO(startDate)) + 1
   const dailyTarget = rangeTarget != null && totalDaysInRange > 0 ? rangeTarget / totalDaysInRange : null
 
   const rangeOptions: { key: RangeKey; label: string }[] = [
-    { key: '7d', label: '7 天' },
-    { key: '30d', label: '30 天' },
-    { key: '90d', label: '90 天' },
-    { key: 'this_month', label: '這個月' },
-    { key: 'last_month', label: '上個月' },
-    { key: 'ytd', label: '今年至今' },
-    { key: 'custom', label: '自訂' },
+    { key: '7d', label: t('trends.7days') },
+    { key: '30d', label: t('trends.30days') },
+    { key: '90d', label: t('trends.90days') },
+    { key: 'this_month', label: t('trends.thisMonth') },
+    { key: 'last_month', label: t('trends.lastMonth') },
+    { key: 'ytd', label: t('trends.yearToDate') },
+    { key: 'custom', label: t('trends.custom') },
   ]
 
   const metricOptions: { key: Metric; label: string }[] = [
-    { key: 'net_sales', label: '營收' },
-    { key: 'guests', label: '來客數' },
-    { key: 'orders', label: '訂單數' },
-    { key: 'avg_spending', label: '客單價' },
+    { key: 'net_sales', label: t('trends.revenue') },
+    { key: 'guests', label: t('trends.guests') },
+    { key: 'orders', label: t('trends.orders') },
+    { key: 'avg_spending', label: t('trends.avgSpending') },
   ]
+
+  const tabs: { key: TabKey; label: string }[] = [
+    { key: 'sales', label: t('trends.tabSales') },
+    { key: 'channel', label: t('trends.tabChannel') },
+  ]
+
+  // Build weather map for channel chart overlay
+  const weatherMap = useMemo(() => buildWeatherMap(weatherData), [weatherData])
+
+  // Prepare channel daily chart data with weather
+  const channelDailyChartData = useMemo(() => {
+    if (!channelData) return []
+    return channelData.daily.map((d) => {
+      const w = weatherMap.get(d.date)
+      return {
+        ...d,
+        dateLabel: format(new Date(d.date), 'M/d'),
+        precipitation: w?.precipitation ?? null,
+      }
+    })
+  }, [channelData, weatherMap])
 
   if (loading) {
     return (
@@ -257,7 +309,7 @@ export default function TrendsPage() {
     <div className="space-y-6">
       {/* Header & Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-xl font-bold text-slate-900">趨勢分析</h1>
+        <h1 className="text-xl font-bold text-slate-900">{t('trends.title')}</h1>
         <div className="flex flex-wrap items-center gap-2">
           {rangeOptions.map((opt) => (
             <button
@@ -294,163 +346,358 @@ export default function TrendsPage() {
         </div>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <KpiCard
-          title="期間總營收"
-          value={`NT$${totalRevenue.toLocaleString()}`}
-          change={revenueChange}
-          changeLabel={changeLabel}
-          icon={<DollarSign size={20} />}
-        />
-        <KpiCard
-          title="日均營收"
-          value={`NT$${Math.round(avgDaily).toLocaleString()}`}
-          change={avgDailyChange}
-          changeLabel={changeLabel}
-          icon={<TrendingUp size={20} />}
-        />
-        <KpiCard
-          title="期間來客數"
-          value={totalGuests.toLocaleString()}
-          change={guestsChange}
-          changeLabel={changeLabel}
-          icon={<Users size={20} />}
-        />
-        <KpiCard
-          title="期間訂單數"
-          value={totalOrders.toLocaleString()}
-          change={ordersChange}
-          changeLabel={changeLabel}
-          icon={<ShoppingCart size={20} />}
-        />
-        <KpiCard
-          title="客單價"
-          value={`NT$${Math.round(avgSpending).toLocaleString()}`}
-          change={avgSpendingChange}
-          changeLabel={changeLabel}
-          icon={<Receipt size={20} />}
-        />
+      {/* Tab Selector */}
+      <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition ${
+              activeTab === tab.key
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Target Achievement Card */}
-      {rangeTarget != null && (
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Target size={18} className="text-red-500" />
-            <h2 className="text-sm font-semibold text-slate-900">目標達成率</h2>
-            <span className="text-xs text-slate-400">
-              {startDate} ~ {endDate}
-            </span>
+      {/* ===== Sales Tab ===== */}
+      {activeTab === 'sales' && (
+        <>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <KpiCard
+              title={t('trends.periodRevenue')}
+              value={`NT$${totalRevenue.toLocaleString()}`}
+              change={revenueChange}
+              changeLabel={changeLabel}
+              icon={<DollarSign size={20} />}
+            />
+            <KpiCard
+              title={t('trends.dailyAvgRevenue')}
+              value={`NT$${Math.round(avgDaily).toLocaleString()}`}
+              change={avgDailyChange}
+              changeLabel={changeLabel}
+              icon={<TrendingUp size={20} />}
+            />
+            <KpiCard
+              title={t('trends.periodGuests')}
+              value={totalGuests.toLocaleString()}
+              change={guestsChange}
+              changeLabel={changeLabel}
+              icon={<Users size={20} />}
+            />
+            <KpiCard
+              title={t('trends.periodOrders')}
+              value={totalOrders.toLocaleString()}
+              change={ordersChange}
+              changeLabel={changeLabel}
+              icon={<ShoppingCart size={20} />}
+            />
+            <KpiCard
+              title={t('trends.avgSpending')}
+              value={`NT$${Math.round(avgSpending).toLocaleString()}`}
+              change={avgSpendingChange}
+              changeLabel={changeLabel}
+              icon={<Receipt size={20} />}
+            />
           </div>
-          <div className="space-y-3">
-            <div className="flex items-end justify-between">
-              <p className="text-2xl font-bold text-slate-900">
-                NT${totalRevenue.toLocaleString()}
-                <span className="text-sm font-normal text-slate-400 ml-2">
-                  / NT${Math.round(rangeTarget).toLocaleString()}
+
+          {/* Target Achievement Card */}
+          {rangeTarget != null && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Target size={18} className="text-red-500" />
+                <h2 className="text-sm font-semibold text-slate-900">{t('trends.goalRate')}</h2>
+                <span className="text-xs text-slate-400">
+                  {startDate} ~ {endDate}
                 </span>
-              </p>
-              <p className={`text-lg font-semibold ${achievementPct != null && achievementPct >= 100 ? 'text-green-600' : 'text-blue-600'}`}>
-                {achievementPct != null ? `${achievementPct.toFixed(1)}%` : '--'}
-              </p>
-            </div>
-            {/* Progress bar */}
-            <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  achievementPct != null && achievementPct >= 100 ? 'bg-green-500' : 'bg-blue-500'
-                }`}
-                style={{ width: `${Math.min(achievementPct ?? 0, 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-slate-400">
-              日均目標 NT${dailyTarget != null ? Math.round(dailyTarget).toLocaleString() : '--'}
-              {' · '}
-              日均實際 NT${Math.round(avgDaily).toLocaleString()}
-              {dailyTarget != null && dailyTarget > 0 && (
-                <span className={avgDaily >= dailyTarget ? ' text-green-600' : ' text-red-500'}>
-                  {' '}({avgDaily >= dailyTarget ? '+' : ''}{((avgDaily - dailyTarget) / dailyTarget * 100).toFixed(1)}%)
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* No target hint */}
-      {rangeTarget == null && (
-        <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-4 text-center">
-          <Target size={20} className="text-slate-400 mx-auto mb-1" />
-          <p className="text-sm text-slate-500">
-            尚未設定此區間的營收目標，請至
-            <a href="/settings" className="text-blue-600 hover:underline mx-1">系統設定</a>
-            設定年度目標
-          </p>
-        </div>
-      )}
-
-      {/* Trend Chart */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-slate-900">趨勢走勢</h2>
-          <div className="flex gap-1">
-            {metricOptions.map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setMetric(opt.key)}
-                className={`px-2.5 py-1 text-xs rounded-md transition ${
-                  metric === opt.key
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-slate-500 hover:bg-slate-100'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <TrendLineChart data={data} dailyTarget={dailyTarget} metric={metric} weatherData={weatherData} />
-      </div>
-
-      {/* Weekday × Hour Heatmap */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-slate-900">
-            週間 × 時段熱力圖
-            <span className="text-xs font-normal text-slate-400 ml-2">平均營收</span>
-          </h2>
-          {weatherData.length > 0 && (
-            <div className="flex gap-1">
-              {([['all', '全部'], ['sunny', '☀️ 晴天'], ['rainy', '🌧 雨天']] as const).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setHeatmapWeatherFilter(key)}
-                  className={`px-2.5 py-1 text-xs rounded-md transition ${
-                    heatmapWeatherFilter === key
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-slate-500 hover:bg-slate-100'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-end justify-between">
+                  <p className="text-2xl font-bold text-slate-900">
+                    NT${totalRevenue.toLocaleString()}
+                    <span className="text-sm font-normal text-slate-400 ml-2">
+                      / NT${Math.round(rangeTarget).toLocaleString()}
+                    </span>
+                  </p>
+                  <p className={`text-lg font-semibold ${achievementPct != null && achievementPct >= 100 ? 'text-green-600' : 'text-blue-600'}`}>
+                    {achievementPct != null ? `${achievementPct.toFixed(1)}%` : '--'}
+                  </p>
+                </div>
+                <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      achievementPct != null && achievementPct >= 100 ? 'bg-green-500' : 'bg-blue-500'
+                    }`}
+                    style={{ width: `${Math.min(achievementPct ?? 0, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-400">
+                  {t('trends.dailyGoal')} NT${dailyTarget != null ? Math.round(dailyTarget).toLocaleString() : '--'}
+                  {' · '}
+                  {t('trends.dailyActual')} NT${Math.round(avgDaily).toLocaleString()}
+                  {dailyTarget != null && dailyTarget > 0 && (
+                    <span className={avgDaily >= dailyTarget ? ' text-green-600' : ' text-red-500'}>
+                      {' '}({avgDaily >= dailyTarget ? '+' : ''}{((avgDaily - dailyTarget) / dailyTarget * 100).toFixed(1)}%)
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
           )}
-        </div>
-        <WeekdayHeatmap data={(() => {
-          if (heatmapWeatherFilter === 'all' || weatherData.length === 0) return hourlyData
-          const wMap = buildWeatherMap(weatherData)
-          return hourlyData.filter(h => {
-            const w = wMap.get(h.date)
-            if (!w) return false
-            if (heatmapWeatherFilter === 'rainy') return isRainy(w)
-            // sunny = sunny + cloudy
-            const type = getWeatherType(w)
-            return type === 'sunny' || type === 'cloudy' || type === 'other'
-          })
-        })()} />
-      </div>
+
+          {/* No target hint */}
+          {rangeTarget == null && (
+            <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-4 text-center">
+              <Target size={20} className="text-slate-400 mx-auto mb-1" />
+              <p className="text-sm text-slate-500">
+                {t('trends.noGoalPrefix')}
+                <a href="/settings" className="text-blue-600 hover:underline mx-1">{t('trends.systemSettings')}</a>
+                {t('trends.setAnnualGoal')}
+              </p>
+            </div>
+          )}
+
+          {/* Trend Chart */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-slate-900">{t('trends.trendChart')}</h2>
+              <div className="flex gap-1">
+                {metricOptions.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setMetric(opt.key)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition ${
+                      metric === opt.key
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-slate-500 hover:bg-slate-100'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <TrendLineChart data={data} dailyTarget={dailyTarget} metric={metric} weatherData={weatherData} />
+          </div>
+
+          {/* Weekday x Hour Heatmap */}
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-slate-900">
+                {t('trends.heatmap')}
+                <span className="text-xs font-normal text-slate-400 ml-2">{t('trends.avgRevenue')}</span>
+              </h2>
+              {weatherData.length > 0 && (
+                <div className="flex gap-1">
+                  {([['all', t('common.all')], ['sunny', `☀️ ${t('trends.sunny')}`], ['rainy', `🌧 ${t('trends.rainy')}`]] as [string, string][]).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => setHeatmapWeatherFilter(key as 'all' | 'sunny' | 'rainy')}
+                      className={`px-2.5 py-1 text-xs rounded-md transition ${
+                        heatmapWeatherFilter === key
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <WeekdayHeatmap data={(() => {
+              if (heatmapWeatherFilter === 'all' || weatherData.length === 0) return hourlyData
+              const wMap = buildWeatherMap(weatherData)
+              return hourlyData.filter(h => {
+                const w = wMap.get(h.date)
+                if (!w) return false
+                if (heatmapWeatherFilter === 'rainy') return isRainy(w)
+                const type = getWeatherType(w)
+                return type === 'sunny' || type === 'cloudy' || type === 'other'
+              })
+            })()} />
+          </div>
+        </>
+      )}
+
+      {/* ===== Channel (Dine-in vs Takeout) Tab ===== */}
+      {activeTab === 'channel' && (
+        <>
+          {channelLoading ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <KpiSkeleton key={i} />
+                ))}
+              </div>
+              <ChartSkeleton />
+              <ChartSkeleton />
+            </div>
+          ) : !channelData || (channelData.summary.dine_in.order_count === 0 && channelData.summary.takeout.order_count === 0) ? (
+            <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-8 text-center">
+              <UtensilsCrossed size={24} className="text-slate-400 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">{t('trends.noChannelData')}</p>
+            </div>
+          ) : (
+            <>
+              {/* Channel KPI Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard
+                  title={t('trends.dineInOrderPct')}
+                  value={`${channelData.summary.dine_in.order_pct}%`}
+                  subtitle={`${channelData.summary.dine_in.order_count.toLocaleString()} ${t('trends.orderCountLabel')}`}
+                  icon={<UtensilsCrossed size={20} />}
+                />
+                <KpiCard
+                  title={t('trends.takeoutOrderPct')}
+                  value={`${channelData.summary.takeout.order_pct}%`}
+                  subtitle={`${channelData.summary.takeout.order_count.toLocaleString()} ${t('trends.orderCountLabel')}`}
+                  icon={<ShoppingBag size={20} />}
+                />
+                <KpiCard
+                  title={t('trends.dineInAvgSpend')}
+                  value={`NT$${channelData.summary.dine_in.avg_spend.toLocaleString()}`}
+                  subtitle={(() => {
+                    const diff = channelData.summary.dine_in.avg_spend - channelData.summary.takeout.avg_spend
+                    const sign = diff >= 0 ? '+' : ''
+                    return `${sign}NT$${diff.toLocaleString()} ${t('trends.vsOther')}`
+                  })()}
+                  icon={<DollarSign size={20} />}
+                />
+                <KpiCard
+                  title={t('trends.takeoutAvgSpend')}
+                  value={`NT$${channelData.summary.takeout.avg_spend.toLocaleString()}`}
+                  icon={<DollarSign size={20} />}
+                />
+              </div>
+
+              {/* Order Count Trend — Stacked AreaChart with Weather */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <h2 className="text-sm font-semibold text-slate-900 mb-4">{t('trends.orderTrend')}</h2>
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={channelDailyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="dateLabel" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                    <YAxis yAxisId="left" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                    {weatherData.length > 0 && (
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                    )}
+                    <Tooltip
+                      formatter={(val, name) => {
+                        const v = Number(val)
+                        if (name === t('trends.precipitation')) return [`${v}mm`, name]
+                        return [v.toLocaleString(), name]
+                      }}
+                      labelFormatter={(label) => `${label}`}
+                    />
+                    <Legend />
+                    <Area
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="dine_in_orders"
+                      name={t('trends.dineIn')}
+                      stackId="orders"
+                      stroke="#3b82f6"
+                      fill="#3b82f6"
+                      fillOpacity={0.6}
+                    />
+                    <Area
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="takeout_orders"
+                      name={t('trends.takeout')}
+                      stackId="orders"
+                      stroke="#f97316"
+                      fill="#f97316"
+                      fillOpacity={0.6}
+                    />
+                    {weatherData.length > 0 && (
+                      <Bar
+                        yAxisId="right"
+                        dataKey="precipitation"
+                        name={t('trends.precipitation')}
+                        fill="#93c5fd"
+                        opacity={0.4}
+                        radius={[2, 2, 0, 0]}
+                      />
+                    )}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Revenue Trend — Stacked BarChart */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <h2 className="text-sm font-semibold text-slate-900 mb-4">{t('trends.revenueTrend')}</h2>
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={channelDailyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="dateLabel" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                    <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                    <Tooltip
+                      formatter={(val) => {
+                        const v = Number(val)
+                        return [`NT$${v.toLocaleString()}`]
+                      }}
+                      labelFormatter={(label) => `${label}`}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="dine_in_revenue"
+                      name={t('trends.dineIn')}
+                      stackId="revenue"
+                      fill="#3b82f6"
+                      radius={[0, 0, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="takeout_revenue"
+                      name={t('trends.takeout')}
+                      stackId="revenue"
+                      fill="#f97316"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Hourly Distribution — Grouped BarChart */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <h2 className="text-sm font-semibold text-slate-900 mb-4">{t('trends.hourlyDistribution')}</h2>
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart data={channelData.hourly}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="hour" tick={{ fontSize: 11 }} stroke="#94a3b8" tickFormatter={(h) => `${h}:00`} />
+                    <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
+                    <Tooltip
+                      formatter={(val) => {
+                        const v = Number(val)
+                        return [v.toLocaleString()]
+                      }}
+                      labelFormatter={(h) => `${h}:00`}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="dine_in_orders"
+                      name={t('trends.dineIn')}
+                      fill="#3b82f6"
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="takeout_orders"
+                      name={t('trends.takeout')}
+                      fill="#f97316"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          )}
+        </>
+      )}
     </div>
   )
 }

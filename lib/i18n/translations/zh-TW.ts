@@ -146,6 +146,21 @@ const zhTW = {
   'trends.vsPrev30': 'vs 前 30 天',
   'trends.vsPrev90': 'vs 前 90 天',
   'trends.vsPrevPeriod': 'vs 前期',
+  'trends.tabSales': '銷售趨勢',
+  'trends.tabChannel': '內用 vs 外帶',
+  'trends.dineInOrderPct': '內用訂單佔比',
+  'trends.takeoutOrderPct': '外帶訂單佔比',
+  'trends.dineInAvgSpend': '內用客單價',
+  'trends.takeoutAvgSpend': '外帶客單價',
+  'trends.orderCountLabel': '筆',
+  'trends.orderTrend': '訂單數趨勢',
+  'trends.revenueTrend': '營收趨勢',
+  'trends.hourlyDistribution': '時段訂單分布',
+  'trends.dineIn': '內用',
+  'trends.takeout': '外帶',
+  'trends.vsOther': 'vs 外帶',
+  'trends.noChannelData': '尚無內用/外帶資料',
+  'trends.precipitation': '降雨量',
 
   // Alerts page
   'alerts.title': '異常警報',
@@ -440,6 +455,7 @@ const zhTW = {
   'ai.analysisFailed': '分析失敗',
   'ai.requestFailed': '分析請求失敗',
   'ai.invalidFormat': '報告格式無效',
+  'ai.generating': '產生中...',
 
   // Expansion page
   'expansion.title': '展店決策分析',
@@ -454,6 +470,7 @@ const zhTW = {
   'expansion.reanalyze': '重新分析',
   'expansion.generateReport': '產生報告',
   'expansion.generateHint': '點擊「產生報告」讓 AI 分析展店準備度',
+  'expansion.uncategorized': '未分類',
 
   // Upload page
   'upload.title': '上傳報表',
@@ -478,6 +495,10 @@ const zhTW = {
   'export.maxDays': '最長可匯出 366 天的資料',
   'export.exporting': '匯出中...',
   'export.downloadExcel': '下載 Excel',
+  'export.dailyRevenueDesc': '每日營收、來客數、訂單數及客單價',
+  'export.productSalesDesc': '商品銷售排行，含數量與營收',
+  'export.orderDetailsDesc': '個別訂單明細含品項',
+  'export.memberDataDesc': '會員消費與來店數據',
 
   // Compare page
   'compare.title': '跨店對比',
@@ -534,6 +555,21 @@ const zhTW = {
   'settings.roleStore': '只看指定分店，不能管理團隊',
   'settings.roleViewer': '看所有分店數據（唯讀），不能管理團隊',
   'settings.roleInvestor': '查看投資相關數據',
+  'settings.roleDescription': '角色權限說明',
+  'settings.noMembers': '尚無團隊成員',
+  'settings.disabled': '已停用',
+  'settings.displayName': '顯示名稱',
+  'settings.editMember': '編輯成員',
+  'settings.editRole': '編輯角色',
+  'settings.deleteMember': '刪除成員',
+  'settings.disableAccount': '停用帳號',
+  'settings.reactivate': '重新啟用',
+  'settings.resendInvite': '重新寄送邀請',
+  'settings.role': '角色',
+  'settings.selectStore': '選擇門店',
+  'settings.bindStore': '綁定門店',
+  'settings.sendInvite': '寄送邀請',
+  'settings.inviting': '邀請中...',
 
   // Heatmap page
   'heatmap.title': '時段銷售分布',

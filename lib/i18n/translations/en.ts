@@ -146,6 +146,21 @@ const en = {
   'trends.vsPrev30': 'vs Previous 30 Days',
   'trends.vsPrev90': 'vs Previous 90 Days',
   'trends.vsPrevPeriod': 'vs Previous Period',
+  'trends.tabSales': 'Sales Trends',
+  'trends.tabChannel': 'Dine-in vs Takeout',
+  'trends.dineInOrderPct': 'Dine-in Order %',
+  'trends.takeoutOrderPct': 'Takeout Order %',
+  'trends.dineInAvgSpend': 'Dine-in Avg. Spend',
+  'trends.takeoutAvgSpend': 'Takeout Avg. Spend',
+  'trends.orderCountLabel': 'orders',
+  'trends.orderTrend': 'Order Count Trend',
+  'trends.revenueTrend': 'Revenue Trend',
+  'trends.hourlyDistribution': 'Hourly Order Distribution',
+  'trends.dineIn': 'Dine-in',
+  'trends.takeout': 'Takeout',
+  'trends.vsOther': 'vs Takeout',
+  'trends.noChannelData': 'No dine-in/takeout data available',
+  'trends.precipitation': 'Precipitation',
 
   // Alerts page
   'alerts.title': 'Alerts',
@@ -440,6 +455,7 @@ const en = {
   'ai.analysisFailed': 'Analysis failed',
   'ai.requestFailed': 'Analysis request failed',
   'ai.invalidFormat': 'Invalid report format',
+  'ai.generating': 'Generating...',
 
   // Expansion page
   'expansion.title': 'Expansion Analysis',
@@ -454,6 +470,7 @@ const en = {
   'expansion.reanalyze': 'Re-analyze',
   'expansion.generateReport': 'Generate Report',
   'expansion.generateHint': 'Click "Generate Report" to let AI analyze expansion readiness',
+  'expansion.uncategorized': 'Uncategorized',
 
   // Upload page
   'upload.title': 'Upload Reports',
@@ -478,6 +495,10 @@ const en = {
   'export.maxDays': 'Maximum export range is 366 days',
   'export.exporting': 'Exporting...',
   'export.downloadExcel': 'Download Excel',
+  'export.dailyRevenueDesc': 'Daily revenue, guests, orders, and average spending',
+  'export.productSalesDesc': 'Product sales ranking with quantity and revenue',
+  'export.orderDetailsDesc': 'Individual order details with items',
+  'export.memberDataDesc': 'Member visit and spending data',
 
   // Compare page
   'compare.title': 'Store Comparison',
@@ -534,6 +555,21 @@ const en = {
   'settings.roleStore': 'Access assigned store only, no team management',
   'settings.roleViewer': 'View all stores (read-only), no team management',
   'settings.roleInvestor': 'View investment-related data',
+  'settings.roleDescription': 'Role Permissions',
+  'settings.noMembers': 'No team members',
+  'settings.disabled': 'Disabled',
+  'settings.displayName': 'Display Name',
+  'settings.editMember': 'Edit Member',
+  'settings.editRole': 'Edit Role',
+  'settings.deleteMember': 'Delete Member',
+  'settings.disableAccount': 'Disable Account',
+  'settings.reactivate': 'Reactivate',
+  'settings.resendInvite': 'Resend Invite',
+  'settings.role': 'Role',
+  'settings.selectStore': 'Select Store',
+  'settings.bindStore': 'Bind Store',
+  'settings.sendInvite': 'Send Invite',
+  'settings.inviting': 'Inviting...',
 
   // Heatmap page
   'heatmap.title': 'Hourly Sales Distribution',

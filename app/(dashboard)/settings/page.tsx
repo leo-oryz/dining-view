@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import {
   Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
   Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
@@ -75,11 +76,11 @@ const ROLE_LABELS: Record<string, string> = {
   owner: 'Owner', manager: 'Manager', marketing: 'Marketing', investor: 'Investor',
 }
 
-const ROLE_DESCRIPTIONS: Record<string, string> = {
-  owner: '看所有分店所有數據，可管理團隊',
-  manager: '只看指定分店，不能管理團隊',
-  marketing: '看所有分店數據（唯讀），不能管理團隊',
-  investor: '查看投資相關數據',
+const ROLE_DESCRIPTION_KEYS: Record<string, string> = {
+  owner: 'settings.roleAdmin',
+  manager: 'settings.roleStore',
+  marketing: 'settings.roleViewer',
+  investor: 'settings.roleInvestor',
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -593,6 +594,7 @@ function StoreCard({
 
 // ─── Main Page ──────────────────────────────────────────────────────
 export default function SettingsPage() {
+  const { t } = useI18n()
   const [stores, setStores] = useState<StoreInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -1355,22 +1357,22 @@ export default function SettingsPage() {
               <div className="bg-slate-50 rounded-lg p-3 space-y-1.5">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Shield size={14} className="text-slate-500" />
-                  <span className="text-xs font-medium text-slate-600">角色說明</span>
+                  <span className="text-xs font-medium text-slate-600">{t('settings.roleDescription')}</span>
                 </div>
-                {Object.entries(ROLE_DESCRIPTIONS).map(([role, desc]) => (
+                {Object.entries(ROLE_DESCRIPTION_KEYS).map(([role, key]) => (
                   <div key={role} className="flex items-start gap-2 text-xs">
                     <span className={`px-1.5 py-0.5 rounded font-medium ${ROLE_COLORS[role]}`}>{ROLE_LABELS[role]}</span>
-                    <span className="text-slate-600 pt-0.5">{desc}</span>
+                    <span className="text-slate-600 pt-0.5">{t(key as 'settings.roleAdmin' | 'settings.roleStore' | 'settings.roleViewer' | 'settings.roleInvestor')}</span>
                   </div>
                 ))}
               </div>
 
               <div className="flex gap-2">
                 <button type="submit" disabled={inviting} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-                  {inviting ? '發送中...' : '發送邀請'}
+                  {inviting ? t('settings.inviting') : t('settings.sendInvite')}
                 </button>
                 <button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">
-                  取消
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
@@ -1378,9 +1380,9 @@ export default function SettingsPage() {
 
           {/* Member list */}
           {teamLoading ? (
-            <div className="p-8 text-center text-slate-400 text-sm">載入中...</div>
+            <div className="p-8 text-center text-slate-400 text-sm">{t('common.loading')}</div>
           ) : members.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 text-sm">尚無團隊成員</div>
+            <div className="p-8 text-center text-slate-400 text-sm">{t('settings.noMembers')}</div>
           ) : (
             <div className="divide-y divide-slate-100">
               {members.map(member => (
@@ -1395,7 +1397,7 @@ export default function SettingsPage() {
                           {ROLE_LABELS[member.role] || member.role}
                         </span>
                         {!member.is_active && (
-                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">已停用</span>
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">{t('settings.disabled')}</span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
@@ -1409,12 +1411,12 @@ export default function SettingsPage() {
                         <button
                           onClick={() => handleResendInvite(member)}
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="重發邀請信"
+                          title={t('settings.resendInvite')}
                         >
                           <Send size={14} />
                         </button>
                       )}
-                      <button onClick={() => openEditMember(member)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="編輯角色">
+                      <button onClick={() => openEditMember(member)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title={t('settings.editRole')}>
                         <Edit2 size={14} />
                       </button>
                       {member.role !== 'owner' || members.filter(m => m.role === 'owner' && m.is_active).length > 1 ? (
@@ -1422,14 +1424,14 @@ export default function SettingsPage() {
                           <button
                             onClick={() => handleToggleMemberActive(member)}
                             className={`p-1.5 rounded-lg transition-colors ${member.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
-                            title={member.is_active ? '停用帳號' : '重新啟用'}
+                            title={member.is_active ? t('settings.disableAccount') : t('settings.reactivate')}
                           >
                             {member.is_active ? <Ban size={14} /> : <RotateCcw size={14} />}
                           </button>
                           <button
                             onClick={() => handleDeleteMember(member)}
                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="刪除成員"
+                            title={t('settings.deleteMember')}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1446,13 +1448,13 @@ export default function SettingsPage() {
           {editMember && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
-                <h4 className="text-sm font-semibold text-slate-900">編輯成員 — {editMember.email}</h4>
+                <h4 className="text-sm font-semibold text-slate-900">{t('settings.editMember')} — {editMember.email}</h4>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">顯示名稱</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">{t('settings.displayName')}</label>
                   <input type="text" value={editMemberDisplayName} onChange={e => setEditMemberDisplayName(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">角色</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">{t('settings.role')}</label>
                   <select value={editMemberRole} onChange={e => setEditMemberRole(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="manager">Manager</option>
                     <option value="owner">Owner</option>
@@ -1462,9 +1464,9 @@ export default function SettingsPage() {
                 </div>
                 {editMemberRole === 'manager' && (
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">綁定分店 *</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">{t('settings.bindStore')} *</label>
                     <select value={editMemberStoreId} onChange={e => setEditMemberStoreId(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="">選擇分店</option>
+                      <option value="">{t('settings.selectStore')}</option>
                       {stores.filter(s => s.is_active).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
@@ -1473,10 +1475,10 @@ export default function SettingsPage() {
                 )}
                 <div className="flex gap-2 pt-2">
                   <button onClick={handleEditMemberSave} disabled={editMemberSaving || (editMemberRole === 'manager' && !editMemberStoreId)} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-                    {editMemberSaving ? '儲存中...' : '儲存'}
+                    {editMemberSaving ? t('common.saving') : t('common.save')}
                   </button>
                   <button onClick={() => setEditMember(null)} className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">
-                    取消
+                    {t('common.cancel')}
                   </button>
                 </div>
               </div>
