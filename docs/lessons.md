@@ -182,6 +182,14 @@
 - TypeScript `downlevelIteration` restriction: cannot iterate `Map` with `for...of [key, value]`. Use `Array.from(map.keys())` then `.get()` instead.
 - 71 out of 128 products have 5+ days of data (in a 30-day window) — the 5-day minimum threshold is appropriate for the current data density. If data coverage drops, consider lowering to 3 days.
 
+### Zeabur Deployment — Dockerfile vs Buildpack
+- Zeabur auto-detects project type. If a `Dockerfile` exists, Zeabur uses it **instead of** the Next.js buildpack. The Dockerfile build does NOT inject Zeabur's environment variables (like `NEXT_PUBLIC_*`) at build time — `npm run build` runs with empty env vars, causing the entire site to break (all routes 404).
+- `output: 'standalone'` in `next.config.mjs` is designed for Docker deployments. It produces a self-contained `server.js` + `.next/standalone/` output that requires a Dockerfile to correctly assemble (copy `public/`, `.next/static/`, etc.). Without a Dockerfile, Zeabur's buildpack cannot serve standalone output properly — all routes return 404.
+- **Rule**: `output: 'standalone'` and `Dockerfile` are a pair. If removing one, remove the other. For Zeabur, the simplest setup is: no Dockerfile + no standalone = Zeabur Next.js buildpack handles everything.
+- Adding `zbpack.json` with `"build_type": "dockerfile"` forces Dockerfile usage even without auto-detection — same env var injection problem applies. Don't use this unless you've confirmed env vars are handled.
+- **Debugging deploy 404s**: Before creating new routes/files, first confirm the deployment method (check Zeabur build log for "Pulling image" = Docker, "Building Next.js" = buildpack). If existing routes also 404, the problem is deployment infrastructure, not routing.
+- **Don't shotgun changes**: When a deploy issue occurs, make one change at a time and verify. Rapidly pushing multiple attempts (new routes, renamed files, config changes) creates compounding problems and makes it impossible to isolate the root cause.
+
 ### Review Trend Chart — Snapshot vs Raw Data
 - `google_review_snapshots` table only gets populated when `/api/reviews/sync` runs. If sync has only run once, the table has 1 row and the trend chart shows a single data point regardless of time range.
 - Fix: aggregate trend data directly from `google_reviews` (individual reviews) on the frontend, grouped by week/month. This works immediately with all historical reviews without needing snapshot backfills.
