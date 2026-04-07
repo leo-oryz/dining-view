@@ -30,6 +30,7 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<string | null>(null)
+  const [detecting, setDetecting] = useState(false)
 
   useEffect(() => {
     const today = format(new Date(), 'yyyy-MM-dd')
@@ -46,6 +47,27 @@ export default function AlertsPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  const handleDetect = async () => {
+    setDetecting(true)
+    setTestResult(null)
+    try {
+      const res = await fetch('/api/alerts/detect', { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        setTestResult(`偵測完成：發現 ${json.data.detected} 筆異常`)
+        // Reload alerts
+        const alertsRes = await fetch('/api/alerts?days=30')
+        const alertsJson = await alertsRes.json()
+        if (alertsJson.success) setAlerts(alertsJson.data || [])
+      } else {
+        setTestResult(`偵測失敗：${json.error}`)
+      }
+    } catch {
+      setTestResult('偵測失敗')
+    }
+    setDetecting(false)
+  }
 
   const handleTestNotification = async () => {
     setTesting(true)
@@ -68,14 +90,24 @@ export default function AlertsPage() {
           <Bell size={20} className="text-red-600" />
           <h3 className="text-base font-semibold text-slate-900">異常警報</h3>
         </div>
-        <button
-          onClick={handleTestNotification}
-          disabled={testing}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-        >
-          <Mail size={14} />
-          {testing ? '傳送中...' : '測試 Email 通知'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDetect}
+            disabled={detecting}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+          >
+            <AlertTriangle size={14} />
+            {detecting ? '偵測中...' : '立即偵測'}
+          </button>
+          <button
+            onClick={handleTestNotification}
+            disabled={testing}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          >
+            <Mail size={14} />
+            {testing ? '傳送中...' : '測試 Email 通知'}
+          </button>
+        </div>
       </div>
 
       {/* Test result */}
