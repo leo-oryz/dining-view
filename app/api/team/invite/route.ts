@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
   // Use NEXT_PUBLIC_SITE_URL for reliable redirect in production
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.headers.get('origin') || ''
-  const redirectTo = `${siteUrl}/callback.html?type=invite`
+  const redirectTo = `${siteUrl}/api/auth/callback?type=invite`
 
   // Send invite via Supabase Auth
   const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
