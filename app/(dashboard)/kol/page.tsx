@@ -303,6 +303,26 @@ export default function KolPage() {
     }
   }
 
+  const [syncingAll, setSyncingAll] = useState(false)
+  const [syncAllResult, setSyncAllResult] = useState<{ synced: number; failed: number; total: number } | null>(null)
+
+  const handleSyncAll = async () => {
+    setSyncingAll(true)
+    setSyncAllResult(null)
+    try {
+      const res = await fetch('/api/kol/sync-all', { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        setSyncAllResult(json.data)
+      }
+      fetchData()
+    } catch {
+      // silent
+    } finally {
+      setSyncingAll(false)
+    }
+  }
+
   const handleEditPost = (post: KolPost) => {
     setEditingPostId(post.id)
     setEditForm({
@@ -619,14 +639,30 @@ export default function KolPage() {
       <div className="bg-white rounded-lg border">
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-lg">{t('kol.collabList')}</h2>
-          <button
-            onClick={fetchData}
-            className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            {t('kol.refresh')}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSyncAll}
+              disabled={syncingAll}
+              className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {syncingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              {syncingAll ? '同步中...' : '全部同步'}
+            </button>
+            <button
+              onClick={fetchData}
+              className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              {t('kol.refresh')}
+            </button>
+          </div>
         </div>
+        {syncAllResult && (
+          <div className="px-4 py-2 bg-blue-50 text-sm text-blue-800 border-b">
+            同步完成：共 {syncAllResult.total} 筆，成功 {syncAllResult.synced} 筆
+            {syncAllResult.failed > 0 && <span className="text-red-600">，失敗 {syncAllResult.failed} 筆</span>}
+          </div>
+        )}
 
         {loading ? (
           <div className="p-8 text-center text-gray-400">
