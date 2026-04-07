@@ -5,8 +5,8 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { WeekdayHeatmap } from '@/components/charts/WeekdayHeatmap'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
-import { DollarSign, Users, ShoppingCart, Target, TrendingUp } from 'lucide-react'
-import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, getDaysInMonth, differenceInCalendarDays, parseISO } from 'date-fns'
+import { DollarSign, Users, ShoppingCart, Target, TrendingUp, Receipt } from 'lucide-react'
+import { format, subDays, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, getDaysInMonth, differenceInCalendarDays, parseISO } from 'date-fns'
 import { type WeatherDaily, getWeatherType, isRainy, buildWeatherMap } from '@/lib/weather/weatherUtils'
 
 type RangeKey = '7d' | '30d' | '90d' | 'ytd' | 'last_month' | 'this_month' | 'custom'
@@ -121,10 +121,53 @@ export default function TrendsPage() {
     }
   }, [rangeKey, customStart, customEnd])
 
-  // Fetch daily + hourly + targets for the range
+  // Calculate previous period dates for comparison
+  const { prevStartDate, prevEndDate, changeLabel } = useMemo(() => {
+    const s = parseISO(startDate)
+    const e = parseISO(endDate)
+    const days = differenceInCalendarDays(e, s) + 1
+
+    if (rangeKey === 'ytd') {
+      // YoY: same period last year
+      return {
+        prevStartDate: format(subYears(s, 1), 'yyyy-MM-dd'),
+        prevEndDate: format(subYears(e, 1), 'yyyy-MM-dd'),
+        changeLabel: 'vs 去年同期',
+      }
+    }
+    if (rangeKey === 'last_month') {
+      // MoM: previous month
+      const prevMonth = subMonths(s, 1)
+      return {
+        prevStartDate: format(startOfMonth(prevMonth), 'yyyy-MM-dd'),
+        prevEndDate: format(endOfMonth(prevMonth), 'yyyy-MM-dd'),
+        changeLabel: 'vs 前月',
+      }
+    }
+    if (rangeKey === 'this_month') {
+      // vs same days last month
+      return {
+        prevStartDate: format(subMonths(s, 1), 'yyyy-MM-dd'),
+        prevEndDate: format(subMonths(e, 1), 'yyyy-MM-dd'),
+        changeLabel: 'vs 上月同期',
+      }
+    }
+    // Default: same-length previous period
+    const labelMap: Record<string, string> = { '7d': 'vs 前 7 天', '30d': 'vs 前 30 天', '90d': 'vs 前 90 天' }
+    return {
+      prevStartDate: format(subDays(s, days), 'yyyy-MM-dd'),
+      prevEndDate: format(subDays(s, 1), 'yyyy-MM-dd'),
+      changeLabel: labelMap[rangeKey] || 'vs 前期',
+    }
+  }, [startDate, endDate, rangeKey])
+
+  // Fetch daily + hourly + targets + previous period for the range
+  const [prevData, setPrevData] = useState<DailySales[]>([])
+
   useEffect(() => {
     setLoading(true)
     const params = `start_date=${startDate}&end_date=${endDate}`
+    const prevParams = `start_date=${prevStartDate}&end_date=${prevEndDate}`
     // Target months: need to cover all months in range
     const tStartMonth = format(startOfMonth(parseISO(startDate)), 'yyyy-MM-dd')
     const tEndMonth = format(startOfMonth(parseISO(endDate)), 'yyyy-MM-dd')
@@ -134,23 +177,42 @@ export default function TrendsPage() {
       fetch(`/api/sales/hourly?${params}`).then((r) => r.json()),
       fetch(`/api/targets?start_month=${tStartMonth}&end_month=${tEndMonth}`).then((r) => r.json()),
       fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then((r) => r.json()).catch(() => ({ success: false })),
+      fetch(`/api/sales/daily?${prevParams}`).then((r) => r.json()),
     ])
-      .then(([dailyJson, hourlyJson, targetsJson, weatherJson]) => {
+      .then(([dailyJson, hourlyJson, targetsJson, weatherJson, prevJson]) => {
         if (dailyJson.success) setData(dailyJson.data || [])
         if (hourlyJson.success) setHourlyData(hourlyJson.data || [])
         if (targetsJson.success) setTargets(targetsJson.data || [])
         if (weatherJson.success) setWeatherData(weatherJson.data || [])
+        if (prevJson.success) setPrevData(prevJson.data || [])
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [startDate, endDate])
+  }, [startDate, endDate, prevStartDate, prevEndDate])
 
-  // Compute KPIs
+  // Compute KPIs — current period
   const totalRevenue = data.reduce((sum, d) => sum + (d.net_sales ?? 0), 0)
   const totalGuests = data.reduce((sum, d) => sum + (d.guests ?? 0), 0)
   const totalOrders = data.reduce((sum, d) => sum + (d.orders ?? 0), 0)
   const daysWithData = data.filter((d) => d.net_sales != null).length
   const avgDaily = daysWithData > 0 ? totalRevenue / daysWithData : 0
+  const avgSpending = totalGuests > 0 ? totalRevenue / totalGuests : 0
+
+  // Compute KPIs — previous period
+  const prevRevenue = prevData.reduce((sum, d) => sum + (d.net_sales ?? 0), 0)
+  const prevGuests = prevData.reduce((sum, d) => sum + (d.guests ?? 0), 0)
+  const prevOrders = prevData.reduce((sum, d) => sum + (d.orders ?? 0), 0)
+  const prevDaysWithData = prevData.filter((d) => d.net_sales != null).length
+  const prevAvgDaily = prevDaysWithData > 0 ? prevRevenue / prevDaysWithData : 0
+  const prevAvgSpending = prevGuests > 0 ? prevRevenue / prevGuests : 0
+
+  // Period-over-period % change
+  const pctChange = (curr: number, prev: number) => prev > 0 ? ((curr - prev) / prev) * 100 : null
+  const revenueChange = pctChange(totalRevenue, prevRevenue)
+  const avgDailyChange = pctChange(avgDaily, prevAvgDaily)
+  const guestsChange = pctChange(totalGuests, prevGuests)
+  const ordersChange = pctChange(totalOrders, prevOrders)
+  const avgSpendingChange = pctChange(avgSpending, prevAvgSpending)
 
   // Target achievement for the selected range
   const rangeTarget = calcRangeTarget(targets, startDate, endDate)
@@ -159,14 +221,6 @@ export default function TrendsPage() {
   // Daily target for chart reference line (weighted average from targets in range)
   const totalDaysInRange = differenceInCalendarDays(parseISO(endDate), parseISO(startDate)) + 1
   const dailyTarget = rangeTarget != null && totalDaysInRange > 0 ? rangeTarget / totalDaysInRange : null
-
-  // WoW comparison
-  const halfLen = Math.floor(data.length / 2)
-  const recentHalf = data.slice(0, halfLen)
-  const olderHalf = data.slice(halfLen)
-  const recentAvg = recentHalf.length > 0 ? recentHalf.reduce((s, d) => s + (d.net_sales ?? 0), 0) / recentHalf.length : 0
-  const olderAvg = olderHalf.length > 0 ? olderHalf.reduce((s, d) => s + (d.net_sales ?? 0), 0) / olderHalf.length : 0
-  const periodChange = olderAvg > 0 ? ((recentAvg - olderAvg) / olderAvg) * 100 : null
 
   const rangeOptions: { key: RangeKey; label: string }[] = [
     { key: '7d', label: '7 天' },
@@ -241,28 +295,41 @@ export default function TrendsPage() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <KpiCard
           title="期間總營收"
           value={`NT$${totalRevenue.toLocaleString()}`}
-          change={periodChange}
-          changeLabel="vs 前半期"
+          change={revenueChange}
+          changeLabel={changeLabel}
           icon={<DollarSign size={20} />}
         />
         <KpiCard
           title="日均營收"
           value={`NT$${Math.round(avgDaily).toLocaleString()}`}
+          change={avgDailyChange}
+          changeLabel={changeLabel}
           icon={<TrendingUp size={20} />}
         />
         <KpiCard
           title="期間來客數"
           value={totalGuests.toLocaleString()}
+          change={guestsChange}
+          changeLabel={changeLabel}
           icon={<Users size={20} />}
         />
         <KpiCard
           title="期間訂單數"
           value={totalOrders.toLocaleString()}
+          change={ordersChange}
+          changeLabel={changeLabel}
           icon={<ShoppingCart size={20} />}
+        />
+        <KpiCard
+          title="客單價"
+          value={`NT$${Math.round(avgSpending).toLocaleString()}`}
+          change={avgSpendingChange}
+          changeLabel={changeLabel}
+          icon={<Receipt size={20} />}
         />
       </div>
 
