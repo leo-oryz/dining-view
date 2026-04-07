@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError, getStoreId } from '@/lib/api-utils'
 
 export async function GET(request: NextRequest) {
@@ -13,31 +12,24 @@ export async function GET(request: NextRequest) {
       return apiError('start_date and end_date are required', 400)
     }
 
-    const supabase = createServiceClient()
+    // Fetch all __order__ rows via REST API to bypass 1000-row JS client limit
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const restUrl = `${supabaseUrl}/rest/v1/order_items?select=date,order_type,time,item_amount,guest_count&store_id=eq.${storeId}&item_name=eq.__order__&source=eq.eat365&date=gte.${startDate}&date=lte.${endDate}&order=date.asc`
 
-    // Fetch all __order__ rows from order_items for eat365
-    // Paginate to bypass Supabase 1000-row default limit
-    const PAGE_SIZE = 1000
-    let allRows: { date: string; order_type: string; time: string; item_amount: number; guest_count: number }[] = []
-    let from = 0
-    while (true) {
-      const { data: page, error: pageError } = await supabase
-        .from('order_items')
-        .select('date, order_type, time, item_amount, guest_count')
-        .eq('store_id', storeId)
-        .eq('item_name', '__order__')
-        .eq('source', 'eat365')
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .range(from, from + PAGE_SIZE - 1)
-      if (pageError) return apiError(pageError.message, 500)
-      if (!page || page.length === 0) break
-      allRows = allRows.concat(page)
-      if (page.length < PAGE_SIZE) break
-      from += PAGE_SIZE
+    const restRes = await fetch(restUrl, {
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Range': '0-19999',
+      },
+    })
+
+    if (!restRes.ok) {
+      return apiError(`Failed to fetch order data: ${restRes.status}`, 500)
     }
 
-    const rows = allRows
+    const rows: { date: string; order_type: string; time: string; item_amount: number; guest_count: number }[] = await restRes.json()
     if (rows.length === 0) {
       return apiSuccess({
         summary: {
