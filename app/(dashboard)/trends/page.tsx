@@ -116,7 +116,6 @@ export default function TrendsPage() {
   const [customEnd, setCustomEnd] = useState('')
   const [activeTab, setActiveTab] = useState<TabKey>('sales')
   const [channelData, setChannelData] = useState<ChannelData | null>(null)
-  const [channelLoading, setChannelLoading] = useState(false)
 
   const { startDate, endDate } = useMemo(() => {
     if (rangeKey === 'custom' && customStart && customEnd) {
@@ -199,30 +198,19 @@ export default function TrendsPage() {
       fetch(`/api/targets?start_month=${tStartMonth}&end_month=${tEndMonth}`).then((r) => r.json()),
       fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then((r) => r.json()).catch(() => ({ success: false })),
       fetch(`/api/sales/daily?${prevParams}`).then((r) => r.json()),
+      fetch(`/api/sales/channel-split?start_date=${startDate}&end_date=${endDate}`).then((r) => r.json()).catch(() => ({ success: false })),
     ])
-      .then(([dailyJson, hourlyJson, targetsJson, weatherJson, prevJson]) => {
+      .then(([dailyJson, hourlyJson, targetsJson, weatherJson, prevJson, channelJson]) => {
         if (dailyJson.success) setData(dailyJson.data || [])
         if (hourlyJson.success) setHourlyData(hourlyJson.data || [])
         if (targetsJson.success) setTargets(targetsJson.data || [])
         if (weatherJson.success) setWeatherData(weatherJson.data || [])
         if (prevJson.success) setPrevData(prevJson.data || [])
+        if (channelJson.success) setChannelData(channelJson.data)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [startDate, endDate, prevStartDate, prevEndDate])
-
-  // Fetch channel data when tab is active
-  useEffect(() => {
-    if (activeTab !== 'channel') return
-    setChannelLoading(true)
-    fetch(`/api/sales/channel-split?start_date=${startDate}&end_date=${endDate}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success) setChannelData(json.data)
-      })
-      .catch(() => {})
-      .finally(() => setChannelLoading(false))
-  }, [activeTab, startDate, endDate])
 
   // Compute KPIs — current period
   const totalRevenue = data.reduce((sum, d) => sum + (d.net_sales ?? 0), 0)
@@ -527,17 +515,7 @@ export default function TrendsPage() {
       {/* ===== Channel (Dine-in vs Takeout) Tab ===== */}
       {activeTab === 'channel' && (
         <>
-          {channelLoading ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <KpiSkeleton key={i} />
-                ))}
-              </div>
-              <ChartSkeleton />
-              <ChartSkeleton />
-            </div>
-          ) : !channelData || (channelData.summary.dine_in.order_count === 0 && channelData.summary.takeout.order_count === 0) ? (
+          {!channelData || (channelData.summary.dine_in.order_count === 0 && channelData.summary.takeout.order_count === 0) ? (
             <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-8 text-center">
               <UtensilsCrossed size={24} className="text-slate-400 mx-auto mb-2" />
               <p className="text-sm text-slate-500">{t('trends.noChannelData')}</p>
