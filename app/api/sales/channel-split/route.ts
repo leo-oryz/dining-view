@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'apikey': serviceKey,
         'Authorization': `Bearer ${serviceKey}`,
-        'Range': '0-19999',
+        'Range': '0-99999',
       },
     })
 
