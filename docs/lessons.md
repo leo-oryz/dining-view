@@ -175,6 +175,7 @@
 - eat365 order_numbers (C1, C2, etc.) reset daily — must prefix with date (`2026-01-01_C1`) for unique constraint in order_items table.
 - Transaction Report XLS from eat365 must be manually downloaded (Cloudflare Turnstile blocks automation). Store order-level summaries in order_items with `item_name = '__order__'` and `source = 'eat365'` as markers.
 - Channel-split API aggregates from these marker rows — query with `item_name=eq.__order__&source=eq.eat365` to isolate order-level data from item-level Ocard data.
+- Supabase JS client returns max 1000 rows per query regardless of `.limit()` or `.range()` settings. For queries that may exceed 1000 rows, must paginate with a while loop using `.range(from, from + 999)` until page returns fewer than 1000 rows.
 
 ### Product Anomaly Detection
 - Supabase nested `.select('collaboration:kol_collaborations(kol_name)')` returns an array (not object) when the relationship is inferred — use `Array.isArray()` check before accessing properties.
