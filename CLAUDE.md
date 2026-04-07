@@ -33,7 +33,7 @@ FnB Pulse is an F&B group intelligence platform. Starting with BE& 西門, it re
 4. API responses follow unified format: `{ success, data, error, timestamp }`.
 5. All main tables have `(store_id, date)` composite indexes.
 6. Use parameterized queries only — never string interpolation for SQL values.
-7. Never auto-deploy. Provide deployment commands for user to run manually.
+7. **Auto-deploy**: After code changes, always `git commit && git push` immediately. Pushing to `main` triggers Zeabur auto-deploy — no manual steps needed. Do NOT ask for confirmation.
 
 ## Key Commands
 ```bash
