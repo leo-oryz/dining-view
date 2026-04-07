@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useI18n } from '@/lib/i18n/context'
@@ -11,9 +11,37 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [tokenLoading, setTokenLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const { t } = useI18n()
+
+  // Handle invite/recovery tokens from URL hash (Supabase implicit flow)
+  useEffect(() => {
+    const hash = window.location.hash.substring(1)
+    if (!hash) return
+    const params = new URLSearchParams(hash)
+    const accessToken = params.get('access_token')
+    const refreshToken = params.get('refresh_token')
+    if (!accessToken || !refreshToken) return
+
+    setTokenLoading(true)
+    const type = params.get('type') || new URLSearchParams(window.location.search).get('type')
+
+    supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ error: sessionError }) => {
+        if (sessionError) {
+          setError(sessionError.message)
+          setTokenLoading(false)
+          return
+        }
+        if (type === 'invite' || type === 'recovery') {
+          router.push('/set-password')
+        } else {
+          router.push('/dashboard')
+        }
+      })
+  }, [router, supabase.auth])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,6 +63,19 @@ export default function LoginPage() {
 
     router.push('/dashboard')
     router.refresh()
+  }
+
+  if (tokenLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-full max-w-sm mx-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">FnB Pulse</h1>
+            <p className="text-sm text-slate-500">驗證中，請稍候...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

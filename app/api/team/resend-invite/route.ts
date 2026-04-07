@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || request.headers.get('origin') || ''
-  const redirectTo = `${siteUrl}/api/auth/callback?type=invite`
+  const redirectTo = `${siteUrl}/login?type=invite`
 
   // Delete old auth user and re-invite to bypass rate limits on the same user
   if (member.auth_id) {
