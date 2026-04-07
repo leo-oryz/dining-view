@@ -10,7 +10,7 @@ import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear, getD
 import { type WeatherDaily, getWeatherType, isRainy, buildWeatherMap } from '@/lib/weather/weatherUtils'
 
 type RangeKey = '7d' | '30d' | '90d' | 'ytd' | 'last_month' | 'this_month' | 'custom'
-type Metric = 'net_sales' | 'guests' | 'orders'
+type Metric = 'net_sales' | 'guests' | 'orders' | 'avg_spending'
 
 interface DailySales {
   date: string
@@ -182,6 +182,7 @@ export default function TrendsPage() {
     { key: 'net_sales', label: '營收' },
     { key: 'guests', label: '來客數' },
     { key: 'orders', label: '訂單數' },
+    { key: 'avg_spending', label: '客單價' },
   ]
 
   if (loading) {

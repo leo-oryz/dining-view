@@ -20,12 +20,13 @@ interface DataPoint {
   net_sales: number | null
   guests: number | null
   orders: number | null
+  avg_spending: number | null
 }
 
 interface TrendLineChartProps {
   data: DataPoint[]
   dailyTarget: number | null
-  metric: 'net_sales' | 'guests' | 'orders'
+  metric: 'net_sales' | 'guests' | 'orders' | 'avg_spending'
   height?: number
   weatherData?: WeatherDaily[]
 }
@@ -34,6 +35,7 @@ const metricConfig = {
   net_sales: { label: '淨銷售額', color: '#3b82f6', format: (v: number) => `NT$${v.toLocaleString()}` },
   guests: { label: '來客數', color: '#8b5cf6', format: (v: number) => v.toLocaleString() },
   orders: { label: '訂單數', color: '#f59e0b', format: (v: number) => v.toLocaleString() },
+  avg_spending: { label: '客單價', color: '#10b981', format: (v: number) => `NT$${v.toLocaleString()}` },
 }
 
 export function TrendLineChart({ data, dailyTarget, metric, height, weatherData }: TrendLineChartProps) {
