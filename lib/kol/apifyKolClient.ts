@@ -31,7 +31,9 @@ async function startActorRun(
   if (!actorId) {
     throw new Error(`No Apify actor available for platform: ${platform}`)
   }
-  const runUrl = `https://api.apify.com/v2/acts/${actorId}/runs?token=${apiToken}`
+  // Apify API requires username~actorname format (slash breaks the URL path)
+  const encodedActorId = actorId.replace('/', '~')
+  const runUrl = `https://api.apify.com/v2/acts/${encodedActorId}/runs?token=${apiToken}`
 
   // Build platform-specific input
   let input: Record<string, unknown>
