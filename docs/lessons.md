@@ -20,6 +20,7 @@
 ### Database
 - PostgreSQL does not allow COALESCE() inside UNIQUE constraints. Use CREATE UNIQUE INDEX instead.
 - Supabase JS client `.upsert()` onConflict does not support expressions like COALESCE. Use DEFAULT '' on nullable columns and a plain unique index instead.
+- Supabase JS client `.upsert()` also fails silently with expression-based unique constraints like `(created_at::date)`. The `onConflict` param only accepts plain column names. Workaround: delete existing rows for the period first, then `.insert()`.
 - When batch upserting, deduplicate input data first — Postgres rejects a batch where two rows match the same conflict target.
 
 ### Architecture
