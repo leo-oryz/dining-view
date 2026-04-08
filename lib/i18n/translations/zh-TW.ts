@@ -168,6 +168,8 @@ const zhTW = {
   'alerts.costAnomaly': '成本異常',
   'alerts.memberLoss': '會員流失',
   'alerts.deliveryDown': '外送下降',
+  'alerts.ratingDown': '評分下降',
+  'alerts.productAnomaly': '商品異常',
   'alerts.detecting': '偵測中...',
   'alerts.detectNow': '立即偵測',
   'alerts.sending': '傳送中...',

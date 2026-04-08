@@ -217,6 +217,22 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
 
   // Save anomalies to DB and notify
   if (anomalies.length > 0) {
+    // Delete existing alerts for today's detection to avoid duplicates
+    // (can't use upsert because unique constraint uses expression: created_at::date)
+    const storeIds = Array.from(new Set(anomalies.map(a => a.store_id)))
+    const alertTypes = Array.from(new Set(anomalies.map(a => a.alert_type)))
+    const todayStr = new Date().toISOString().split('T')[0]
+
+    for (const sid of storeIds) {
+      await supabase
+        .from('anomaly_alerts')
+        .delete()
+        .eq('store_id', sid)
+        .in('alert_type', alertTypes)
+        .gte('created_at', `${todayStr}T00:00:00`)
+        .lt('created_at', `${todayStr}T23:59:59.999`)
+    }
+
     const rows = anomalies.map(a => ({
       store_id: a.store_id,
       alert_type: a.alert_type,
@@ -228,10 +244,9 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
 
     await supabase
       .from('anomaly_alerts')
-      .upsert(rows, { onConflict: 'store_id,alert_type,created_at' })
+      .insert(rows)
 
     // Send email notification
-    const storeIds = Array.from(new Set(anomalies.map(a => a.store_id)))
     await sendAlertEmail(anomalies, storeIds)
 
     // Update notified_at

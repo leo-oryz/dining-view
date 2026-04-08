@@ -168,6 +168,8 @@ const en = {
   'alerts.costAnomaly': 'Cost Anomaly',
   'alerts.memberLoss': 'Member Churn',
   'alerts.deliveryDown': 'Delivery Decline',
+  'alerts.ratingDown': 'Rating Drop',
+  'alerts.productAnomaly': 'Product Anomaly',
   'alerts.detecting': 'Detecting...',
   'alerts.detectNow': 'Detect Now',
   'alerts.sending': 'Sending...',

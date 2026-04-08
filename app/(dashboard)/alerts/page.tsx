@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Bell, Mail, AlertTriangle, TrendingDown, Users, Truck, DollarSign } from 'lucide-react'
+import { Bell, Mail, AlertTriangle, TrendingDown, Users, Truck, DollarSign, Star, Package } from 'lucide-react'
 import { format, subDays } from 'date-fns'
 import { type WeatherDaily, getWeatherType, getWeatherIcon, WEATHER_LABELS, isTyphoon, buildWeatherMap } from '@/lib/weather/weatherUtils'
 import { useI18n } from '@/lib/i18n/context'
@@ -32,6 +32,8 @@ export default function AlertsPage() {
     cost_spike: { label: t('alerts.costAnomaly'), icon: DollarSign, color: 'text-orange-600 bg-orange-50' },
     member_churn: { label: t('alerts.memberLoss'), icon: Users, color: 'text-amber-600 bg-amber-50' },
     delivery_drop: { label: t('alerts.deliveryDown'), icon: Truck, color: 'text-purple-600 bg-purple-50' },
+    rating_drop: { label: t('alerts.ratingDown'), icon: Star, color: 'text-yellow-600 bg-yellow-50' },
+    product_anomaly: { label: t('alerts.productAnomaly'), icon: Package, color: 'text-indigo-600 bg-indigo-50' },
   }), [t])
 
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function AlertsPage() {
       )}
 
       {/* Alert summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {Object.entries(alertTypeConfig).map(([type, config]) => {
           const count = alerts.filter(a => a.alert_type === type).length
           const Icon = config.icon
