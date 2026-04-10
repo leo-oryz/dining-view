@@ -206,3 +206,8 @@
 - The original code only checked `page.url().includes('/sign-in')` to detect expired sessions, missing this silent expiry case entirely.
 - Fix: If `waitForEvent('download')` times out, treat it as a possible stale session — clear the session file, create a fresh browser context, re-login via auto-login (email + Gmail verification code), and retry the download once.
 - Lesson: Session validity checks should not rely solely on URL redirects. Always have a fallback detection mechanism for when the server silently accepts stale cookies but doesn't function properly.
+
+### Middleware publicPaths Must Cover All Scheduler Endpoints
+- When adding new API endpoints that the scheduler calls (e.g. `/api/sync/tiktok-ads`, `/api/alerts/detect`, `/api/kol/sync-all`, `/api/digest/send`), they MUST be added to `publicPaths` in `middleware.ts`. Otherwise the scheduler's requests get 307 redirected to `/login` and silently fail.
+- Symptom: scheduler logs show "sync result: {}" or HTML instead of JSON — the response is actually the login page redirect.
+- Lesson: Every time you add a new `/api/*` endpoint that will be called by the scheduler or external services (not just browser), add its path prefix to `publicPaths` immediately.
