@@ -1,0 +1,8 @@
+node_modules
+.next
+.git
+*.log
+agents/download-agent/node_modules
+agents/download-agent/downloads
+agents/download-agent/sessions
+scripts/node_modules

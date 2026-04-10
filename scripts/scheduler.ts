@@ -1,10 +1,29 @@
 import 'dotenv/config'
 import cron from 'node-cron'
 import { execSync } from 'child_process'
+import { createServer } from 'http'
 import path from 'path'
 
 const AGENT_DIR = path.resolve(__dirname, '../agents/download-agent')
 const BASE_URL = process.env.AGENT_UPLOAD_BASE_URL || 'http://localhost:3000'
+const HEALTH_PORT = parseInt(process.env.HEALTH_PORT || '8080', 10)
+
+// --- Health check server (keeps Zeabur from killing the container) ---
+let lastHeartbeat = new Date().toISOString()
+
+const healthServer = createServer((req, res) => {
+  if (req.url === '/health' || req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ status: 'ok', lastHeartbeat, uptime: process.uptime() }))
+  } else {
+    res.writeHead(404)
+    res.end()
+  }
+})
+
+healthServer.listen(HEALTH_PORT, '0.0.0.0', () => {
+  console.log(`[scheduler] Health check listening on :${HEALTH_PORT}`)
+})
 
 // Download agent: 00:30 daily
 cron.schedule('30 0 * * *', async () => {
@@ -19,6 +38,7 @@ cron.schedule('30 0 * * *', async () => {
   } catch (err) {
     console.error('[scheduler] Download agent failed:', err)
   }
+  heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
 // Weather sync: 01:00 daily
@@ -31,6 +51,7 @@ cron.schedule('0 1 * * *', async () => {
   } catch (err) {
     console.error('[scheduler] Weather sync failed:', err)
   }
+  heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
 // Google sync: 02:00 daily
@@ -43,6 +64,7 @@ cron.schedule('0 2 * * *', async () => {
   } catch (err) {
     console.error('[scheduler] Google sync failed:', err)
   }
+  heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
 // TikTok Ads sync: 02:45 daily
@@ -59,6 +81,7 @@ cron.schedule('45 2 * * *', async () => {
   } catch (err) {
     console.error('[scheduler] TikTok Ads sync failed:', err)
   }
+  heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
 // KOL posts sync: 03:30 daily
@@ -71,6 +94,7 @@ cron.schedule('30 3 * * *', async () => {
   } catch (err) {
     console.error('[scheduler] KOL sync failed:', err)
   }
+  heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
 // Anomaly detection: 03:00 daily
@@ -85,6 +109,7 @@ cron.schedule('0 3 * * *', async () => {
   } catch (err) {
     console.error('[scheduler] Anomaly detection failed:', err)
   }
+  heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
 // Google Reviews sync: Monday 04:00
@@ -99,6 +124,7 @@ cron.schedule('0 4 * * 1', async () => {
   } catch (err) {
     console.error('[scheduler] Google Reviews sync failed:', err)
   }
+  heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
 // Weekly digest: Monday 08:00
@@ -113,7 +139,24 @@ cron.schedule('0 8 * * 1', async () => {
   } catch (err) {
     console.error('[scheduler] Weekly digest failed:', err)
   }
+  heartbeat()
 }, { timezone: 'Asia/Taipei' })
+
+// --- Heartbeat update after each job ---
+function heartbeat() {
+  lastHeartbeat = new Date().toISOString()
+}
+
+// Update heartbeat every 5 minutes to show the process is alive
+setInterval(heartbeat, 5 * 60 * 1000)
+
+// --- Process crash guard ---
+process.on('uncaughtException', (err) => {
+  console.error('[scheduler] Uncaught exception (process kept alive):', err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[scheduler] Unhandled rejection (process kept alive):', reason)
+})
 
 console.log('[scheduler] Started. Schedules:')
 console.log('  00:30 — Download agent (eat365 + Ocard)')
