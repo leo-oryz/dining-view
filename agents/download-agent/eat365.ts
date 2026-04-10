@@ -64,61 +64,56 @@ async function autoLogin(page: Page, context: BrowserContext, credentials?: Stor
   console.log('[eat365] Session expired — performing auto-login...')
   await page.goto(`${BASE_URL}/sign-in`, { waitUntil: 'networkidle', timeout: 30000 })
 
-  // Enter credentials
+  // Step 1: Enter credentials and submit
   await page.fill('#username', email)
   await page.fill('#password', password)
   await page.click('div.sign-in-btn')
-  console.log('[eat365] Credentials submitted, waiting for verification code page...')
-
-  // Wait for either: verification code input OR successful redirect
+  console.log('[eat365] Credentials submitted, waiting for verification page...')
   await page.waitForTimeout(3000)
 
-  // Check if we landed on a verification code page
-  const codeInput = page.locator('input[placeholder*="erification"], input[type="number"], input[name*="code"], input[name*="otp"]')
-  const hasCodeInput = await codeInput.count() > 0
-
-  if (hasCodeInput || page.url().includes('verif') || page.url().includes('sign-in')) {
-    console.log('[eat365] Verification code required — reading from Gmail...')
-    const code = await readEat365VerificationCode({ timeoutSeconds: 90, pollIntervalMs: 3000 })
-
-    // Try to find and fill the verification input
-    // eat365 may use various input patterns for the code
-    const possibleInputs = [
-      'input[placeholder*="erification"]',
-      'input[name*="code"]',
-      'input[name*="otp"]',
-      'input[type="number"]',
-      'input[type="tel"]',
-    ]
-
-    let filled = false
-    for (const selector of possibleInputs) {
-      const input = page.locator(selector)
-      if (await input.count() > 0) {
-        await input.first().fill(code)
-        filled = true
-        console.log(`[eat365] Entered verification code via ${selector}`)
-        break
-      }
-    }
-
-    if (!filled) {
-      // Fallback: try to fill any visible text input
-      const anyInput = page.locator('input:visible').first()
-      await anyInput.fill(code)
-      console.log('[eat365] Entered verification code via fallback input')
-    }
-
-    // Submit the verification code
-    const submitBtn = page.locator('button:has-text("Verify"), button:has-text("Submit"), button:has-text("Confirm"), div.sign-in-btn, button[type="submit"]')
-    if (await submitBtn.count() > 0) {
-      await submitBtn.first().click()
-    }
-
-    // Wait for redirect away from sign-in
-    await page.waitForURL((url) => !url.toString().includes('/sign-in'), { timeout: 30000 })
-    console.log('[eat365] Login successful! URL:', page.url())
+  // Step 2: Click "Email" button to trigger verification code email
+  const emailBtn = page.locator('div.otp-request-btn[data-option="1"]')
+  if (await emailBtn.count() > 0) {
+    await emailBtn.click()
+    console.log('[eat365] Clicked "Email" to request verification code...')
+    await page.waitForTimeout(2000)
+  } else {
+    console.warn('[eat365] Email OTP button not found, verification email may not be sent')
   }
+
+  // Step 3: Read verification code from Gmail
+  console.log('[eat365] Reading verification code from Gmail...')
+  const code = await readEat365VerificationCode({ timeoutSeconds: 90, pollIntervalMs: 3000 })
+
+  // Step 4: Fill 6-digit code into individual inputs (pc1~pc6)
+  // Each input enables only after the previous one is filled, so we type one key at a time
+  const digits = code.split('')
+  for (let i = 0; i < 6; i++) {
+    const input = page.locator(`#pc${i + 1}`)
+    await input.waitFor({ state: 'attached', timeout: 5000 })
+    // Use keyboard press to trigger the enable-next-input logic
+    await input.focus()
+    await page.keyboard.press(digits[i])
+    await page.waitForTimeout(300)
+  }
+  console.log('[eat365] Entered verification code')
+
+  // Step 5: Check "Don't ask for this device" to extend session
+  const dontAskCheckbox = page.locator('#dont-ask-device')
+  if (await dontAskCheckbox.count() > 0) {
+    await dontAskCheckbox.check()
+    console.log('[eat365] Checked "Don\'t ask for this device"')
+  }
+
+  // Step 6: Submit verification
+  const verifyBtn = page.locator('div.sign-in-btn, button:has-text("Verify"), button:has-text("Submit")')
+  if (await verifyBtn.count() > 0) {
+    await verifyBtn.first().click()
+  }
+
+  // Wait for redirect away from sign-in
+  await page.waitForURL((url) => !url.toString().includes('/sign-in'), { timeout: 30000 })
+  console.log('[eat365] Login successful! URL:', page.url())
 
   // Save session for future runs
   const state = await context.storageState()
@@ -134,6 +129,34 @@ const EAT365_REPORTS = [
   { type: 'eat365-items', path: '/v2/report/sales/sales_by_items' },
 ]
 
+/**
+ * Clear saved session so next createContext starts fresh.
+ */
+function clearSession() {
+  if (fs.existsSync(SESSION_FILE)) {
+    fs.unlinkSync(SESSION_FILE)
+    console.log('[eat365] Cleared expired session file')
+  }
+}
+
+/**
+ * Try clicking Export and downloading the file.
+ * Returns the Download on success, or null on failure.
+ */
+async function tryExport(page: Page, reportType: string): Promise<any | null> {
+  const exportBtn = page.locator('button:has-text("Export")')
+  if (await exportBtn.count() === 0) {
+    console.warn(`[eat365] No Export button found for ${reportType}`)
+    return null
+  }
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download', { timeout: 15000 }),
+    exportBtn.first().click(),
+  ])
+  return download
+}
+
 export async function downloadEat365Reports(options?: {
   storeId?: string
   credentials?: StoreCredentials
@@ -143,11 +166,12 @@ export async function downloadEat365Reports(options?: {
   const dateStr = options?.targetDate || getYesterday()
   const files: DownloadedFile[] = []
   let browser: Browser | null = null
+  let sessionRetried = false
 
   try {
     browser = await chromium.launch({ headless: true })
-    const context = await createContext(browser)
-    const page = await context.newPage()
+    let context = await createContext(browser)
+    let page = await context.newPage()
 
     for (const report of EAT365_REPORTS) {
       try {
@@ -156,26 +180,43 @@ export async function downloadEat365Reports(options?: {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
         await page.waitForLoadState('networkidle').catch(() => {})
 
-        // Auto-login if session expired
-        if (page.url().includes('/sign-in')) {
+        // Auto-login if session expired (detected by URL redirect)
+        if (page.url().includes('/sign-in') || page.url().includes('/verify')) {
+          clearSession()
           await autoLogin(page, context, options?.credentials)
-          // Retry loading the report page after login
+          sessionRetried = true
           await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
           await page.waitForLoadState('networkidle').catch(() => {})
         }
 
         await page.waitForTimeout(3000)
 
-        const exportBtn = page.locator('button:has-text("Export")')
-        if (await exportBtn.count() === 0) {
-          console.warn(`[eat365] No Export button found for ${report.type}`)
-          continue
+        let download = await tryExport(page, report.type).catch(() => null)
+
+        // If download failed and we haven't retried yet, session may be expired
+        // without a redirect (stale cookies). Clear session, re-login, retry.
+        if (!download && !sessionRetried) {
+          console.log(`[eat365] Download failed for ${report.type} — session may be stale, re-logging in...`)
+          clearSession()
+          // Close old context and create a fresh one
+          await context.close()
+          context = await createContext(browser)
+          page = await context.newPage()
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+          await page.waitForLoadState('networkidle').catch(() => {})
+          await autoLogin(page, context, options?.credentials)
+          sessionRetried = true
+          // Retry the report page
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+          await page.waitForLoadState('networkidle').catch(() => {})
+          await page.waitForTimeout(3000)
+          download = await tryExport(page, report.type).catch((err) => {
+            console.error(`[eat365] Retry also failed for ${report.type}:`, err)
+            return null
+          })
         }
 
-        const [download] = await Promise.all([
-          page.waitForEvent('download', { timeout: 15000 }),
-          exportBtn.first().click(),
-        ])
+        if (!download) continue
 
         const suggestedName = download.suggestedFilename()
         const ext = path.extname(suggestedName) || '.xlsx'

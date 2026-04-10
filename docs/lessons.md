@@ -200,3 +200,9 @@
 - The `scripts/scheduler.ts` (node-cron) was running as a local process on a dev machine. When the machine slept/rebooted, all automated data sync stopped silently — no alerts, no retries, data just went stale.
 - Fix: Created `Dockerfile.scheduler` to deploy as a separate Zeabur service with health check endpoint (`:8080/health`) and process crash guards (`uncaughtException` / `unhandledRejection` handlers).
 - Lesson: Any process that must run 24/7 (cron, workers, agents) should never depend on a developer's local machine. Deploy it as a cloud service with health checks and auto-restart from day one.
+
+### eat365 Session Expiry — Silent Failure
+- eat365 saved session (`storageState` JSON) can expire server-side while the local file still exists. When this happens, eat365 does NOT redirect to `/sign-in` — it loads the report page but the Export button click produces no download event, causing a 15s timeout.
+- The original code only checked `page.url().includes('/sign-in')` to detect expired sessions, missing this silent expiry case entirely.
+- Fix: If `waitForEvent('download')` times out, treat it as a possible stale session — clear the session file, create a fresh browser context, re-login via auto-login (email + Gmail verification code), and retry the download once.
+- Lesson: Session validity checks should not rely solely on URL redirects. Always have a fallback detection mechanism for when the server silently accepts stale cookies but doesn't function properly.
