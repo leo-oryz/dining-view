@@ -85,35 +85,39 @@ async function autoLogin(page: Page, context: BrowserContext, credentials?: Stor
   console.log('[eat365] Reading verification code from Gmail...')
   const code = await readEat365VerificationCode({ timeoutSeconds: 90, pollIntervalMs: 3000 })
 
-  // Step 4: Fill 6-digit code into individual inputs (pc1~pc6)
-  // Each input enables only after the previous one is filled, so we type one key at a time
+  // Step 4: Fill first 5 digits of verification code (pc1~pc5)
+  // Each input enables only after the previous one is filled
   const digits = code.split('')
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 5; i++) {
     const input = page.locator(`#pc${i + 1}`)
     await input.waitFor({ state: 'attached', timeout: 5000 })
-    // Use keyboard press to trigger the enable-next-input logic
     await input.focus()
     await page.keyboard.press(digits[i])
     await page.waitForTimeout(300)
   }
-  console.log('[eat365] Entered verification code')
 
-  // Step 5: Check "Don't ask for this device" to extend session
+  // Step 5: Check "Don't ask for this device" BEFORE entering the 6th digit
+  // (6th digit triggers auto-submit, so we must check this first)
   const dontAskCheckbox = page.locator('#dont-ask-device')
   if (await dontAskCheckbox.count() > 0) {
     await dontAskCheckbox.check()
     console.log('[eat365] Checked "Don\'t ask for this device"')
   }
 
-  // Step 6: Submit verification
-  const verifyBtn = page.locator('div.sign-in-btn, button:has-text("Verify"), button:has-text("Submit")')
-  if (await verifyBtn.count() > 0) {
-    await verifyBtn.first().click()
-  }
+  // Step 6: Enter the 6th digit — this triggers auto-submit
+  const lastInput = page.locator('#pc6')
+  await lastInput.waitFor({ state: 'attached', timeout: 5000 })
+  await lastInput.focus()
+  await page.keyboard.press(digits[5])
+  console.log('[eat365] Entered verification code (auto-submitting...)')
 
   // Wait for redirect away from sign-in
-  await page.waitForURL((url) => !url.toString().includes('/sign-in'), { timeout: 30000 })
+  await page.waitForURL((url) => {
+    const u = url.toString()
+    return !u.includes('/sign-in') && !u.includes('/verify')
+  }, { timeout: 30000 })
   console.log('[eat365] Login successful! URL:', page.url())
+  await page.waitForLoadState('networkidle').catch(() => {})
 
   // Save session for future runs
   const state = await context.storageState()
