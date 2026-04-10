@@ -195,3 +195,8 @@
 - `google_review_snapshots` table only gets populated when `/api/reviews/sync` runs. If sync has only run once, the table has 1 row and the trend chart shows a single data point regardless of time range.
 - Fix: aggregate trend data directly from `google_reviews` (individual reviews) on the frontend, grouped by week/month. This works immediately with all historical reviews without needing snapshot backfills.
 - Lesson: When building dashboards that depend on aggregated/snapshot tables, verify the table has sufficient historical data. If the aggregation job hasn't been running long enough, compute from raw data instead.
+
+### Scheduler Must Be Cloud-Deployed, Not Local
+- The `scripts/scheduler.ts` (node-cron) was running as a local process on a dev machine. When the machine slept/rebooted, all automated data sync stopped silently — no alerts, no retries, data just went stale.
+- Fix: Created `Dockerfile.scheduler` to deploy as a separate Zeabur service with health check endpoint (`:8080/health`) and process crash guards (`uncaughtException` / `unhandledRejection` handlers).
+- Lesson: Any process that must run 24/7 (cron, workers, agents) should never depend on a developer's local machine. Deploy it as a cloud service with health checks and auto-restart from day one.
