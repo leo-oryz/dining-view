@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (rows.length === 0) {
       return apiSuccess({
         summary: {
-          dine_in: { order_count: 0, revenue: 0, avg_spend: 0, order_pct: 0, revenue_pct: 0 },
+          dine_in: { order_count: 0, guest_count: 0, revenue: 0, avg_spend: 0, order_pct: 0, revenue_pct: 0 },
           takeout: { order_count: 0, revenue: 0, avg_spend: 0, order_pct: 0, revenue_pct: 0 },
         },
         daily: [],
@@ -45,23 +45,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Aggregate summary
-    let dineInOrders = 0, dineInRevenue = 0
+    let dineInOrders = 0, dineInRevenue = 0, dineInGuests = 0
     let takeoutOrders = 0, takeoutRevenue = 0
 
     // Daily aggregation
-    const dailyMap = new Map<string, { dine_in_orders: number; takeout_orders: number; dine_in_revenue: number; takeout_revenue: number }>()
+    const dailyMap = new Map<string, { dine_in_orders: number; takeout_orders: number; dine_in_revenue: number; takeout_revenue: number; dine_in_guests: number }>()
 
     // Hourly aggregation
     const hourlyMap = new Map<number, { dine_in_orders: number; takeout_orders: number }>()
 
     for (const row of rows) {
       const amount = Number(row.item_amount) || 0
+      const guests = Number(row.guest_count) || 0
       const isDineIn = row.order_type === 'Dine-in'
 
       // Summary
       if (isDineIn) {
         dineInOrders++
         dineInRevenue += amount
+        dineInGuests += guests
       } else {
         takeoutOrders++
         takeoutRevenue += amount
@@ -70,12 +72,13 @@ export async function GET(request: NextRequest) {
       // Daily
       const dateKey = row.date
       if (!dailyMap.has(dateKey)) {
-        dailyMap.set(dateKey, { dine_in_orders: 0, takeout_orders: 0, dine_in_revenue: 0, takeout_revenue: 0 })
+        dailyMap.set(dateKey, { dine_in_orders: 0, takeout_orders: 0, dine_in_revenue: 0, takeout_revenue: 0, dine_in_guests: 0 })
       }
       const day = dailyMap.get(dateKey)!
       if (isDineIn) {
         day.dine_in_orders++
         day.dine_in_revenue += amount
+        day.dine_in_guests += guests
       } else {
         day.takeout_orders++
         day.takeout_revenue += amount
@@ -109,6 +112,7 @@ export async function GET(request: NextRequest) {
     const summary = {
       dine_in: {
         order_count: dineInOrders,
+        guest_count: dineInGuests,
         revenue: Math.round(dineInRevenue),
         avg_spend: dineInOrders > 0 ? Math.round(dineInRevenue / dineInOrders) : 0,
         order_pct: totalOrders > 0 ? Math.round((dineInOrders / totalOrders) * 1000) / 10 : 0,

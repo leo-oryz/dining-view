@@ -5,7 +5,7 @@ import { KpiCard } from '@/components/dashboard/KpiCard'
 import { TrendLineChart } from '@/components/charts/TrendLineChart'
 import { WeekdayHeatmap } from '@/components/charts/WeekdayHeatmap'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
-import { DollarSign, Users, ShoppingCart, Target, TrendingUp, Receipt, UtensilsCrossed, ShoppingBag } from 'lucide-react'
+import { DollarSign, Users, ShoppingCart, Target, TrendingUp, Receipt, UtensilsCrossed, ShoppingBag, RefreshCcw } from 'lucide-react'
 import { format, subDays, subMonths, subYears, startOfMonth, endOfMonth, startOfYear, getDaysInMonth, differenceInCalendarDays, parseISO } from 'date-fns'
 import { type WeatherDaily, getWeatherType, isRainy, buildWeatherMap } from '@/lib/weather/weatherUtils'
 import { useI18n } from '@/lib/i18n/context'
@@ -23,7 +23,7 @@ import {
 } from 'recharts'
 
 type RangeKey = '7d' | '30d' | '90d' | 'ytd' | 'last_month' | 'this_month' | 'custom'
-type Metric = 'net_sales' | 'guests' | 'orders' | 'avg_spending'
+type Metric = 'net_sales' | 'guests' | 'orders' | 'avg_spending' | 'turnover'
 type TabKey = 'sales' | 'channel'
 
 interface DailySales {
@@ -47,6 +47,7 @@ interface MonthlyTarget {
 
 interface ChannelSummary {
   order_count: number
+  guest_count?: number
   revenue: number
   avg_spend: number
   order_pct: number
@@ -55,7 +56,7 @@ interface ChannelSummary {
 
 interface ChannelData {
   summary: { dine_in: ChannelSummary; takeout: ChannelSummary }
-  daily: { date: string; dine_in_orders: number; takeout_orders: number; dine_in_revenue: number; takeout_revenue: number }[]
+  daily: { date: string; dine_in_orders: number; takeout_orders: number; dine_in_revenue: number; takeout_revenue: number; dine_in_guests?: number }[]
   hourly: { hour: number; dine_in_orders: number; takeout_orders: number }[]
 }
 
@@ -116,6 +117,8 @@ export default function TrendsPage() {
   const [customEnd, setCustomEnd] = useState('')
   const [activeTab, setActiveTab] = useState<TabKey>('sales')
   const [channelData, setChannelData] = useState<ChannelData | null>(null)
+  const [prevChannelData, setPrevChannelData] = useState<ChannelData | null>(null)
+  const [seatCount, setSeatCount] = useState<number | null>(null)
 
   const { startDate, endDate } = useMemo(() => {
     if (rangeKey === 'custom' && customStart && customEnd) {
@@ -188,6 +191,7 @@ export default function TrendsPage() {
   useEffect(() => {
     setLoading(true)
     setChannelData(null) // Reset so stale data doesn't persist
+    setPrevChannelData(null)
     const params = `start_date=${startDate}&end_date=${endDate}`
     const prevParams = `start_date=${prevStartDate}&end_date=${prevEndDate}`
     const tStartMonth = format(startOfMonth(parseISO(startDate)), 'yyyy-MM-dd')
@@ -199,15 +203,24 @@ export default function TrendsPage() {
       fetch(`/api/targets?start_month=${tStartMonth}&end_month=${tEndMonth}`).then((r) => r.json()),
       fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then((r) => r.json()).catch(() => ({ success: false })),
       fetch(`/api/sales/daily?${prevParams}`).then((r) => r.json()),
-      fetch(`/api/sales/channel-split?start_date=${startDate}&end_date=${endDate}`).then((r) => r.json()).catch(() => ({ success: false })),
+      fetch(`/api/sales/channel-split?${params}`).then((r) => r.json()).catch(() => ({ success: false })),
+      fetch(`/api/sales/channel-split?${prevParams}`).then((r) => r.json()).catch(() => ({ success: false })),
+      fetch(`/api/stores`).then((r) => r.json()).catch(() => ({ success: false })),
     ])
-      .then(([dailyJson, hourlyJson, targetsJson, weatherJson, prevJson, channelJson]) => {
+      .then(([dailyJson, hourlyJson, targetsJson, weatherJson, prevJson, channelJson, prevChannelJson, storesJson]) => {
         setData(dailyJson.success ? dailyJson.data || [] : [])
         setHourlyData(hourlyJson.success ? hourlyJson.data || [] : [])
         setTargets(targetsJson.success ? targetsJson.data || [] : [])
         setWeatherData(weatherJson.success ? weatherJson.data || [] : [])
         setPrevData(prevJson.success ? prevJson.data || [] : [])
         setChannelData(channelJson.success ? channelJson.data : null)
+        setPrevChannelData(prevChannelJson.success ? prevChannelJson.data : null)
+        if (storesJson.success && Array.isArray(storesJson.data)) {
+          const activeStore = storesJson.data.find((s: { is_active: boolean; seat_count: number | null }) => s.is_active) || storesJson.data[0]
+          setSeatCount(activeStore?.seat_count ?? null)
+        } else {
+          setSeatCount(null)
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -236,6 +249,19 @@ export default function TrendsPage() {
   const ordersChange = pctChange(totalOrders, prevOrders)
   const avgSpendingChange = pctChange(avgSpending, prevAvgSpending)
 
+  // Dine-in turnover rate: dine_in_guests / (seat_count × days_with_data)
+  const dineInGuests = channelData?.summary.dine_in.guest_count ?? 0
+  const prevDineInGuests = prevChannelData?.summary.dine_in.guest_count ?? 0
+  const turnoverRate = seatCount && seatCount > 0 && daysWithData > 0
+    ? dineInGuests / (seatCount * daysWithData)
+    : null
+  const prevTurnoverRate = seatCount && seatCount > 0 && prevDaysWithData > 0
+    ? prevDineInGuests / (seatCount * prevDaysWithData)
+    : null
+  const turnoverChange = turnoverRate != null && prevTurnoverRate != null
+    ? pctChange(turnoverRate, prevTurnoverRate)
+    : null
+
   const rangeTarget = calcRangeTarget(targets, startDate, endDate)
   const achievementPct = rangeTarget != null && rangeTarget > 0 ? (totalRevenue / rangeTarget) * 100 : null
 
@@ -252,12 +278,29 @@ export default function TrendsPage() {
     { key: 'custom', label: t('trends.custom') },
   ]
 
-  const metricOptions: { key: Metric; label: string }[] = [
+  const metricOptions: { key: Metric; label: string; disabled?: boolean }[] = [
     { key: 'net_sales', label: t('trends.revenue') },
     { key: 'guests', label: t('trends.guests') },
     { key: 'orders', label: t('trends.orders') },
     { key: 'avg_spending', label: t('trends.avgSpending') },
+    { key: 'turnover', label: t('trends.turnoverRate'), disabled: seatCount == null },
   ]
+
+  // Merge channel daily data into sales data for turnover metric
+  const mergedDailyData = useMemo(() => {
+    const guestsMap = new Map<string, number>()
+    if (channelData && seatCount && seatCount > 0) {
+      for (const d of channelData.daily) {
+        guestsMap.set(d.date, d.dine_in_guests ?? 0)
+      }
+    }
+    return data.map((d) => ({
+      ...d,
+      turnover: seatCount && seatCount > 0
+        ? (guestsMap.get(d.date) ?? 0) / seatCount
+        : null,
+    }))
+  }, [data, channelData, seatCount])
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'sales', label: t('trends.tabSales') },
@@ -356,7 +399,7 @@ export default function TrendsPage() {
       {activeTab === 'sales' && (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <KpiCard
               title={t('trends.periodRevenue')}
               value={`NT$${totalRevenue.toLocaleString()}`}
@@ -391,6 +434,14 @@ export default function TrendsPage() {
               change={avgSpendingChange}
               changeLabel={changeLabel}
               icon={<Receipt size={20} />}
+            />
+            <KpiCard
+              title={t('trends.turnoverRate')}
+              value={turnoverRate != null ? `${turnoverRate.toFixed(2)} ${t('trends.turnoverUnit')}` : '--'}
+              change={turnoverChange}
+              changeLabel={changeLabel}
+              subtitle={seatCount == null ? t('trends.turnoverNoSeats') : undefined}
+              icon={<RefreshCcw size={20} />}
             />
           </div>
 
@@ -458,9 +509,13 @@ export default function TrendsPage() {
                 {metricOptions.map((opt) => (
                   <button
                     key={opt.key}
-                    onClick={() => setMetric(opt.key)}
+                    onClick={() => !opt.disabled && setMetric(opt.key)}
+                    disabled={opt.disabled}
+                    title={opt.disabled ? t('trends.turnoverNoSeats') : undefined}
                     className={`px-2.5 py-1 text-xs rounded-md transition ${
-                      metric === opt.key
+                      opt.disabled
+                        ? 'text-slate-300 cursor-not-allowed'
+                        : metric === opt.key
                         ? 'bg-blue-100 text-blue-700'
                         : 'text-slate-500 hover:bg-slate-100'
                     }`}
@@ -470,7 +525,7 @@ export default function TrendsPage() {
                 ))}
               </div>
             </div>
-            <TrendLineChart data={data} dailyTarget={dailyTarget} metric={metric} weatherData={weatherData} />
+            <TrendLineChart data={mergedDailyData} dailyTarget={dailyTarget} metric={metric} weatherData={weatherData} />
           </div>
 
           {/* Weekday x Hour Heatmap */}
