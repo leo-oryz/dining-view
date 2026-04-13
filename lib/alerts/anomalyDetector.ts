@@ -224,13 +224,17 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
     const todayStr = new Date().toISOString().split('T')[0]
 
     for (const sid of storeIds) {
-      await supabase
+      const { error: delErr } = await supabase
         .from('anomaly_alerts')
         .delete()
         .eq('store_id', sid)
         .in('alert_type', alertTypes)
-        .gte('created_at', `${todayStr}T00:00:00`)
-        .lt('created_at', `${todayStr}T23:59:59.999`)
+        .gte('created_at', `${todayStr}T00:00:00Z`)
+        .lt('created_at', `${todayStr}T23:59:59.999Z`)
+      if (delErr) {
+        console.error('[detectAnomalies] delete failed', delErr)
+        throw new Error(`Delete existing alerts failed: ${delErr.message}`)
+      }
     }
 
     const rows = anomalies.map(a => ({
@@ -242,27 +246,31 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
       message: a.message,
     }))
 
-    await supabase
+    const { data: insertedRows, error: insErr } = await supabase
       .from('anomaly_alerts')
       .insert(rows)
-
-    // Send email notification
-    await sendAlertEmail(anomalies, storeIds)
-
-    // Update notified_at
-    const { data: inserted } = await supabase
-      .from('anomaly_alerts')
       .select('id')
-      .gte('created_at', `${yesterday}T00:00:00`)
-      .in('alert_type', anomalies.map(a => a.alert_type))
 
-    if (inserted) {
-      for (const row of inserted) {
-        await supabase
-          .from('anomaly_alerts')
-          .update({ notified_at: new Date().toISOString() })
-          .eq('id', row.id)
-      }
+    if (insErr) {
+      console.error('[detectAnomalies] insert failed', insErr, 'rows:', rows)
+      throw new Error(`Insert alerts failed: ${insErr.message}`)
+    }
+
+    // Send email notification (don't let email failures block DB persistence)
+    try {
+      await sendAlertEmail(anomalies, storeIds)
+    } catch (emailErr) {
+      console.error('[detectAnomalies] email notification failed', emailErr)
+    }
+
+    // Update notified_at on the rows we just inserted
+    if (insertedRows && insertedRows.length > 0) {
+      const ids = insertedRows.map(r => r.id)
+      const { error: updErr } = await supabase
+        .from('anomaly_alerts')
+        .update({ notified_at: new Date().toISOString() })
+        .in('id', ids)
+      if (updErr) console.error('[detectAnomalies] notified_at update failed', updErr)
     }
   }
 
