@@ -161,14 +161,14 @@ async function autoLogin(page: Page, context: BrowserContext, credentials?: Stor
   console.log('[eat365] Session saved to', SESSION_FILE)
 }
 
-// Transaction Report is protected by Cloudflare Turnstile. Phase 1 approach:
-// playwright-extra + stealth plugin tries to pass the challenge without a solver.
-// If it fails in practice, fall back to a captcha-solving service.
+// Transaction Report is protected by a broken Cloudflare Turnstile widget
+// (site key 600010 error — invalid for hostname). Stealth plugin alone can't
+// solve it, so we replaced it with the Daily Closing Report JSON API which
+// also exposes the dine-in / takeout breakdown — see fetchEat365DailyClosing.
 const EAT365_REPORTS = [
   { type: 'eat365-summary', path: '/v2/report/sales_summary' },
   { type: 'eat365-hourly', path: '/v2/report/sales/hourly_sales_report' },
   { type: 'eat365-items', path: '/v2/report/sales/sales_by_items' },
-  { type: 'eat365-transactions', path: '/v2/report/transaction_report' },
 ]
 
 /**
@@ -258,40 +258,6 @@ async function tryExport(page: Page, reportType: string, debug = false): Promise
   // Dismiss any modal popups (e.g. "Change Log" notification)
   await dismissModals(page)
 
-  // Transaction Report is a filter form gated by a Cloudflare Turnstile widget.
-  // Until the Turnstile token is populated, the Submit button is a no-op (does
-  // not even fire a network request). Stealth plugin alone is not enough to
-  // pass Turnstile — a CAPTCHA solver service is required. Detect the empty
-  // token and skip cleanly so daily runs aren't polluted with bogus failures.
-  if (reportType === 'eat365-transactions') {
-    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {})
-    await page.waitForTimeout(2000)
-
-    const turnstileToken = await page.evaluate(() => {
-      const el = document.querySelector<HTMLInputElement>('input[name="cf-turnstile-response"]')
-      return el ? el.value : null
-    }).catch(() => null)
-
-    if (turnstileToken === null || turnstileToken === '') {
-      console.warn('[eat365] Transaction Report blocked: Cloudflare Turnstile token not solved. ' +
-        'Stealth plugin alone is insufficient — a CAPTCHA solver is required. ' +
-        'Falling through to manual upload workflow.')
-      return null
-    }
-
-    // Token present — click Submit to generate the report
-    const submitBtn = page.locator('button:has-text("Submit")').first()
-    if (await submitBtn.count() > 0) {
-      console.log('[eat365] Clicking Submit to generate Transaction Report...')
-      await submitBtn.scrollIntoViewIfNeeded().catch(() => {})
-      await submitBtn.click({ force: true, timeout: 5000 }).catch(() => {})
-      await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {})
-      await loadingOverlay.waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {})
-      await page.locator('button:has-text("Export")').first()
-        .waitFor({ state: 'visible', timeout: 30000 }).catch(() => {})
-    }
-  }
-
   if (debug) {
     await page.screenshot({ path: path.join(__dirname, `debug_export_${reportType}.png`) })
     console.log(`[eat365] Debug screenshot saved for ${reportType}, URL: ${page.url()}`)
@@ -322,7 +288,16 @@ export async function downloadEat365Reports(options?: {
   let sessionRetried = false
 
   try {
-    browser = await chromium.launch({ headless: true })
+    // Use installed Chrome (channel: 'chrome') in non-headless mode for the
+    // Transaction Report's Cloudflare Turnstile to auto-pass. Headless +
+    // bundled chromium gets challenged. Falls back to bundled chromium if
+    // Chrome isn't installed.
+    try {
+      browser = await chromium.launch({ headless: false, channel: 'chrome' })
+    } catch (err) {
+      console.warn('[eat365] Chrome channel unavailable, falling back to bundled chromium:', err instanceof Error ? err.message : err)
+      browser = await chromium.launch({ headless: false })
+    }
     let context = await createContext(browser)
     let page = await context.newPage()
 
@@ -348,9 +323,7 @@ export async function downloadEat365Reports(options?: {
 
         // If download failed and we haven't retried yet, session may be expired
         // without a redirect (stale cookies). Clear session, re-login, retry.
-        // Skip the retry for transactions: its failure is caused by Cloudflare
-        // Turnstile, not stale session, so re-logging in burns an OTP for nothing.
-        if (!download && !sessionRetried && report.type !== 'eat365-transactions') {
+        if (!download && !sessionRetried) {
           console.log(`[eat365] Download failed for ${report.type} — session may be stale, re-logging in...`)
           clearSession()
           // Close old context and create a fresh one
@@ -385,9 +358,68 @@ export async function downloadEat365Reports(options?: {
         console.error(`[eat365] Failed to download ${report.type}:`, err)
       }
     }
+
+    // Daily Closing Report — JSON API replacement for the broken Transaction Report.
+    // Captures the SPA's own /report/dailyReport response by navigating to the
+    // daily_closing page; the SPA injects the XSRF token automatically.
+    try {
+      const dcrFile = await fetchEat365DailyClosing(page, dateStr, options?.storeId)
+      if (dcrFile) {
+        files.push(dcrFile)
+        console.log(`[eat365] Downloaded: ${dcrFile.fileName}`)
+      }
+    } catch (err) {
+      console.error('[eat365] Failed to fetch daily closing report:', err)
+    }
   } finally {
     if (browser) await browser.close()
   }
 
   return files
+}
+
+/**
+ * Navigate to the Daily Closing Report page for one date and capture the
+ * /report/dailyReport JSON response. The SPA injects the XSRF token & cookies
+ * automatically, so we don't have to worry about CSRF or Turnstile here.
+ */
+async function fetchEat365DailyClosing(
+  page: Page,
+  dateStr: string,
+  storeId?: string
+): Promise<DownloadedFile | null> {
+  const url = `${BASE_URL}/v2/report/daily_closing?${RESTAURANT_PARAMS}&startDate=${dateStr}+00:00&endDate=${dateStr}+23:59`
+  console.log(`[eat365] Loading daily-closing for ${dateStr}...`)
+
+  let captured: unknown = null
+  const handler = async (resp: import('playwright').Response) => {
+    if (resp.url().includes('/report/dailyReport') && resp.status() === 200) {
+      try {
+        captured = await resp.json()
+      } catch {}
+    }
+  }
+  page.on('response', handler)
+
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    // Wait for the API response specifically
+    await page.waitForResponse(
+      (r) => r.url().includes('/report/dailyReport') && r.status() === 200,
+      { timeout: 30000 }
+    ).catch(() => {})
+    await page.waitForTimeout(1500)
+  } finally {
+    page.off('response', handler)
+  }
+
+  if (!captured) {
+    console.warn(`[eat365] No daily-closing response captured for ${dateStr}`)
+    return null
+  }
+
+  const fileName = `eat365-daily-closing_${dateStr}.json`
+  const filePath = path.join(DOWNLOAD_DIR, fileName)
+  fs.writeFileSync(filePath, JSON.stringify({ date: dateStr, json: captured }, null, 2))
+  return { reportType: 'eat365-daily-closing', filePath, fileName, storeId, date: dateStr }
 }

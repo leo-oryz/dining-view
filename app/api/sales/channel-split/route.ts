@@ -12,12 +12,18 @@ export async function GET(request: NextRequest) {
       return apiError('start_date and end_date are required', 400)
     }
 
-    // Fetch all __order__ rows via paginated REST API (Supabase caps at 1000/request)
+    // Fetch all __order__ rows via paginated REST API (Supabase caps at 1000/request).
+    // Two sources may populate this table:
+    //   - 'eat365'                : per-order rows from manual Transaction Report uploads
+    //   - 'eat365-daily-closing'  : per-30min synthetic rows from the Daily Closing JSON API
+    //                                (each row carries item_quantity = real order count)
+    // For dates where both exist, daily-closing wins.
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const baseUrl = `${supabaseUrl}/rest/v1/order_items?select=date,order_type,time,item_amount,guest_count&store_id=eq.${storeId}&item_name=eq.__order__&source=eq.eat365&date=gte.${startDate}&date=lte.${endDate}&order=date.asc,time.asc`
+    const baseUrl = `${supabaseUrl}/rest/v1/order_items?select=date,order_type,time,item_amount,item_quantity,guest_count,source&store_id=eq.${storeId}&item_name=eq.__order__&source=in.(eat365,eat365-daily-closing)&date=gte.${startDate}&date=lte.${endDate}&order=date.asc,time.asc`
 
-    const rows: { date: string; order_type: string; time: string; item_amount: number; guest_count: number }[] = []
+    type OrderRow = { date: string; order_type: string; time: string; item_amount: number; item_quantity: number | null; guest_count: number | null; source: string }
+    const rawRows: OrderRow[] = []
     let offset = 0
     const PAGE = 1000
     while (true) {
@@ -29,10 +35,21 @@ export async function GET(request: NextRequest) {
       })
       if (!res.ok) return apiError(`Failed to fetch order data: ${res.status}`, 500)
       const page = await res.json()
-      rows.push(...page)
+      rawRows.push(...page)
       if (page.length < PAGE) break
       offset += PAGE
     }
+
+    // Pick a single source per date so the two ingestion paths don't double-count.
+    const sourceByDate = new Map<string, string>()
+    for (const r of rawRows) {
+      const cur = sourceByDate.get(r.date)
+      if (cur === 'eat365-daily-closing') continue
+      if (r.source === 'eat365-daily-closing') sourceByDate.set(r.date, 'eat365-daily-closing')
+      else if (!cur) sourceByDate.set(r.date, r.source)
+    }
+    const rows = rawRows.filter((r) => sourceByDate.get(r.date) === r.source)
+
     if (rows.length === 0) {
       return apiSuccess({
         summary: {
@@ -57,15 +74,21 @@ export async function GET(request: NextRequest) {
     for (const row of rows) {
       const amount = Number(row.item_amount) || 0
       const guests = Number(row.guest_count) || 0
+      // For daily-closing synthetic rows, item_quantity holds the real order count
+      // for that 30-min slot. Real transaction rows have one row per order, so
+      // count them as 1 regardless of item_quantity (which there means line-item qty).
+      const orderCount = row.source === 'eat365-daily-closing'
+        ? Math.max(1, Number(row.item_quantity) || 1)
+        : 1
       const isDineIn = row.order_type === 'Dine-in'
 
       // Summary
       if (isDineIn) {
-        dineInOrders++
+        dineInOrders += orderCount
         dineInRevenue += amount
         dineInGuests += guests
       } else {
-        takeoutOrders++
+        takeoutOrders += orderCount
         takeoutRevenue += amount
       }
 
@@ -76,21 +99,19 @@ export async function GET(request: NextRequest) {
       }
       const day = dailyMap.get(dateKey)!
       if (isDineIn) {
-        day.dine_in_orders++
+        day.dine_in_orders += orderCount
         day.dine_in_revenue += amount
         day.dine_in_guests += guests
       } else {
-        day.takeout_orders++
+        day.takeout_orders += orderCount
         day.takeout_revenue += amount
       }
 
       // Hourly - parse hour from time field
       if (row.time) {
         const timeStr = String(row.time)
-        // Try parsing various formats: "2025-01-01 14:30:00", "14:30:00", "14:30"
         const hourMatch = timeStr.match(/(\d{1,2}):\d{2}/)
         if (hourMatch) {
-          // If format is "YYYY-MM-DD HH:MM", we want the hour part after the date
           const fullMatch = timeStr.match(/\d{4}-\d{2}-\d{2}\s+(\d{1,2}):\d{2}/)
           const hour = parseInt(fullMatch ? fullMatch[1] : hourMatch[1], 10)
           if (!hourlyMap.has(hour)) {
@@ -98,9 +119,9 @@ export async function GET(request: NextRequest) {
           }
           const h = hourlyMap.get(hour)!
           if (isDineIn) {
-            h.dine_in_orders++
+            h.dine_in_orders += orderCount
           } else {
-            h.takeout_orders++
+            h.takeout_orders += orderCount
           }
         }
       }
