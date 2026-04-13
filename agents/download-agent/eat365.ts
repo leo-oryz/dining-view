@@ -258,6 +258,40 @@ async function tryExport(page: Page, reportType: string, debug = false): Promise
   // Dismiss any modal popups (e.g. "Change Log" notification)
   await dismissModals(page)
 
+  // Transaction Report is a filter form gated by a Cloudflare Turnstile widget.
+  // Until the Turnstile token is populated, the Submit button is a no-op (does
+  // not even fire a network request). Stealth plugin alone is not enough to
+  // pass Turnstile — a CAPTCHA solver service is required. Detect the empty
+  // token and skip cleanly so daily runs aren't polluted with bogus failures.
+  if (reportType === 'eat365-transactions') {
+    await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {})
+    await page.waitForTimeout(2000)
+
+    const turnstileToken = await page.evaluate(() => {
+      const el = document.querySelector<HTMLInputElement>('input[name="cf-turnstile-response"]')
+      return el ? el.value : null
+    }).catch(() => null)
+
+    if (turnstileToken === null || turnstileToken === '') {
+      console.warn('[eat365] Transaction Report blocked: Cloudflare Turnstile token not solved. ' +
+        'Stealth plugin alone is insufficient — a CAPTCHA solver is required. ' +
+        'Falling through to manual upload workflow.')
+      return null
+    }
+
+    // Token present — click Submit to generate the report
+    const submitBtn = page.locator('button:has-text("Submit")').first()
+    if (await submitBtn.count() > 0) {
+      console.log('[eat365] Clicking Submit to generate Transaction Report...')
+      await submitBtn.scrollIntoViewIfNeeded().catch(() => {})
+      await submitBtn.click({ force: true, timeout: 5000 }).catch(() => {})
+      await page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {})
+      await loadingOverlay.waitFor({ state: 'hidden', timeout: 60000 }).catch(() => {})
+      await page.locator('button:has-text("Export")').first()
+        .waitFor({ state: 'visible', timeout: 30000 }).catch(() => {})
+    }
+  }
+
   if (debug) {
     await page.screenshot({ path: path.join(__dirname, `debug_export_${reportType}.png`) })
     console.log(`[eat365] Debug screenshot saved for ${reportType}, URL: ${page.url()}`)
@@ -270,7 +304,7 @@ async function tryExport(page: Page, reportType: string, debug = false): Promise
   }
 
   const [download] = await Promise.all([
-    page.waitForEvent('download', { timeout: 15000 }),
+    page.waitForEvent('download', { timeout: 30000 }),
     exportBtn.first().click(),
   ])
   return download
@@ -314,7 +348,9 @@ export async function downloadEat365Reports(options?: {
 
         // If download failed and we haven't retried yet, session may be expired
         // without a redirect (stale cookies). Clear session, re-login, retry.
-        if (!download && !sessionRetried) {
+        // Skip the retry for transactions: its failure is caused by Cloudflare
+        // Turnstile, not stale session, so re-logging in burns an OTP for nothing.
+        if (!download && !sessionRetried && report.type !== 'eat365-transactions') {
           console.log(`[eat365] Download failed for ${report.type} — session may be stale, re-logging in...`)
           clearSession()
           // Close old context and create a fresh one

@@ -3,7 +3,7 @@ import { google } from 'googleapis'
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 const VERIFICATION_SENDER = 'no-reply@accounts.eats365pos.com'
 const VERIFICATION_SUBJECT = 'Verification Code'
-const CODE_REGEX = /Verification Code[^0-9]*(\d{6})/
+const CODE_REGEX = /login is (\d{6})/
 
 /**
  * Read the latest eat365 verification code from Gmail
@@ -36,41 +36,52 @@ export async function readEat365VerificationCode(options?: {
   const gmail = google.gmail({ version: 'v1', auth })
 
   const startTime = Date.now()
-  // Only look for emails from the last 5 minutes
-  const afterEpoch = Math.floor(startTime / 1000) - 300
+  // Record the timestamp before we start polling, so we only accept newer emails
+  const startTimestamp = startTime
 
   console.log('[gmail] Waiting for eat365 verification email...')
 
   while (Date.now() - startTime < timeout) {
     try {
+      // Use newer_than instead of after:epoch (epoch format unreliable with Gmail API)
       const res = await gmail.users.messages.list({
         userId: 'me',
-        q: `from:${VERIFICATION_SENDER} subject:${VERIFICATION_SUBJECT} after:${afterEpoch}`,
-        maxResults: 1,
+        q: `from:${VERIFICATION_SENDER} subject:${VERIFICATION_SUBJECT} newer_than:5m`,
+        maxResults: 3,
       })
 
       const messages = res.data.messages
       if (messages && messages.length > 0) {
-        const msg = await gmail.users.messages.get({
-          userId: 'me',
-          id: messages[0].id!,
-          format: 'full',
-        })
+        // Check messages from newest to oldest
+        for (const msgRef of messages) {
+          const msg = await gmail.users.messages.get({
+            userId: 'me',
+            id: msgRef.id!,
+            format: 'full',
+          })
 
-        // Extract code from snippet or body
-        const snippet = msg.data.snippet || ''
-        const match = snippet.match(CODE_REGEX)
-        if (match) {
-          console.log(`[gmail] Found verification code: ${match[1]}`)
-          return match[1]
-        }
+          // Only accept emails received after we started waiting
+          const internalDate = parseInt(msg.data.internalDate || '0', 10)
+          if (internalDate < startTimestamp - 30000) {
+            // This email is older than when we started (with 30s grace), skip
+            continue
+          }
 
-        // Try body if snippet didn't work
-        const body = getMessageBody(msg.data)
-        const bodyMatch = body.match(CODE_REGEX)
-        if (bodyMatch) {
-          console.log(`[gmail] Found verification code from body: ${bodyMatch[1]}`)
-          return bodyMatch[1]
+          // Extract code from snippet or body
+          const snippet = msg.data.snippet || ''
+          const match = snippet.match(CODE_REGEX)
+          if (match) {
+            console.log(`[gmail] Found verification code: ${match[1]}`)
+            return match[1]
+          }
+
+          // Try body if snippet didn't work
+          const body = getMessageBody(msg.data)
+          const bodyMatch = body.match(CODE_REGEX)
+          if (bodyMatch) {
+            console.log(`[gmail] Found verification code from body: ${bodyMatch[1]}`)
+            return bodyMatch[1]
+          }
         }
       }
     } catch (err: any) {

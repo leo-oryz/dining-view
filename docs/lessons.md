@@ -219,6 +219,19 @@
 - Fix: introduce a `formatLocalDate(d)` helper that reads `getFullYear/getMonth/getDate` and formats directly, and use it everywhere week keys or range start dates are produced on the client.
 - Lesson: Never use `toISOString()` to serialize a "date" value (as opposed to a true instant). For local calendar dates, always format components manually. This applies to week bucketing, start_date query params, and any `YYYY-MM-DD` the user will read.
 
+### eat365 OTP Auto-Login — Email Button Visibility Race
+- After submitting credentials, the eat365 verification page mounts the OTP method buttons (Email / SMS) inside a container that only becomes truly visible once an init animation finishes. A blanket `waitForTimeout(3000)` was not enough — Playwright would resolve `div.otp-request-btn[data-option="1"]` (it exists in the DOM) but report "element is not visible" and time out the click after 30s, killing the entire daily run.
+- Symptom: `daily.log` showed `[eat365] Failed to download eat365-hourly: locator.click: Timeout 30000ms exceeded ... element is not visible` whenever the saved session was stale, breaking the auto-login retry path. Subsequent eat365 reports for the day were skipped, and the user only saw ingestion stop.
+- Fix: in `autoLogin()`, replace the fixed sleep with `page.waitForURL(/verify|not-sign-in/)` + `waitForLoadState('networkidle')` + `dismissModals()`, then `waitFor({ state: 'visible' })` on the email button before clicking. Add a `force: true` fallback and a final `el.click()` DOM dispatch fallback so a flaky overlay can't block the click.
+- Lesson: For headless login flows that gate on element visibility, never rely on fixed sleeps. Wait for an explicit URL/network/visibility signal, and always include a JS-dispatch fallback for click steps that can be intercepted by transient overlays.
+
+### eat365 Transaction Report — Cloudflare Turnstile Blocks Auto-Download
+- The Transaction Report page (`/v2/report/transaction_report`) is gated by a Cloudflare Turnstile widget (`window.cloudflareTurnstileSiteKey = "0x4AAAAAABuL0Kr2zKj_BNCe"`). Until the hidden `cf-turnstile-response` input is populated with a valid token, the form's Submit handler is a no-op — clicking it triggers ZERO network requests, so no report is generated and no Export button appears.
+- `playwright-extra` + `puppeteer-extra-plugin-stealth` is NOT enough on its own. Stealth masks headless fingerprints but does not solve Turnstile's behavior-based challenge; the response field remains empty after page load, so Submit silently fails.
+- Symptom: dry-run logs show `vld-container count=2 ... visibility=visible` (loading overlay never goes away), `Submit enabled=true visible=true` followed by `Network requests after submit (0)` and `No Export button found for eat365-transactions`. The other three reports (summary, hourly, items) still work fine because they don't sit behind Turnstile.
+- Workaround: detect the empty `cf-turnstile-response` field early and skip cleanly with a clear log message so daily logs aren't polluted with bogus failures. Manual upload of the Transaction Report remains required until a CAPTCHA solver service (2Captcha / CapMonster / AntiCaptcha) is integrated.
+- Lesson: Before assuming stealth is enough to bypass anti-bot, instrument the page (network log + DOM dump) to see what's actually blocking. A clean failure path with a clear log message is more valuable than a silent retry storm.
+
 ### Middleware publicPaths Must Cover All Scheduler Endpoints
 - When adding new API endpoints that the scheduler calls (e.g. `/api/sync/tiktok-ads`, `/api/alerts/detect`, `/api/kol/sync-all`, `/api/digest/send`), they MUST be added to `publicPaths` in `middleware.ts`. Otherwise the scheduler's requests get 307 redirected to `/login` and silently fail.
 - Symptom: scheduler logs show "sync result: {}" or HTML instead of JSON — the response is actually the login page redirect.
