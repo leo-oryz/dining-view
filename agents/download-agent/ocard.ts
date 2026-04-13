@@ -23,6 +23,41 @@ async function ensureDownloadDir() {
   }
 }
 
+/**
+ * Dismiss Ocard notification modals (e.g. "系統資訊安全性服務升級").
+ * Tries common close selectors and finally Escape key as fallback.
+ */
+async function dismissOcardModals(page: Page) {
+  const selectors = [
+    'button:has-text("關閉")',
+    'button:has-text("我知道了")',
+    'button:has-text("確認")',
+    'button:has-text("確定")',
+    'button:has-text("Close")',
+    'button:has-text("OK")',
+    '.modal button.close',
+    '.modal .btn-close',
+    '.modal [aria-label="Close"]',
+    '[class*="modal"] button[class*="close"]',
+    '.el-message-box__close',
+    '.el-dialog__close',
+    '.swal2-close',
+    '.swal2-confirm',
+  ]
+  for (const sel of selectors) {
+    const btn = page.locator(sel).filter({ visible: true } as any)
+    if (await btn.count().catch(() => 0) > 0) {
+      await btn.first().click({ force: true }).catch(() => {})
+      console.log(`[ocard] Dismissed modal via ${sel}`)
+      await page.waitForTimeout(1000)
+      return
+    }
+  }
+  // Fallback: press Escape
+  await page.keyboard.press('Escape').catch(() => {})
+  await page.waitForTimeout(500)
+}
+
 async function login(page: Page, credentials?: StoreCredentials) {
   const email = credentials?.email || process.env.OCARD_LOGIN_EMAIL
   const password = credentials?.password || process.env.OCARD_LOGIN_PASSWORD
@@ -129,6 +164,9 @@ export async function downloadOcardReports(options?: {
         await page.goto(report.url, { waitUntil: 'domcontentloaded', timeout: 30000 })
         await page.waitForLoadState('networkidle').catch(() => {})
         await page.waitForTimeout(3000)
+
+        // Dismiss any notification modals (e.g. 系統資訊安全性服務升級)
+        await dismissOcardModals(page)
 
         // Set date range if applicable
         if (report.hasDateRange) {
