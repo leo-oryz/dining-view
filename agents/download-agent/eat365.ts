@@ -147,7 +147,43 @@ function clearSession() {
  * Try clicking Export and downloading the file.
  * Returns the Download on success, or null on failure.
  */
-async function tryExport(page: Page, reportType: string): Promise<any | null> {
+/**
+ * Dismiss any modal/popup dialogs (e.g. "Change Log" notification).
+ */
+async function dismissModals(page: Page) {
+  const modalBtns = [
+    'button:has-text("Got it")',
+    'button:has-text("OK")',
+    'button:has-text("Close")',
+    '.modal .btn-primary',
+    '.modal .btn-success',
+    '.swal2-confirm',
+    'button.close[data-dismiss="modal"]',
+  ]
+  for (const sel of modalBtns) {
+    const btn = page.locator(sel)
+    if (await btn.count() > 0) {
+      await btn.first().click({ force: true }).catch(() => {})
+      console.log(`[eat365] Dismissed modal via ${sel}`)
+      await page.waitForTimeout(1000)
+      return
+    }
+  }
+}
+
+async function tryExport(page: Page, reportType: string, debug = false): Promise<any | null> {
+  // Wait for any loading overlay to disappear
+  const loadingOverlay = page.locator('.vld-container .vl-background, .loading-overlay')
+  await loadingOverlay.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})
+
+  // Dismiss any modal popups (e.g. "Change Log" notification)
+  await dismissModals(page)
+
+  if (debug) {
+    await page.screenshot({ path: path.join(__dirname, `debug_export_${reportType}.png`) })
+    console.log(`[eat365] Debug screenshot saved for ${reportType}, URL: ${page.url()}`)
+  }
+
   const exportBtn = page.locator('button:has-text("Export")')
   if (await exportBtn.count() === 0) {
     console.warn(`[eat365] No Export button found for ${reportType}`)
@@ -214,7 +250,7 @@ export async function downloadEat365Reports(options?: {
           await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 })
           await page.waitForLoadState('networkidle').catch(() => {})
           await page.waitForTimeout(3000)
-          download = await tryExport(page, report.type).catch((err) => {
+          download = await tryExport(page, report.type, true).catch((err) => {
             console.error(`[eat365] Retry also failed for ${report.type}:`, err)
             return null
           })
