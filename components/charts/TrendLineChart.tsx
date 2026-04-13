@@ -54,10 +54,14 @@ export function TrendLineChart({ data, dailyTarget, metric, height, weatherData 
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((d) => {
       const w = weatherMap.get(d.date)
+      // Preserve null for turnover so chart breaks the line on days without
+      // channel data instead of plotting a misleading 0.
+      const raw = d[metric]
+      const value = metric === 'turnover' ? (raw ?? null) : (raw ?? 0)
       return {
         ...d,
         dateLabel: format(new Date(d.date), 'M/d'),
-        value: d[metric] ?? 0,
+        value,
         precipitation: w?.precipitation ?? null,
         temp_high: w?.temp_high ?? null,
       }

@@ -249,14 +249,18 @@ export default function TrendsPage() {
   const ordersChange = pctChange(totalOrders, prevOrders)
   const avgSpendingChange = pctChange(avgSpending, prevAvgSpending)
 
-  // Dine-in turnover rate: dine_in_guests / (seat_count × days_with_data)
+  // Dine-in turnover rate: dine_in_guests / (seat_count × days_with_channel_data).
+  // We count days that actually had dine-in activity so dates with no channel data
+  // (e.g. before daily-closing sync was rolled out) don't dilute the average.
   const dineInGuests = channelData?.summary.dine_in.guest_count ?? 0
   const prevDineInGuests = prevChannelData?.summary.dine_in.guest_count ?? 0
-  const turnoverRate = seatCount && seatCount > 0 && daysWithData > 0
-    ? dineInGuests / (seatCount * daysWithData)
+  const channelDaysCount = channelData?.daily.filter((d) => (d.dine_in_guests ?? 0) > 0 || d.dine_in_orders > 0).length ?? 0
+  const prevChannelDaysCount = prevChannelData?.daily.filter((d) => (d.dine_in_guests ?? 0) > 0 || d.dine_in_orders > 0).length ?? 0
+  const turnoverRate = seatCount && seatCount > 0 && channelDaysCount > 0
+    ? dineInGuests / (seatCount * channelDaysCount)
     : null
-  const prevTurnoverRate = seatCount && seatCount > 0 && prevDaysWithData > 0
-    ? prevDineInGuests / (seatCount * prevDaysWithData)
+  const prevTurnoverRate = seatCount && seatCount > 0 && prevChannelDaysCount > 0
+    ? prevDineInGuests / (seatCount * prevChannelDaysCount)
     : null
   const turnoverChange = turnoverRate != null && prevTurnoverRate != null
     ? pctChange(turnoverRate, prevTurnoverRate)
@@ -286,18 +290,20 @@ export default function TrendsPage() {
     { key: 'turnover', label: t('trends.turnoverRate'), disabled: seatCount == null },
   ]
 
-  // Merge channel daily data into sales data for turnover metric
+  // Merge channel daily data into sales data for turnover metric.
+  // Days with no channel entry stay null so the chart breaks the line instead
+  // of drawing a misleading 0.
   const mergedDailyData = useMemo(() => {
     const guestsMap = new Map<string, number>()
-    if (channelData && seatCount && seatCount > 0) {
+    if (channelData) {
       for (const d of channelData.daily) {
         guestsMap.set(d.date, d.dine_in_guests ?? 0)
       }
     }
     return data.map((d) => ({
       ...d,
-      turnover: seatCount && seatCount > 0
-        ? (guestsMap.get(d.date) ?? 0) / seatCount
+      turnover: seatCount && seatCount > 0 && guestsMap.has(d.date)
+        ? guestsMap.get(d.date)! / seatCount
         : null,
     }))
   }, [data, channelData, seatCount])
