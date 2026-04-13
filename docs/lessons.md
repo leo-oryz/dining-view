@@ -207,6 +207,18 @@
 - Fix: If `waitForEvent('download')` times out, treat it as a possible stale session — clear the session file, create a fresh browser context, re-login via auto-login (email + Gmail verification code), and retry the download once.
 - Lesson: Session validity checks should not rely solely on URL redirects. Always have a fallback detection mechanism for when the server silently accepts stale cookies but doesn't function properly.
 
+### Google Reviews Sync — Weekly Gate + Silent Timeout
+- `/api/cron/daily` originally only called `/api/reviews/sync` on Mondays (`if (today.getDay() === 1)`), so any Monday failure meant a full week of missing data with no retry.
+- `apifyClient.fetchApifyReviews` polls the Apify run for up to 5 minutes (30 × 10s), but `/api/reviews/sync` had no `maxDuration` override — on Zeabur/Next.js the route died well before the Apify run finished. Every weekly attempt failed silently.
+- Fix: Remove the Monday gate (run reviews sync daily), set `export const maxDuration = 300` on both `/api/cron/daily` and `/api/reviews/sync`, and surface `new_reviews` count in the cron log so failures are visible.
+- Lesson: Any endpoint that awaits a long-running external polling loop must explicitly set `maxDuration`. And when a sync runs weekly instead of daily, a single failure costs 7 days — daily runs with idempotent upserts are almost always safer.
+
+### `toISOString().split('T')[0]` Shifts Dates in UTC+8
+- In `app/(dashboard)/reviews/page.tsx`, week-start dates were computed in local time with `new Date(...)` + `setDate(...)`, then serialized via `toISOString().split('T')[0]`. In Taipei (UTC+8), local Monday 00:00 becomes UTC Sunday 16:00, so the serialized key is one day earlier than intended.
+- Symptom: latest weekly bar on the rating trend chart was labeled `04-05` (Sunday) instead of `04-06` (Monday). The user saw this as "data only updated to 4/5" even though the 4/12 review was correctly bucketed into that bar.
+- Fix: introduce a `formatLocalDate(d)` helper that reads `getFullYear/getMonth/getDate` and formats directly, and use it everywhere week keys or range start dates are produced on the client.
+- Lesson: Never use `toISOString()` to serialize a "date" value (as opposed to a true instant). For local calendar dates, always format components manually. This applies to week bucketing, start_date query params, and any `YYYY-MM-DD` the user will read.
+
 ### Middleware publicPaths Must Cover All Scheduler Endpoints
 - When adding new API endpoints that the scheduler calls (e.g. `/api/sync/tiktok-ads`, `/api/alerts/detect`, `/api/kol/sync-all`, `/api/digest/send`), they MUST be added to `publicPaths` in `middleware.ts`. Otherwise the scheduler's requests get 307 redirected to `/login` and silently fail.
 - Symptom: scheduler logs show "sync result: {}" or HTML instead of JSON — the response is actually the login page redirect.
