@@ -3,6 +3,8 @@ import { createReviewSnapshot } from '@/lib/reviews/reviewAnalyzer'
 import { apiSuccess, apiError, getStoreId } from '@/lib/api-utils'
 import { createServiceClient } from '@/lib/supabase/server'
 
+export const maxDuration = 300
+
 export async function POST(request: Request) {
   try {
     const { searchParams } = new URL(request.url)

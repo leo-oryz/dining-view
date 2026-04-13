@@ -4,7 +4,7 @@ import { fetchBrandSearch } from '@/lib/google/gscClient'
 import { fetchEvents } from '@/lib/google/ga4Client'
 import { recalculateConversion } from '@/lib/google/conversionCalc'
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 export async function GET(request: NextRequest) {
   // Verify cron secret
@@ -170,15 +170,15 @@ export async function GET(request: NextRequest) {
     results.line = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
   }
 
-  // 6. Google Reviews sync (weekly - only on Monday)
-  if (today.getDay() === 1) {
-    try {
-      const reviewsRes = await fetch(`${getBaseUrl(request)}/api/reviews/sync`, { method: 'POST' })
-      const reviewsJson = await reviewsRes.json()
-      results.reviews = reviewsJson.success ? 'ok' : `Error: ${reviewsJson.error}`
-    } catch (err) {
-      results.reviews = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
-    }
+  // 6. Google Reviews sync (daily)
+  try {
+    const reviewsRes = await fetch(`${getBaseUrl(request)}/api/reviews/sync`, { method: 'POST' })
+    const reviewsJson = await reviewsRes.json()
+    results.reviews = reviewsJson.success
+      ? `${reviewsJson.data?.new_reviews ?? 0} new`
+      : `Error: ${reviewsJson.error}`
+  } catch (err) {
+    results.reviews = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
   }
 
   console.log(`[cron/daily] ${new Date().toISOString()}`, results)
