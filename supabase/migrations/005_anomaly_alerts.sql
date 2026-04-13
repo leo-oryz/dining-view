@@ -18,9 +18,10 @@ CREATE TABLE IF NOT EXISTS anomaly_alerts (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Unique per (store, type, day) — expression requires a separate index, not an inline UNIQUE constraint
-CREATE UNIQUE INDEX IF NOT EXISTS uq_anomaly_alerts_store_type_day
-  ON anomaly_alerts (store_id, alert_type, (created_at::date));
+-- Note: duplicates are prevented in application code (detector deletes
+-- existing rows for the same store+type+day before inserting). A unique
+-- index on (store_id, alert_type, created_at::date) can't be created
+-- because the cast from timestamptz to date is not IMMUTABLE.
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_anomaly_alerts_store_date ON anomaly_alerts(store_id, created_at DESC);
