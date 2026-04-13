@@ -12,12 +12,27 @@ import { useI18n } from '@/lib/i18n/context'
 type TimeRange = '1m' | '3m' | '6m' | 'all'
 type Granularity = 'week' | 'month'
 
+function formatLocalDate(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
+function mondayOf(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  return formatLocalDate(d)
+}
+
 function getStartDate(range: TimeRange): string | null {
   if (range === 'all') return null
   const now = new Date()
   const months = range === '1m' ? 1 : range === '3m' ? 3 : 6
   now.setMonth(now.getMonth() - months)
-  return now.toISOString().split('T')[0]
+  return formatLocalDate(now)
 }
 
 interface Snapshot {
@@ -125,12 +140,7 @@ export default function ReviewsPage() {
       if (granularity === 'month') {
         key = r.review_date.slice(0, 7) // YYYY-MM
       } else {
-        // Week: get Monday of the week
-        const d = new Date(r.review_date + 'T00:00:00')
-        const day = d.getDay()
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday
-        d.setDate(diff)
-        key = d.toISOString().split('T')[0]
+        key = mondayOf(r.review_date)
       }
 
       const entry = bucketMap.get(key) || { ratings: [], count: 0, negative: 0 }
@@ -427,11 +437,7 @@ function buildRatingRevenueData(
   // Group reviews by week (Monday-based)
   const weekMap = new Map<string, number[]>()
   for (const r of validReviews) {
-    const d = new Date(r.review_date + 'T00:00:00')
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-    d.setDate(diff)
-    const weekKey = d.toISOString().split('T')[0]
+    const weekKey = mondayOf(r.review_date)
     const arr = weekMap.get(weekKey) || []
     arr.push(r.rating!)
     weekMap.set(weekKey, arr)
@@ -443,7 +449,7 @@ function buildRatingRevenueData(
       const ws = new Date(weekStart + 'T00:00:00')
       const we = new Date(ws)
       we.setDate(we.getDate() + 6)
-      const weekEndStr = we.toISOString().split('T')[0]
+      const weekEndStr = formatLocalDate(we)
 
       const weeklyRevenue = sales
         .filter(d => d.date >= weekStart && d.date <= weekEndStr)
