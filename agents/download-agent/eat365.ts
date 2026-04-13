@@ -1,7 +1,13 @@
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
+import { chromium } from 'playwright-extra'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
+import type { Browser, BrowserContext, Page } from 'playwright'
 import path from 'path'
 import fs from 'fs'
 import { readEat365VerificationCode } from './gmail-reader'
+
+// Stealth plugin masks headless browser fingerprints so Cloudflare Turnstile
+// on the Transaction Report page is more likely to pass without a challenge.
+chromium.use(StealthPlugin())
 
 const DOWNLOAD_DIR = path.join(__dirname, 'downloads')
 const SESSION_FILE = path.join(__dirname, 'eat365-session.json')
@@ -69,12 +75,42 @@ async function autoLogin(page: Page, context: BrowserContext, credentials?: Stor
   await page.fill('#password', password)
   await page.click('div.sign-in-btn')
   console.log('[eat365] Credentials submitted, waiting for verification page...')
-  await page.waitForTimeout(3000)
 
-  // Step 2: Click "Email" button to trigger verification code email
-  const emailBtn = page.locator('div.otp-request-btn[data-option="1"]')
+  // Wait for URL to transition to /verify (or any non sign-in page) instead of a fixed sleep
+  await page.waitForURL((url) => {
+    const u = url.toString()
+    return u.includes('/verify') || (!u.includes('/sign-in'))
+  }, { timeout: 20000 }).catch(() => {})
+  await page.waitForLoadState('networkidle').catch(() => {})
+
+  // Dismiss any modals that may overlay the OTP buttons (e.g. Change Log popup)
+  await dismissModals(page)
+
+  // Step 2: Click "Email" button to trigger verification code email.
+  // The button sometimes resolves but isn't immediately visible — wait for visible,
+  // scroll into view, and fall back to force click / JS click if needed.
+  const emailBtn = page.locator('div.otp-request-btn[data-option="1"]').first()
+  try {
+    await emailBtn.waitFor({ state: 'visible', timeout: 15000 })
+  } catch {
+    console.warn('[eat365] Email OTP button never became visible, attempting force click anyway')
+    await page.screenshot({ path: path.join(__dirname, 'debug_verify_page.png') }).catch(() => {})
+  }
   if (await emailBtn.count() > 0) {
-    await emailBtn.click()
+    await emailBtn.scrollIntoViewIfNeeded().catch(() => {})
+    try {
+      await emailBtn.click({ timeout: 5000 })
+    } catch {
+      // Fallback 1: force click (ignores visibility/stability checks)
+      try {
+        await emailBtn.click({ force: true, timeout: 5000 })
+        console.log('[eat365] Clicked Email OTP button via force click')
+      } catch {
+        // Fallback 2: dispatch click event directly via DOM
+        await emailBtn.evaluate((el: HTMLElement) => el.click())
+        console.log('[eat365] Clicked Email OTP button via DOM event')
+      }
+    }
     console.log('[eat365] Clicked "Email" to request verification code...')
     await page.waitForTimeout(2000)
   } else {
@@ -125,12 +161,14 @@ async function autoLogin(page: Page, context: BrowserContext, credentials?: Stor
   console.log('[eat365] Session saved to', SESSION_FILE)
 }
 
-// Note: eat365-transactions (Transaction Report) is protected by Cloudflare
-// Turnstile and cannot be automated. Must be downloaded manually.
+// Transaction Report is protected by Cloudflare Turnstile. Phase 1 approach:
+// playwright-extra + stealth plugin tries to pass the challenge without a solver.
+// If it fails in practice, fall back to a captcha-solving service.
 const EAT365_REPORTS = [
   { type: 'eat365-summary', path: '/v2/report/sales_summary' },
   { type: 'eat365-hourly', path: '/v2/report/sales/hourly_sales_report' },
   { type: 'eat365-items', path: '/v2/report/sales/sales_by_items' },
+  { type: 'eat365-transactions', path: '/v2/report/transaction_report' },
 ]
 
 /**
@@ -171,10 +209,51 @@ async function dismissModals(page: Page) {
   }
 }
 
+/**
+ * Wait for Cloudflare Turnstile / managed challenge to clear. Returns true if
+ * the page is usable, false if the challenge is still blocking us. Only
+ * relevant for the Transaction Report page.
+ */
+async function waitForCloudflare(page: Page, reportType: string): Promise<boolean> {
+  const cfSelectors = [
+    'iframe[src*="challenges.cloudflare.com"]',
+    'iframe[title*="challenge"]',
+    'div.cf-turnstile',
+    '#challenge-running',
+    '#challenge-stage',
+  ]
+  const deadline = Date.now() + 30000
+  let sawChallenge = false
+  while (Date.now() < deadline) {
+    let present = false
+    for (const sel of cfSelectors) {
+      if (await page.locator(sel).count() > 0) {
+        present = true
+        sawChallenge = true
+        break
+      }
+    }
+    if (!present) return true
+    await page.waitForTimeout(1000)
+  }
+  if (sawChallenge) {
+    console.warn(`[eat365] Cloudflare challenge did not clear for ${reportType} after 30s`)
+    await page.screenshot({ path: path.join(__dirname, `debug_cf_${reportType}.png`) }).catch(() => {})
+  }
+  return false
+}
+
 async function tryExport(page: Page, reportType: string, debug = false): Promise<any | null> {
   // Wait for any loading overlay to disappear
   const loadingOverlay = page.locator('.vld-container .vl-background, .loading-overlay')
   await loadingOverlay.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {})
+
+  // Transaction Report sits behind a Cloudflare Turnstile challenge. Give it
+  // time to auto-resolve (stealth plugin may be enough for managed challenge).
+  if (reportType === 'eat365-transactions') {
+    const cleared = await waitForCloudflare(page, reportType)
+    if (!cleared) return null
+  }
 
   // Dismiss any modal popups (e.g. "Change Log" notification)
   await dismissModals(page)
