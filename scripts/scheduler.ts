@@ -142,6 +142,22 @@ cron.schedule('0 8 * * 1', async () => {
   heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
+// Weekly AI report: Tuesday 08:30
+cron.schedule('30 8 * * 2', async () => {
+  console.log(`[scheduler] ${new Date().toISOString()} — Sending weekly AI report`)
+  try {
+    const res = await fetch(`${BASE_URL}/api/cron/weekly-ai-report`, {
+      method: 'POST',
+      headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
+    })
+    const json = await res.json()
+    console.log('[scheduler] Weekly AI report result:', json)
+  } catch (err) {
+    console.error('[scheduler] Weekly AI report failed:', err)
+  }
+  heartbeat()
+}, { timezone: 'Asia/Taipei' })
+
 // --- Heartbeat update after each job ---
 function heartbeat() {
   lastHeartbeat = new Date().toISOString()
