@@ -462,6 +462,8 @@ const en = {
   'ai.requestFailed': 'Analysis request failed',
   'ai.invalidFormat': 'Invalid report format',
   'ai.generating': 'Generating...',
+  'ai.shareReport': 'Share Report',
+  'ai.linkCopied': 'Link Copied',
 
   // Expansion page
   'expansion.title': 'Expansion Analysis',

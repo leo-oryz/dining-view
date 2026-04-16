@@ -462,6 +462,8 @@ const zhTW = {
   'ai.requestFailed': '分析請求失敗',
   'ai.invalidFormat': '報告格式無效',
   'ai.generating': '產生中...',
+  'ai.shareReport': '分享報告',
+  'ai.linkCopied': '連結已複製',
 
   // Expansion page
   'expansion.title': '展店決策分析',

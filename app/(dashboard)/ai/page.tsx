@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Brain, Loader2, Calendar } from 'lucide-react'
+import { Brain, Loader2, Calendar, Share2, Check } from 'lucide-react'
 import ReportHistory from '@/components/ai/ReportHistory'
 import AttributionReportView from '@/components/ai/AttributionReport'
 import StarProductsReportView from '@/components/ai/StarProductsReport'
@@ -50,6 +50,8 @@ export default function AiPage() {
   const [startDate, setStartDate] = useState(daysAgo(30))
   const [endDate, setEndDate] = useState(toDateStr(new Date()))
   const [error, setError] = useState<string | null>(null)
+  const [sharing, setSharing] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const handleTypeChange = (type: ReportType) => {
     setSelectedType(type)
@@ -117,6 +119,25 @@ export default function AiPage() {
       setError(t('ai.requestFailed'))
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleShare = async () => {
+    if (!activeReport) return
+    setSharing(true)
+    try {
+      const res = await fetch(`/api/ai/reports/${activeReport.id}/share`, { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        const url = `${window.location.origin}/shared/${json.data.share_token}`
+        await navigator.clipboard.writeText(url)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    } catch {
+      // silent
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -242,7 +263,30 @@ export default function AiPage() {
         <div className="lg:col-span-3">
           <div className="bg-white rounded-xl border border-slate-200 p-5 min-h-[300px]">
             {activeReport ? (
-              renderReport()
+              <>
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={handleShare}
+                    disabled={sharing}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={14} className="text-emerald-500" />
+                        <span className="text-emerald-600">{t('ai.linkCopied')}</span>
+                      </>
+                    ) : sharing ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Share2 size={14} />
+                        <span>{t('ai.shareReport')}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {renderReport()}
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                 <Brain size={32} className="mb-3 opacity-50" />
