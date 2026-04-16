@@ -251,3 +251,13 @@
 - Root cause: raw REST fetch with paginated requests (7+ sequential HTTP calls for 6000+ rows) was fragile in the Docker/Zeabur production environment.
 - Fix: Refactored to use Supabase JS client with `.range(from, to)` for pagination, consistent with all other API routes.
 - Lesson: Always use `createServiceClient()` from `@/lib/supabase/server` for server-side DB access. Never use raw REST API fetch — it bypasses the established auth pattern and is harder to debug.
+
+### Promise.all Resilience & AbortController
+- When using `Promise.all` with multiple fetches, a single un-caught fetch failure rejects the entire batch — all state updates are skipped.
+- Fix: Wrap every fetch in `.catch(() => ({ success: false }))` so individual failures don't cascade.
+- When the user switches time ranges quickly, stale responses from older requests can overwrite newer state. Fix: use `AbortController` with cleanup in useEffect return, and check `signal.aborted` before setting state.
+
+### Query Optimization: Prefer Pre-Aggregated Sources
+- The `order_items` table can have 20k+ `__order__` rows for 90 days (one per transaction). Fetching all via pagination (22 pages) is slow and unreliable.
+- Fix: Query the pre-aggregated source first (`eat365-daily-closing`, ~3.5k rows), then only query raw transaction rows (`eat365`) for dates not already covered. Reduces pages from 22 to 4.
+- Lesson: When two data sources overlap, always query the more compact/aggregated one first, then backfill gaps with the granular source.
