@@ -8,6 +8,7 @@ const nextConfig = {
       '@react-pdf/pdfkit',
       '@react-pdf/font',
     ],
+    instrumentationHook: true,
   },
 };
 

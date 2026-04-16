@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     if (adsRes.error) return apiError(adsRes.error.message, 500)
 
-    // Aggregate by date for correlation
+    // Aggregate ad metrics by date
     const dailyAds = new Map<string, { spend: number; clicks: number; impressions: number }>()
     for (const a of adsRes.data || []) {
       const existing = dailyAds.get(a.date) || { spend: 0, clicks: 0, impressions: 0 }
@@ -43,14 +43,22 @@ export async function GET(request: NextRequest) {
       dailyAds.set(a.date, existing)
     }
 
-    const correlation = Array.from(dailyAds.entries()).map(([date, agg]) => {
-      const sale = (salesRes.data || []).find((s) => s.date === date)
+    // Build sales lookup
+    const salesByDate = new Map<string, number>()
+    for (const s of salesRes.data || []) {
+      salesByDate.set(s.date, s.net_sales)
+    }
+
+    // Merge all dates from both ad_campaigns and daily_sales
+    const allDates = new Set([...dailyAds.keys(), ...salesByDate.keys()])
+    const correlation = Array.from(allDates).map((date) => {
+      const agg = dailyAds.get(date)
       return {
         date,
-        ad_spend: agg.spend,
-        ad_clicks: agg.clicks,
-        ad_impressions: agg.impressions,
-        revenue: sale?.net_sales ?? null,
+        ad_spend: agg?.spend ?? 0,
+        ad_clicks: agg?.clicks ?? 0,
+        ad_impressions: agg?.impressions ?? 0,
+        revenue: salesByDate.get(date) ?? null,
       }
     })
 

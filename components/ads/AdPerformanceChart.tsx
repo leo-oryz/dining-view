@@ -34,7 +34,7 @@ export default function AdPerformanceChart({ data }: { data: CorrelationRow[] })
     .map((d) => ({
       date: d.date,
       廣告花費: d.ad_spend,
-      營收: d.revenue ?? 0,
+      營收: d.revenue ?? undefined,
     }))
 
   return (
@@ -54,7 +54,7 @@ export default function AdPerformanceChart({ data }: { data: CorrelationRow[] })
         />
         <Legend />
         <Bar yAxisId="left" dataKey="廣告花費" fill="#818cf8" barSize={20} />
-        <Line yAxisId="right" type="monotone" dataKey="營收" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+        <Line yAxisId="right" type="monotone" dataKey="營收" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} connectNulls />
       </ComposedChart>
     </ResponsiveContainer>
   )
