@@ -14,6 +14,7 @@ export interface AnalysisContext {
   reviewSnapshots: ReviewSnapshotRow[]
   kolCollaborations: KolCollaborationRow[]
   productAnomalies: ProductAnomaly[]
+  laborSummary: string | null
 }
 
 interface DailySalesRow {
@@ -169,6 +170,44 @@ export async function prepareAnalysisContext(
   // Detect product anomalies for the analysis period
   const productAnomalies = await detectProductAnomalies(supabase, storeId, periodStart, periodEnd)
 
+  // Fetch labor efficiency summary
+  let laborSummary: string | null = null
+  const { data: laborData } = await supabase
+    .from('labor_daily_summary')
+    .select('total_actual_hours, revenue, revenue_per_hour, labor_cost_ratio')
+    .eq('store_id', storeId)
+    .gte('date', periodStart)
+    .lte('date', periodEnd)
+    .order('date', { ascending: false })
+
+  if (laborData && laborData.length > 0) {
+    const totalHours = laborData.reduce((s, r) => s + (Number(r.total_actual_hours) || 0), 0)
+    const totalRevenue = laborData.reduce((s, r) => s + (Number(r.revenue) || 0), 0)
+    const avgRPH = totalHours > 0 ? Math.round(totalRevenue / totalHours) : 0
+    const avgCostRatio = laborData.filter(r => r.labor_cost_ratio != null)
+    const costRatioStr = avgCostRatio.length > 0
+      ? `${(avgCostRatio.reduce((s, r) => s + Number(r.labor_cost_ratio), 0) / avgCostRatio.length * 100).toFixed(1)}%`
+      : 'N/A'
+
+    // Find lowest efficiency time slot
+    const { data: hourlyData } = await supabase
+      .from('labor_hourly')
+      .select('time_slot_start, revenue_per_staff')
+      .eq('store_id', storeId)
+      .gte('date', periodStart)
+      .lte('date', periodEnd)
+      .not('revenue_per_staff', 'is', null)
+      .order('revenue_per_staff', { ascending: true })
+      .limit(1)
+
+    const lowestSlot = hourlyData?.[0]
+    const lowestStr = lowestSlot
+      ? `最低效時段：${lowestSlot.time_slot_start.slice(0, 5)}（每人 NT$${Math.round(Number(lowestSlot.revenue_per_staff))}）`
+      : ''
+
+    laborSummary = `人力效益：工時產出 NT$${avgRPH}（目標 NT$1,600），人力成本率 ${costRatioStr}（目標 30%），${lowestStr}`
+  }
+
   return {
     storeName: storeRes.data?.name || 'Unknown',
     periodStart,
@@ -181,6 +220,7 @@ export async function prepareAnalysisContext(
     memberSnapshots: membersRes.data || [],
     reviewSnapshots: reviewsRes.data || [],
     productAnomalies,
+    laborSummary,
     kolCollaborations: (kolRes.data || []).map((c: { kol_name: string; collaboration_date: string; featured_products: string[]; collaboration_fee: number | null; kol_posts: { platform: string; views: number | null; likes: number | null; comments: number | null; shares: number | null }[] }) => {
       const posts = c.kol_posts || []
       return {

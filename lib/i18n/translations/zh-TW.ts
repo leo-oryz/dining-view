@@ -40,6 +40,7 @@ const zhTW = {
   'nav.alerts': '異常警報',
   'nav.productRanking': '商品排行',
   'nav.delivery': '外送平台',
+  'nav.labor': '人力效益',
   'nav.digital': '數位行銷',
   'nav.ads': '廣告管理',
   'nav.kol': 'KOL 合作',

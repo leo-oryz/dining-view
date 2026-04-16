@@ -1,0 +1,575 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { format, subDays, startOfMonth, endOfMonth } from 'date-fns'
+import {
+  LineChart, Line, BarChart, Bar, ComposedChart,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, ReferenceLine, Cell,
+} from 'recharts'
+import { Clock, DollarSign, TrendingUp, AlertTriangle, X } from 'lucide-react'
+import clsx from 'clsx'
+
+// ─── Types ───
+interface DailySummary {
+  date: string
+  staff_count: number
+  total_scheduled_hours: number
+  total_actual_hours: number
+  total_overtime_hours: number
+  total_labor_cost: number | null
+  revenue: number
+  labor_cost_ratio: number | null
+  revenue_per_hour: number | null
+  revenue_per_hour_ma7: number | null
+}
+
+interface HourlyEfficiency {
+  date: string
+  time_slot_start: string
+  staff_count: number
+  revenue: number
+  revenue_per_staff: number | null
+}
+
+interface StaffRow {
+  id: string
+  employee_id: string
+  name: string
+  name_en: string | null
+  employment_type: string
+  hourly_rate: number | null
+  monthly_salary: number | null
+  month_hours: number
+  overtime_hours: number
+  month_cost: number | null
+  revenue_per_hour: number | null
+}
+
+interface OvertimeData {
+  topStaff: { staff_id: string; name: string; total_overtime: number; overtime_days: number }[]
+  dateBreakdown: { date: string; overtime_hours: number }[]
+}
+
+// ─── Helpers ───
+const fmtNT = (v: number) => `NT$${Math.round(v).toLocaleString()}`
+const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`
+
+const TARGET_RPH = 1600
+const TARGET_COST_RATIO = 0.30
+
+const DAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
+const HOURS = Array.from({ length: 16 }, (_, i) => i + 5) // 05:00~20:00
+
+function getHeatColor(val: number, max: number): string {
+  if (max === 0) return 'bg-gray-100'
+  const ratio = val / max
+  if (ratio >= 0.7) return 'bg-emerald-400'
+  if (ratio >= 0.4) return 'bg-yellow-300'
+  return 'bg-red-300'
+}
+
+export default function LaborPage() {
+  const [summary, setSummary] = useState<DailySummary[]>([])
+  const [hourly, setHourly] = useState<HourlyEfficiency[]>([])
+  const [staffList, setStaffList] = useState<StaffRow[]>([])
+  const [overtime, setOvertime] = useState<OvertimeData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedStaff, setSelectedStaff] = useState<StaffRow | null>(null)
+  const [modalForm, setModalForm] = useState({ employment_type: 'full_time', hourly_rate: '', monthly_salary: '' })
+  const [saving, setSaving] = useState(false)
+  const [userRole, setUserRole] = useState<string>('manager')
+
+  const now = new Date()
+  const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
+  const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
+  const thirtyDaysAgo = format(subDays(now, 30), 'yyyy-MM-dd')
+  const today = format(now, 'yyyy-MM-dd')
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [sumRes, hourlyRes, staffRes, otRes, meRes] = await Promise.all([
+        fetch(`/api/labor/summary?from=${thirtyDaysAgo}&to=${today}`),
+        fetch(`/api/labor/hourly-efficiency?from=${thirtyDaysAgo}&to=${today}`),
+        fetch('/api/labor/staff'),
+        fetch(`/api/labor/overtime?from=${monthStart}&to=${monthEnd}`),
+        fetch('/api/auth/me'),
+      ])
+
+      const [sumJson, hourlyJson, staffJson, otJson, meJson] = await Promise.all([
+        sumRes.json(), hourlyRes.json(), staffRes.json(), otRes.json(), meRes.json(),
+      ])
+
+      if (sumJson.success) setSummary(sumJson.data || [])
+      if (hourlyJson.success) setHourly(hourlyJson.data || [])
+      if (staffJson.success) setStaffList(staffJson.data || [])
+      if (otJson.success) setOvertime(otJson.data || null)
+      if (meJson.success) setUserRole(meJson.data?.role || 'manager')
+    } catch { /* ignore */ }
+    setLoading(false)
+  }, [thirtyDaysAgo, today, monthStart, monthEnd])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  // ─── KPI calculations ───
+  const monthSummary = summary.filter(s => s.date >= monthStart && s.date <= monthEnd)
+  const totalActualHours = monthSummary.reduce((s, r) => s + (r.total_actual_hours || 0), 0)
+  const totalRevenue = monthSummary.reduce((s, r) => s + (r.revenue || 0), 0)
+  const totalLaborCost = monthSummary.reduce((s, r) => s + (r.total_labor_cost || 0), 0)
+  const totalOvertimeHours = monthSummary.reduce((s, r) => s + (r.total_overtime_hours || 0), 0)
+  const hasAnyCost = monthSummary.some(r => r.total_labor_cost != null)
+
+  const avgRPH = totalActualHours > 0 ? totalRevenue / totalActualHours : 0
+  const avgCostRatio = hasAnyCost && totalRevenue > 0 ? totalLaborCost / totalRevenue : 0
+  const overtimeRate = totalActualHours > 0 ? totalOvertimeHours / totalActualHours : 0
+  const overtimeCost = hasAnyCost
+    ? monthSummary.reduce((s, r) => {
+        // rough estimate: overtime portion of labor cost
+        if (r.total_labor_cost && r.total_actual_hours && r.total_overtime_hours) {
+          return s + (r.total_labor_cost * r.total_overtime_hours / r.total_actual_hours)
+        }
+        return s
+      }, 0)
+    : 0
+
+  const isOwner = userRole === 'owner'
+
+  // ─── Heatmap data ───
+  const heatmapGrid: Record<string, { total: number; count: number }> = {}
+  let heatmapMax = 0
+  for (const row of hourly) {
+    const dow = new Date(row.date).getDay()
+    const hour = parseInt(row.time_slot_start.split(':')[0])
+    const key = `${dow}-${hour}`
+    if (!heatmapGrid[key]) heatmapGrid[key] = { total: 0, count: 0 }
+    heatmapGrid[key].total += row.revenue_per_staff || 0
+    heatmapGrid[key].count += 1
+  }
+  const heatmapCells: Record<string, number> = {}
+  for (const [key, val] of Object.entries(heatmapGrid)) {
+    const avg = val.count > 0 ? val.total / val.count : 0
+    heatmapCells[key] = avg
+    if (avg > heatmapMax) heatmapMax = avg
+  }
+
+  // ─── Dual axis data (average by time slot) ───
+  const slotAgg: Record<string, { staffTotal: number; revTotal: number; count: number }> = {}
+  for (const row of hourly) {
+    const slot = row.time_slot_start
+    if (!slotAgg[slot]) slotAgg[slot] = { staffTotal: 0, revTotal: 0, count: 0 }
+    slotAgg[slot].staffTotal += row.staff_count
+    slotAgg[slot].revTotal += row.revenue
+    slotAgg[slot].count += 1
+  }
+  const dualAxisData = Object.entries(slotAgg)
+    .map(([slot, agg]) => ({
+      slot: slot.slice(0, 5),
+      avgStaff: Math.round((agg.staffTotal / agg.count) * 10) / 10,
+      avgRevenue: Math.round(agg.revTotal / agg.count),
+    }))
+    .sort((a, b) => a.slot.localeCompare(b.slot))
+
+  // ─── Chart data ───
+  const trendData = summary.map(s => ({
+    date: format(new Date(s.date), 'M/d'),
+    rph: s.revenue_per_hour,
+    ma7: s.revenue_per_hour_ma7,
+    revenue: s.revenue,
+    hours: s.total_actual_hours,
+  }))
+
+  // ─── Modal handlers ───
+  const openModal = (s: StaffRow) => {
+    setSelectedStaff(s)
+    setModalForm({
+      employment_type: s.employment_type,
+      hourly_rate: s.hourly_rate?.toString() || '',
+      monthly_salary: s.monthly_salary?.toString() || '',
+    })
+  }
+
+  const saveStaff = async () => {
+    if (!selectedStaff) return
+    setSaving(true)
+    try {
+      await fetch('/api/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staff_id: selectedStaff.id,
+          employment_type: modalForm.employment_type,
+          hourly_rate: modalForm.hourly_rate ? parseFloat(modalForm.hourly_rate) : null,
+          monthly_salary: modalForm.monthly_salary ? parseFloat(modalForm.monthly_salary) : null,
+        }),
+      })
+      setSelectedStaff(null)
+      fetchData()
+    } catch { /* ignore */ }
+    setSaving(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 animate-pulse h-32" />
+        ))}
+      </div>
+    )
+  }
+
+  if (summary.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+        <Clock size={48} className="mx-auto text-slate-300 mb-4" />
+        <h3 className="text-lg font-semibold text-slate-700 mb-2">尚無人力數據</h3>
+        <p className="text-sm text-slate-500">
+          請至<a href="/upload" className="text-blue-600 hover:underline">上傳頁面</a>上傳 NUEIP 班表
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Revenue per hour */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp size={16} className="text-blue-500" />
+            <span className="text-sm text-slate-500">工時產出</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-900">{fmtNT(avgRPH)}<span className="text-sm font-normal text-slate-400">/人時</span></div>
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-xs text-slate-400">目標 {fmtNT(TARGET_RPH)}</span>
+            <span className={clsx('text-xs font-medium', avgRPH >= TARGET_RPH ? 'text-emerald-600' : 'text-red-500')}>
+              {avgRPH >= TARGET_RPH ? '🟢 達標' : '🔴 未達標'}
+            </span>
+          </div>
+        </div>
+
+        {/* Labor cost ratio */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <DollarSign size={16} className="text-amber-500" />
+            <span className="text-sm text-slate-500">人力成本率</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-900">
+            {hasAnyCost ? fmtPct(avgCostRatio) : '—'}
+          </div>
+          <div className="flex items-center gap-1 mt-1">
+            <span className="text-xs text-slate-400">目標 {fmtPct(TARGET_COST_RATIO)}</span>
+            {hasAnyCost && (
+              <span className={clsx('text-xs font-medium', avgCostRatio <= TARGET_COST_RATIO ? 'text-emerald-600' : 'text-red-500')}>
+                {avgCostRatio <= TARGET_COST_RATIO ? '🟢 達標' : '🔴 未達標'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Total hours */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock size={16} className="text-indigo-500" />
+            <span className="text-sm text-slate-500">本月總工時</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-900">{Math.round(totalActualHours)} <span className="text-sm font-normal text-slate-400">小時</span></div>
+          <div className="text-xs text-slate-400 mt-1">
+            加班率 {fmtPct(overtimeRate)}
+          </div>
+        </div>
+
+        {/* Overtime hours */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle size={16} className="text-orange-500" />
+            <span className="text-sm text-slate-500">本月加班工時</span>
+          </div>
+          <div className="text-2xl font-bold text-slate-900">{Math.round(totalOvertimeHours * 10) / 10} <span className="text-sm font-normal text-slate-400">小時</span></div>
+          {hasAnyCost && overtimeCost > 0 && (
+            <div className="text-xs text-slate-400 mt-1">
+              加班成本 {fmtNT(overtimeCost)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Trend Chart */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h3 className="text-base font-semibold text-slate-900 mb-4">工時產出趨勢</h3>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip
+                formatter={(val, name) => {
+                  const v = Number(val)
+                  if (name === '工時產出') return [fmtNT(v), name]
+                  if (name === '7日均值') return [fmtNT(v), name]
+                  return [v, name]
+                }}
+                labelFormatter={(label) => label}
+              />
+              <Legend />
+              <ReferenceLine y={TARGET_RPH} stroke="#9ca3af" strokeDasharray="6 4" label={{ value: `目標 ${fmtNT(TARGET_RPH)}`, position: 'right', fontSize: 11, fill: '#9ca3af' }} />
+              <Line type="monotone" dataKey="rph" name="工時產出" stroke="#3b82f6" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="ma7" name="7日均值" stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={1.5} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Heatmap */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h3 className="text-base font-semibold text-slate-900 mb-1">時段人力效益熱力圖</h3>
+        <p className="text-xs text-slate-400 mb-4">顏色越紅代表人均營收越低，可考慮減少排班人數</p>
+        {hourly.length === 0 ? (
+          <div className="text-center text-slate-400 text-sm py-8">尚無時段資料</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr>
+                  <th className="p-1 text-slate-500 text-left w-8"></th>
+                  {HOURS.map(h => (
+                    <th key={h} className="p-1 text-slate-500 font-normal text-center">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {DAY_LABELS.map((label, dow) => (
+                  <tr key={dow}>
+                    <td className="p-1 text-slate-600 font-medium">{label}</td>
+                    {HOURS.map(h => {
+                      const val = heatmapCells[`${dow}-${h}`] ?? 0
+                      return (
+                        <td key={h} className="p-1">
+                          <div
+                            className={clsx('w-full aspect-square rounded-sm min-w-[20px]', getHeatColor(val, heatmapMax))}
+                            title={`週${label} ${h}:00 — 每人 ${fmtNT(val)}`}
+                          />
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Dual Axis Chart */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h3 className="text-base font-semibold text-slate-900 mb-1">時段在班人數 vs 營收</h3>
+        <p className="text-xs text-slate-400 mb-4">兩線同步 = 人力配置合理</p>
+        {dualAxisData.length === 0 ? (
+          <div className="text-center text-slate-400 text-sm py-8">尚無時段資料</div>
+        ) : (
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={dualAxisData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="slot" tick={{ fontSize: 12 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 12 }} label={{ value: '人數', angle: -90, position: 'insideLeft', fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} label={{ value: '營收', angle: 90, position: 'insideRight', fontSize: 11 }} />
+                <Tooltip
+                  formatter={(val, name) => {
+                    const v = Number(val)
+                    if (name === '平均營收') return [fmtNT(v), name]
+                    return [v, name]
+                  }}
+                />
+                <Legend />
+                <Bar yAxisId="left" dataKey="avgStaff" name="在班人數" fill="#f97316" opacity={0.7} />
+                <Line yAxisId="right" type="monotone" dataKey="avgRevenue" name="平均營收" stroke="#3b82f6" strokeWidth={2} dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* Staff Table */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h3 className="text-base font-semibold text-slate-900 mb-4">員工工時產出</h3>
+        {staffList.length === 0 ? (
+          <div className="text-center text-slate-400 text-sm py-8">尚無員工資料</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-2 px-2 text-slate-500 font-medium">姓名</th>
+                  <th className="text-right py-2 px-2 text-slate-500 font-medium">本月工時</th>
+                  <th className="text-right py-2 px-2 text-slate-500 font-medium">加班工時</th>
+                  <th className="text-right py-2 px-2 text-slate-500 font-medium">薪資成本</th>
+                  <th className="text-right py-2 px-2 text-slate-500 font-medium">工時產出</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...staffList]
+                  .sort((a, b) => (b.revenue_per_hour || 0) - (a.revenue_per_hour || 0))
+                  .map(s => (
+                    <tr
+                      key={s.id}
+                      className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
+                      onClick={() => isOwner && openModal(s)}
+                    >
+                      <td className="py-2 px-2 text-slate-900">{s.name}</td>
+                      <td className="py-2 px-2 text-right text-slate-700">{s.month_hours.toFixed(1)}</td>
+                      <td className="py-2 px-2 text-right text-slate-700">
+                        {s.overtime_hours > 0 ? s.overtime_hours.toFixed(1) : '—'}
+                      </td>
+                      <td className="py-2 px-2 text-right text-slate-700">
+                        {isOwner ? (s.month_cost != null ? fmtNT(s.month_cost) : '—') : '—'}
+                      </td>
+                      <td className="py-2 px-2 text-right font-medium text-slate-900">
+                        {s.revenue_per_hour != null ? fmtNT(s.revenue_per_hour) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Overtime Analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top overtime staff */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <h3 className="text-base font-semibold text-slate-900 mb-4">加班最多員工</h3>
+          {overtime?.topStaff && overtime.topStaff.length > 0 ? (
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={overtime.topStaff.slice(0, 5)}
+                  layout="vertical"
+                  margin={{ left: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={55} />
+                  <Tooltip formatter={(val) => [`${Number(val).toFixed(1)} 小時`, '加班工時']} />
+                  <Bar dataKey="total_overtime" name="加班工時" radius={[0, 4, 4, 0]}>
+                    {overtime.topStaff.slice(0, 5).map((_, idx) => (
+                      <Cell key={idx} fill={idx === 0 ? '#ef4444' : idx < 3 ? '#f97316' : '#fbbf24'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center text-slate-400 text-sm py-8">本月無加班紀錄</div>
+          )}
+        </div>
+
+        {/* Overtime by date */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <h3 className="text-base font-semibold text-slate-900 mb-4">加班集中日期</h3>
+          {overtime?.dateBreakdown && overtime.dateBreakdown.length > 0 ? (
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={overtime.dateBreakdown.slice(0, 7).sort((a, b) => a.date.localeCompare(b.date))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} tickFormatter={d => format(new Date(d), 'M/d')} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    formatter={(val) => [`${Number(val).toFixed(1)} 小時`, '加班工時']}
+                    labelFormatter={d => format(new Date(d), 'M/d (E)')}
+                  />
+                  <Bar dataKey="overtime_hours" name="加班工時" fill="#f97316" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center text-slate-400 text-sm py-8">本月無加班紀錄</div>
+          )}
+        </div>
+      </div>
+
+      {/* Staff Salary Modal */}
+      {selectedStaff && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedStaff(null)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-900">員工薪資設定</h3>
+              <button onClick={() => setSelectedStaff(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-500 mb-1">員工編號</label>
+                <div className="text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">{selectedStaff.employee_id}</div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-500 mb-1">姓名</label>
+                <div className="text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">
+                  {selectedStaff.name}{selectedStaff.name_en ? ` (${selectedStaff.name_en})` : ''}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-500 mb-1">雇用類型</label>
+                <select
+                  value={modalForm.employment_type}
+                  onChange={e => setModalForm(f => ({ ...f, employment_type: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                >
+                  <option value="full_time">全職</option>
+                  <option value="part_time">兼職</option>
+                </select>
+              </div>
+              {modalForm.employment_type === 'full_time' ? (
+                <div>
+                  <label className="block text-sm text-slate-500 mb-1">月薪</label>
+                  <input
+                    type="number"
+                    value={modalForm.monthly_salary}
+                    onChange={e => setModalForm(f => ({ ...f, monthly_salary: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    placeholder="例：35000"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm text-slate-500 mb-1">時薪</label>
+                  <input
+                    type="number"
+                    value={modalForm.hourly_rate}
+                    onChange={e => setModalForm(f => ({ ...f, hourly_rate: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    placeholder="例：183"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm text-slate-500 mb-1">加班時薪（計算加班費用）</label>
+                <input
+                  type="number"
+                  value={modalForm.hourly_rate}
+                  onChange={e => setModalForm(f => ({ ...f, hourly_rate: e.target.value }))}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                  placeholder="例：183"
+                />
+              </div>
+
+              <button
+                onClick={saveStaff}
+                disabled={saving}
+                className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saving ? '儲存中...' : '儲存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

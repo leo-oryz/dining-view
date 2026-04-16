@@ -27,6 +27,7 @@ import {
   Lock,
   Star,
   MoreHorizontal,
+  Clock,
   type LucideIcon,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -61,6 +62,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/products', labelKey: 'nav.productRanking', icon: ShoppingBag },
       { href: '/delivery', labelKey: 'nav.delivery', icon: Truck },
+      { href: '/labor', labelKey: 'nav.labor', icon: Clock },
     ],
   },
   {

@@ -20,6 +20,7 @@ const FILE_TYPE_MAP: Record<string, { endpoint: string; label: string; accept: s
   'ocard-recruit': { endpoint: '/api/upload/ocard-recruit', label: 'Ocard 會員招募分析', accept: '.csv' },
   'ocard-consumption': { endpoint: '/api/upload/ocard-consumption', label: 'Ocard 顧客消費分析', accept: '.csv' },
   'ocard-rfm': { endpoint: '/api/upload/ocard-rfm', label: 'Ocard RFM 分析', accept: '.csv' },
+  'nueip-schedule': { endpoint: '/api/labor/upload', label: 'NUEIP 人力班表', accept: '.xlsx' },
 }
 
 export function CsvDropzone() {
@@ -80,6 +81,9 @@ export function CsvDropzone() {
             <option value="eat365-hourly">時段銷售報表 (.xls)</option>
             <option value="eat365-items">商品銷售報表 (.xls)</option>
             <option value="eat365-transactions">交易明細報表 (.csv)</option>
+          </optgroup>
+          <optgroup label="人力班表">
+            <option value="nueip-schedule">NUEIP 班表 (.xlsx)</option>
           </optgroup>
           <optgroup label="Ocard">
             <option value="ocard-dashboard">儀表板明細 (.xlsx)</option>

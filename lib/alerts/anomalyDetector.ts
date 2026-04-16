@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlertEmail } from './emailNotifier'
 import { detectProductAnomalies } from '@/lib/products/anomalyDetector'
 
-type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'delivery_drop' | 'rating_drop' | 'product_anomaly'
+type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'delivery_drop' | 'rating_drop' | 'product_anomaly' | 'labor_efficiency_drop'
 
 interface DetectedAnomaly {
   store_id: string
@@ -212,6 +212,39 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
         threshold_value: 3,
         message: `${store.name}：${nonTyphoonDrops.length} 個商品同時銷量下降（${productNames}）`,
       })
+    }
+
+    // 7. Labor efficiency drop: yesterday RPH < 70% of 7-day average (exclude holidays/typhoon)
+    const { data: laborYesterday } = await supabase
+      .from('labor_daily_summary')
+      .select('revenue_per_hour')
+      .eq('store_id', store.id)
+      .eq('date', yesterday)
+      .single()
+
+    const { data: laborWeek } = await supabase
+      .from('labor_daily_summary')
+      .select('revenue_per_hour')
+      .eq('store_id', store.id)
+      .gte('date', windowStartStr)
+      .lte('date', windowEndStr)
+      .not('revenue_per_hour', 'is', null)
+
+    if (laborYesterday?.revenue_per_hour != null && laborWeek && laborWeek.length >= 3) {
+      const laborAvg = laborWeek.reduce((s, r) => s + Number(r.revenue_per_hour), 0) / laborWeek.length
+      const laborVal = Number(laborYesterday.revenue_per_hour)
+      if (laborAvg > 0 && laborVal < laborAvg * 0.70) {
+        const pct = ((laborAvg - laborVal) / laborAvg * 100).toFixed(1)
+        anomalies.push({
+          store_id: store.id,
+          store_name: store.name,
+          alert_type: 'labor_efficiency_drop',
+          severity: laborVal < laborAvg * 0.5 ? 'critical' : 'warning',
+          metric_value: laborVal,
+          threshold_value: laborAvg * 0.70,
+          message: `${store.name}：工時產出下降 ${pct}%（昨日 NT$${Math.round(laborVal)} vs 7日均值 NT$${Math.round(laborAvg)}）`,
+        })
+      }
     }
   }
 

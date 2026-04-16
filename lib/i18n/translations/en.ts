@@ -40,6 +40,7 @@ const en = {
   'nav.alerts': 'Alerts',
   'nav.productRanking': 'Product Ranking',
   'nav.delivery': 'Delivery',
+  'nav.labor': 'Labor Efficiency',
   'nav.digital': 'Digital Marketing',
   'nav.ads': 'Ads',
   'nav.kol': 'KOL',
