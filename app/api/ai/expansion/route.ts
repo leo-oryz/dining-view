@@ -6,6 +6,8 @@ import { getTopProductPairs } from '@/lib/ai/basketAnalysis'
 import { getMarginMatrix } from '@/lib/ai/marginMatrix'
 import { analyzeWithClaude } from '@/lib/ai/claudeAnalyzer'
 
+export const maxDuration = 120
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

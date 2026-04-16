@@ -6,6 +6,8 @@ import { getTopProductPairs } from '@/lib/ai/basketAnalysis'
 import { getMarginMatrix } from '@/lib/ai/marginMatrix'
 import { analyzeWithClaude } from '@/lib/ai/claudeAnalyzer'
 
+export const maxDuration = 120
+
 const VALID_TYPES = ['attribution', 'star_products', 'retire_candidates'] as const
 
 export async function POST(request: NextRequest) {
