@@ -245,3 +245,9 @@
 - When adding new API endpoints that the scheduler calls (e.g. `/api/sync/tiktok-ads`, `/api/alerts/detect`, `/api/kol/sync-all`, `/api/digest/send`), they MUST be added to `publicPaths` in `middleware.ts`. Otherwise the scheduler's requests get 307 redirected to `/login` and silently fail.
 - Symptom: scheduler logs show "sync result: {}" or HTML instead of JSON — the response is actually the login page redirect.
 - Lesson: Every time you add a new `/api/*` endpoint that will be called by the scheduler or external services (not just browser), add its path prefix to `publicPaths` immediately.
+
+### Use Supabase JS Client, Not Raw REST Fetch
+- The `channel-split` API route used raw `fetch()` to Supabase REST API with `SUPABASE_SERVICE_ROLE_KEY` for pagination, while all other routes use `createServiceClient()`. This caused silent failures in production — the frontend showed "no data" for dine-in vs takeout analysis.
+- Root cause: raw REST fetch with paginated requests (7+ sequential HTTP calls for 6000+ rows) was fragile in the Docker/Zeabur production environment.
+- Fix: Refactored to use Supabase JS client with `.range(from, to)` for pagination, consistent with all other API routes.
+- Lesson: Always use `createServiceClient()` from `@/lib/supabase/server` for server-side DB access. Never use raw REST API fetch — it bypasses the established auth pattern and is harder to debug.
