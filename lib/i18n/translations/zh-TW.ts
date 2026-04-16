@@ -243,6 +243,11 @@ const zhTW = {
   'digital.keyword': '關鍵字',
   'digital.ctr': 'CTR',
   'digital.ranking': '排名',
+  'digital.dataAsOf': '數據截止',
+  'digital.syncNow': '立即同步',
+  'digital.syncing': '同步中...',
+  'digital.syncSuccess': '同步完成',
+  'digital.syncFailed': '同步失敗',
 
   // Ads page
   'ads.title': '廣告管理',

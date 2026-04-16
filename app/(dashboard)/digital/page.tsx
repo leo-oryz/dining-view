@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { TrendingUp, Search, MousePointerClick, Users, ArrowUpRight, ArrowDownRight, Calendar, type LucideIcon } from 'lucide-react'
+import { TrendingUp, Search, MousePointerClick, Users, ArrowUpRight, ArrowDownRight, Calendar, RefreshCw, type LucideIcon } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend,
 } from 'recharts'
@@ -71,6 +71,8 @@ export default function DigitalPage() {
   const [ga4Data, setGa4Data] = useState<Ga4Row[]>([])
   const [conversionData, setConversionData] = useState<ConversionRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [activePreset, setActivePreset] = useState<number | null>(30)
 
   const RANGE_OPTIONS = [
@@ -126,6 +128,34 @@ export default function DigitalPage() {
     setStartDate(toDateStr(s))
     setEndDate(toDateStr(e))
   }
+
+  async function handleSync() {
+    setSyncing(true)
+    setSyncStatus('idle')
+    try {
+      const res = await fetch('/api/google/sync', { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        setSyncStatus('success')
+        loadData(startDate, endDate)
+      } else {
+        setSyncStatus('error')
+      }
+    } catch {
+      setSyncStatus('error')
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncStatus('idle'), 5000)
+    }
+  }
+
+  // Compute latest data dates
+  const gscLatestDate = gscData.length > 0
+    ? gscData.reduce((max, r) => r.date > max ? r.date : max, gscData[0].date)
+    : null
+  const ga4LatestDate = ga4Data.length > 0
+    ? ga4Data.reduce((max, r) => r.date > max ? r.date : max, ga4Data[0].date)
+    : null
 
   // Aggregate GSC data by date for chart
   const gscByDate = gscData.reduce<Record<string, { clicks: number; impressions: number }>>((acc, row) => {
@@ -195,6 +225,36 @@ export default function DigitalPage() {
 
   return (
     <div className="space-y-6">
+      {/* Data Freshness + Sync */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-xl border border-slate-200 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          {gscLatestDate && (
+            <span className="text-slate-500">
+              GSC {t('digital.dataAsOf')}: <span className="font-medium text-slate-700">{gscLatestDate}</span>
+            </span>
+          )}
+          {ga4LatestDate && (
+            <span className="text-slate-500">
+              GA4 {t('digital.dataAsOf')}: <span className="font-medium text-slate-700">{ga4LatestDate}</span>
+            </span>
+          )}
+        </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            syncStatus === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : syncStatus === 'error'
+              ? 'bg-red-50 text-red-700 border border-red-200'
+              : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+          } disabled:opacity-50`}
+        >
+          <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? t('digital.syncing') : syncStatus === 'success' ? t('digital.syncSuccess') : syncStatus === 'error' ? t('digital.syncFailed') : t('digital.syncNow')}
+        </button>
+      </div>
+
       {/* Date Range Selector */}
       <div className="flex flex-wrap items-center gap-2">
         {RANGE_OPTIONS.map((opt) => (

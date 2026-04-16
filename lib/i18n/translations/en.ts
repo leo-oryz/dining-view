@@ -243,6 +243,11 @@ const en = {
   'digital.keyword': 'Keyword',
   'digital.ctr': 'CTR',
   'digital.ranking': 'Rank',
+  'digital.dataAsOf': 'Data as of',
+  'digital.syncNow': 'Sync Now',
+  'digital.syncing': 'Syncing...',
+  'digital.syncSuccess': 'Sync complete',
+  'digital.syncFailed': 'Sync failed',
 
   // Ads page
   'ads.title': 'Ad Management',
