@@ -92,6 +92,8 @@ function getSystemPrompt(reportType: ReportType): string {
 }`,
     star_products: `${base}
 
+重要：毛利矩陣中的 qty_trend_pct 是本期銷量與前一同長度期間的比較（已預先計算），請直接使用此數值作為 stars 中的 qty_trend_pct，不要自行推算。
+
 輸出格式：
 {
   "period": { "from": "YYYY-MM-DD", "to": "YYYY-MM-DD" },
@@ -101,7 +103,7 @@ function getSystemPrompt(reportType: ReportType): string {
       "product_name": "string",
       "category": "string",
       "gross_margin": number (0-1),
-      "qty_trend_pct": number,
+      "qty_trend_pct": number (直接使用毛利矩陣中的 qty_trend_pct 值),
       "basket_affinity": ["常一起購買的商品"],
       "anomaly_flag": "spike | drop | none — 該商品近期是否出現銷量異常",
       "recommendation": "string",
@@ -110,6 +112,8 @@ function getSystemPrompt(reportType: ReportType): string {
   ]
 }`,
     retire_candidates: `${base}
+
+重要：毛利矩陣中的 qty_trend_pct 是本期銷量與前一同長度期間的比較（已預先計算），請直接使用此數值作為 candidates 中的 qty_trend_pct，不要自行推算。
 
 輸出格式：
 {
@@ -120,7 +124,7 @@ function getSystemPrompt(reportType: ReportType): string {
       "product_name": "string",
       "category": "string",
       "gross_margin": number (0-1),
-      "qty_trend_pct": number,
+      "qty_trend_pct": number (直接使用毛利矩陣中的 qty_trend_pct 值),
       "basket_risk": "會被影響的商品",
       "anomaly_flag": "spike | drop | none — 該商品近期是否出現銷量異常",
       "verdict": "retire | caution | monitor",
@@ -187,13 +191,13 @@ function buildPrompt(
     }
   }
 
-  // Margin matrix
+  // Margin matrix (with trend vs previous period)
   if (marginMatrix.length > 0) {
-    sections.push('\n## 毛利矩陣')
-    sections.push('product_name | category | total_qty | total_revenue | gross_margin')
+    sections.push('\n## 毛利矩陣（含銷量趨勢：本期 vs 前一同長度期間）')
+    sections.push('product_name | category | total_qty | total_revenue | gross_margin | qty_trend_pct')
     for (const row of marginMatrix.slice(0, 40)) {
       sections.push(
-        `${row.product_name} | ${row.category ?? '-'} | ${row.total_quantity} | ${row.total_revenue} | ${(row.gross_margin * 100).toFixed(1)}%`
+        `${row.product_name} | ${row.category ?? '-'} | ${row.total_quantity} | ${row.total_revenue} | ${(row.gross_margin * 100).toFixed(1)}% | ${row.qty_trend_pct > 0 ? '+' : ''}${row.qty_trend_pct}%`
       )
     }
   }
