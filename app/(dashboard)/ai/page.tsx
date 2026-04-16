@@ -125,6 +125,7 @@ export default function AiPage() {
   const handleShare = async () => {
     if (!activeReport) return
     setSharing(true)
+    setError(null)
     try {
       const res = await fetch(`/api/ai/reports/${activeReport.id}/share`, { method: 'POST' })
       const json = await res.json()
@@ -133,9 +134,11 @@ export default function AiPage() {
         await navigator.clipboard.writeText(url)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
+      } else {
+        setError(json.error || t('ai.requestFailed'))
       }
     } catch {
-      // silent
+      setError(t('ai.requestFailed'))
     } finally {
       setSharing(false)
     }
