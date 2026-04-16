@@ -232,6 +232,15 @@
 - Workaround: detect the empty `cf-turnstile-response` field early and skip cleanly with a clear log message so daily logs aren't polluted with bogus failures. Manual upload of the Transaction Report remains required until a CAPTCHA solver service (2Captcha / CapMonster / AntiCaptcha) is integrated.
 - Lesson: Before assuming stealth is enough to bypass anti-bot, instrument the page (network log + DOM dump) to see what's actually blocking. A clean failure path with a clear log message is more valuable than a silent retry storm.
 
+### AI Analysis Route Timeout
+- Claude API calls for AI analysis (attribution, star_products, retire_candidates, expansion) take 30-60 seconds. Without `export const maxDuration = 120` on the route, Zeabur kills the request before Claude finishes, returning a generic timeout error to the frontend.
+- Symptom: "分析失敗" error on the AI page, with no useful error message. The data gathering succeeds but the Claude response never arrives.
+- Lesson: Any API route that calls an external LLM API must set `maxDuration` explicitly. 120 seconds covers Claude's typical response time with retries.
+
+### Node Version on Zeabur
+- Node 22 has npm compatibility issues on Zeabur. Node 20 is untested. Stick with **Node 18 Alpine** in Dockerfile.
+- For OOM during `next build`, use `ENV NODE_OPTIONS="--max-old-space-size=4096"` in the Dockerfile builder stage instead of upgrading Node version.
+
 ### Middleware publicPaths Must Cover All Scheduler Endpoints
 - When adding new API endpoints that the scheduler calls (e.g. `/api/sync/tiktok-ads`, `/api/alerts/detect`, `/api/kol/sync-all`, `/api/digest/send`), they MUST be added to `publicPaths` in `middleware.ts`. Otherwise the scheduler's requests get 307 redirected to `/login` and silently fail.
 - Symptom: scheduler logs show "sync result: {}" or HTML instead of JSON — the response is actually the login page redirect.
