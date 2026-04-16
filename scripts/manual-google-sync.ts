@@ -222,6 +222,54 @@ async function main() {
     console.error('GA4 Error:', err.message)
   }
 
+  // --- Conversion Recalculation ---
+  console.log('\n--- Conversion Recalculation ---')
+  const eventName = process.env.GA4_JOIN_MEMBER_EVENT_NAME || 'join_member_click'
+
+  // Get all GA4 dates we just synced
+  const { data: ga4Dates } = await supabase
+    .from('ga4_events')
+    .select('date')
+    .eq('store_id', storeId)
+    .eq('event_name', eventName)
+    .gte('date', toDateStr(new Date(today.getTime() - 30 * 86400000)))
+
+  const uniqueDates = Array.from(new Set((ga4Dates || []).map(r => r.date))).sort()
+  console.log(`Recalculating conversion for ${uniqueDates.length} dates`)
+
+  for (const date of uniqueDates) {
+    const { data: ga4Data } = await supabase
+      .from('ga4_events')
+      .select('event_count')
+      .eq('store_id', storeId)
+      .eq('date', date)
+      .eq('event_name', eventName)
+
+    const ga4Clicks = ga4Data?.reduce((sum, row) => sum + (row.event_count || 0), 0) || 0
+
+    const { data: salesData } = await supabase
+      .from('daily_sales')
+      .select('new_members')
+      .eq('store_id', storeId)
+      .eq('date', date)
+      .single()
+
+    const ocardNewMembers = salesData?.new_members || 0
+    const conversionRate = ga4Clicks > 0 ? ocardNewMembers / ga4Clicks : 0
+
+    await supabase
+      .from('member_conversion_daily')
+      .upsert({
+        store_id: storeId,
+        date,
+        ga4_clicks: ga4Clicks,
+        ocard_new_members: ocardNewMembers,
+        conversion_rate: conversionRate,
+      }, { onConflict: 'store_id,date' })
+  }
+
+  console.log(`Conversion recalculated for dates: ${uniqueDates[0]} to ${uniqueDates[uniqueDates.length - 1]}`)
+
   console.log('\n=== Sync Complete ===')
 }
 
