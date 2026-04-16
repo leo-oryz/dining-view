@@ -189,25 +189,32 @@ export default function TrendsPage() {
   const [prevData, setPrevData] = useState<DailySales[]>([])
 
   useEffect(() => {
+    const abortController = new AbortController()
+    const { signal } = abortController
+
     setLoading(true)
-    setChannelData(null) // Reset so stale data doesn't persist
+    setChannelData(null)
     setPrevChannelData(null)
     const params = `start_date=${startDate}&end_date=${endDate}`
     const prevParams = `start_date=${prevStartDate}&end_date=${prevEndDate}`
     const tStartMonth = format(startOfMonth(parseISO(startDate)), 'yyyy-MM-dd')
     const tEndMonth = format(startOfMonth(parseISO(endDate)), 'yyyy-MM-dd')
 
+    const safeFetch = (url: string) =>
+      fetch(url, { signal }).then((r) => r.json()).catch(() => ({ success: false }))
+
     Promise.all([
-      fetch(`/api/sales/daily?${params}`).then((r) => r.json()),
-      fetch(`/api/sales/hourly?${params}`).then((r) => r.json()),
-      fetch(`/api/targets?start_month=${tStartMonth}&end_month=${tEndMonth}`).then((r) => r.json()),
-      fetch(`/api/weather/range?from=${startDate}&to=${endDate}`).then((r) => r.json()).catch(() => ({ success: false })),
-      fetch(`/api/sales/daily?${prevParams}`).then((r) => r.json()),
-      fetch(`/api/sales/channel-split?${params}`).then((r) => r.json()).catch(() => ({ success: false })),
-      fetch(`/api/sales/channel-split?${prevParams}`).then((r) => r.json()).catch(() => ({ success: false })),
-      fetch(`/api/stores`).then((r) => r.json()).catch(() => ({ success: false })),
+      safeFetch(`/api/sales/daily?${params}`),
+      safeFetch(`/api/sales/hourly?${params}`),
+      safeFetch(`/api/targets?start_month=${tStartMonth}&end_month=${tEndMonth}`),
+      safeFetch(`/api/weather/range?from=${startDate}&to=${endDate}`),
+      safeFetch(`/api/sales/daily?${prevParams}`),
+      safeFetch(`/api/sales/channel-split?${params}`),
+      safeFetch(`/api/sales/channel-split?${prevParams}`),
+      safeFetch(`/api/stores`),
     ])
       .then(([dailyJson, hourlyJson, targetsJson, weatherJson, prevJson, channelJson, prevChannelJson, storesJson]) => {
+        if (signal.aborted) return
         setData(dailyJson.success ? dailyJson.data || [] : [])
         setHourlyData(hourlyJson.success ? hourlyJson.data || [] : [])
         setTargets(targetsJson.success ? targetsJson.data || [] : [])
@@ -223,7 +230,9 @@ export default function TrendsPage() {
         }
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
+      .finally(() => { if (!signal.aborted) setLoading(false) })
+
+    return () => abortController.abort()
   }, [startDate, endDate, prevStartDate, prevEndDate])
 
   // Compute KPIs — current period
