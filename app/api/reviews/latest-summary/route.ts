@@ -13,14 +13,16 @@ export async function GET(request: Request) {
       .select('*')
       .eq('store_id', storeId)
       .order('snapshot_date', { ascending: false })
-      .limit(1)
-      .single()
+      .limit(2)
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       return apiError(error.message, 500)
     }
 
-    return apiSuccess(data || null)
+    const latest = data?.[0] || null
+    const previous = data?.[1] || null
+
+    return apiSuccess({ latest, previous })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Internal server error'
     return apiError(msg, 500)

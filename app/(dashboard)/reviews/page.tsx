@@ -5,7 +5,7 @@ import {
   Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ComposedChart, Bar, Legend,
 } from 'recharts'
-import { Star, TrendingDown, MessageSquare, AlertTriangle } from 'lucide-react'
+import { Star, TrendingDown, MessageSquare, AlertTriangle, TrendingUp, Minus } from 'lucide-react'
 import clsx from 'clsx'
 import { useI18n } from '@/lib/i18n/context'
 
@@ -84,6 +84,7 @@ export default function ReviewsPage() {
 
   const [reviews, setReviews] = useState<Review[]>([])
   const [latestSummary, setLatestSummary] = useState<Snapshot | null>(null)
+  const [previousSummary, setPreviousSummary] = useState<Snapshot | null>(null)
   const [salesData, setSalesData] = useState<DailySales[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<TimeRange>('3m')
@@ -109,7 +110,10 @@ export default function ReviewsPage() {
       ])
 
       if (recentJson.success) setReviews(recentJson.data || [])
-      if (summaryJson.success) setLatestSummary(summaryJson.data)
+      if (summaryJson.success) {
+        setLatestSummary(summaryJson.data?.latest || null)
+        setPreviousSummary(summaryJson.data?.previous || null)
+      }
       if (salesJson.success) setSalesData(salesJson.data || [])
     } catch (err) {
       console.error('Failed to fetch reviews data:', err)
@@ -122,10 +126,29 @@ export default function ReviewsPage() {
 
   // Latest snapshot for KPIs
   const latest = latestSummary
+  const prev = previousSummary
   const avgRating = latest?.avg_rating ?? null
   const newReviews = latest?.new_reviews_count ?? 0
   const negativeRate = latest && latest.new_reviews_count && latest.new_reviews_count > 0
     ? ((latest.negative_count || 0) / latest.new_reviews_count * 100).toFixed(1)
+    : null
+
+  // Previous period values for comparison
+  const prevAvgRating = prev?.avg_rating ?? null
+  const prevNewReviews = prev?.new_reviews_count ?? null
+  const prevNegativeRate = prev && prev.new_reviews_count && prev.new_reviews_count > 0
+    ? ((prev.negative_count || 0) / prev.new_reviews_count * 100)
+    : null
+
+  // Compute changes
+  const ratingChange = avgRating != null && prevAvgRating != null
+    ? Number((avgRating - prevAvgRating).toFixed(2))
+    : null
+  const reviewsChange = prevNewReviews != null
+    ? newReviews - prevNewReviews
+    : null
+  const negRateChange = negativeRate != null && prevNegativeRate != null
+    ? Number((Number(negativeRate) - prevNegativeRate).toFixed(1))
     : null
 
   // Chart data: aggregate reviews by week or month
@@ -201,12 +224,18 @@ export default function ReviewsPage() {
           value={avgRating != null ? avgRating.toFixed(2) : 'N/A'}
           color="text-yellow-500"
           sub={latest?.total_reviews ? `${t('common.total')} ${latest.total_reviews} ${t('reviews.totalReviews')}` : undefined}
+          change={ratingChange}
+          changeLabel={ratingChange != null ? `${ratingChange > 0 ? '+' : ''}${ratingChange}` : undefined}
+          invertColor={false}
         />
         <KpiCard
           icon={MessageSquare}
           label={t('reviews.weeklyNewReviews')}
           value={String(newReviews)}
           color="text-blue-500"
+          change={reviewsChange}
+          changeLabel={reviewsChange != null ? `${reviewsChange > 0 ? '+' : ''}${reviewsChange} ${t('reviews.vsLastPeriod')}` : undefined}
+          invertColor={false}
         />
         <KpiCard
           icon={TrendingDown}
@@ -214,6 +243,9 @@ export default function ReviewsPage() {
           value={negativeRate != null ? `${negativeRate}%` : 'N/A'}
           color={negativeRate && Number(negativeRate) > 20 ? 'text-red-500' : 'text-slate-500'}
           sub={latest?.negative_count ? `${latest.negative_count} ${t('reviews.negativeReviews')}` : undefined}
+          change={negRateChange}
+          changeLabel={negRateChange != null ? `${negRateChange > 0 ? '+' : ''}${negRateChange}%` : undefined}
+          invertColor={true}
         />
         <KpiCard
           icon={AlertTriangle}
@@ -405,13 +437,32 @@ function KpiCard({
   value,
   color,
   sub,
+  change,
+  changeLabel,
+  invertColor,
 }: {
   icon: React.ComponentType<Record<string, unknown>>
   label: string
   value: string
   color: string
   sub?: string
+  change?: number | null
+  changeLabel?: string
+  invertColor?: boolean
 }) {
+  const isPositive = change != null && change > 0
+  const isNegative = change != null && change < 0
+  const isNeutral = change != null && change === 0
+
+  // For metrics like negative rate, "up" is bad (red) and "down" is good (green)
+  const goodColor = 'text-green-600'
+  const badColor = 'text-red-600'
+  const neutralColor = 'text-slate-400'
+
+  let changeColor = neutralColor
+  if (isPositive) changeColor = invertColor ? badColor : goodColor
+  if (isNegative) changeColor = invertColor ? goodColor : badColor
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-4">
       <div className="flex items-center gap-2 mb-2">
@@ -419,6 +470,14 @@ function KpiCard({
         <span className="text-xs text-slate-500">{label}</span>
       </div>
       <div className={clsx('text-2xl font-bold', color)}>{value}</div>
+      {change != null && changeLabel && (
+        <div className={clsx('flex items-center gap-1 mt-1 text-xs font-medium', changeColor)}>
+          {isPositive && <TrendingUp size={12} />}
+          {isNegative && <TrendingDown size={12} />}
+          {isNeutral && <Minus size={12} />}
+          <span>{changeLabel}</span>
+        </div>
+      )}
       {sub && <div className="text-xs text-slate-400 mt-1">{sub}</div>}
     </div>
   )

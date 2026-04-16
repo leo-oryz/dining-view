@@ -447,6 +447,7 @@ const zhTW = {
   'reviews.needBothData': '需要評分和營收數據才能顯示',
   'reviews.totalReviews': '則評論',
   'reviews.negativeReviews': '則負評',
+  'reviews.vsLastPeriod': '較上期',
 
   // AI page
   'ai.title': 'AI 分析報告',

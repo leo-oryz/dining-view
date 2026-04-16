@@ -447,6 +447,7 @@ const en = {
   'reviews.needBothData': 'Rating and revenue data required',
   'reviews.totalReviews': 'reviews',
   'reviews.negativeReviews': 'negative',
+  'reviews.vsLastPeriod': 'vs last period',
 
   // AI page
   'ai.title': 'AI Analysis Report',
