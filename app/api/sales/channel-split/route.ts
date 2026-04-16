@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError, getStoreId } from '@/lib/api-utils'
 
 export async function GET(request: NextRequest) {
@@ -12,32 +13,35 @@ export async function GET(request: NextRequest) {
       return apiError('start_date and end_date are required', 400)
     }
 
-    // Fetch all __order__ rows via paginated REST API (Supabase caps at 1000/request).
+    // Fetch all __order__ rows via paginated Supabase client.
     // Two sources may populate this table:
     //   - 'eat365'                : per-order rows from manual Transaction Report uploads
     //   - 'eat365-daily-closing'  : per-30min synthetic rows from the Daily Closing JSON API
     //                                (each row carries item_quantity = real order count)
     // For dates where both exist, daily-closing wins.
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const baseUrl = `${supabaseUrl}/rest/v1/order_items?select=date,order_type,time,item_amount,item_quantity,guest_count,source&store_id=eq.${storeId}&item_name=eq.__order__&source=in.(eat365,eat365-daily-closing)&date=gte.${startDate}&date=lte.${endDate}&order=date.asc,time.asc`
+    const supabase = createServiceClient()
 
     type OrderRow = { date: string; order_type: string; time: string; item_amount: number; item_quantity: number | null; guest_count: number | null; source: string }
     const rawRows: OrderRow[] = []
-    let offset = 0
     const PAGE = 1000
+    let from = 0
     while (true) {
-      const res = await fetch(`${baseUrl}&offset=${offset}&limit=${PAGE}`, {
-        headers: {
-          'apikey': serviceKey,
-          'Authorization': `Bearer ${serviceKey}`,
-        },
-      })
-      if (!res.ok) return apiError(`Failed to fetch order data: ${res.status}`, 500)
-      const page = await res.json()
-      rawRows.push(...page)
-      if (page.length < PAGE) break
-      offset += PAGE
+      const { data, error } = await supabase
+        .from('order_items')
+        .select('date,order_type,time,item_amount,item_quantity,guest_count,source')
+        .eq('store_id', storeId)
+        .eq('item_name', '__order__')
+        .in('source', ['eat365', 'eat365-daily-closing'])
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true })
+        .order('time', { ascending: true })
+        .range(from, from + PAGE - 1)
+
+      if (error) return apiError(error.message, 500)
+      rawRows.push(...(data || []))
+      if (!data || data.length < PAGE) break
+      from += PAGE
     }
 
     // Pick a single source per date so the two ingestion paths don't double-count.
