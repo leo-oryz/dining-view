@@ -371,6 +371,10 @@ export async function downloadEat365Reports(options?: {
     } catch (err) {
       console.error('[eat365] Failed to fetch daily closing report:', err)
     }
+
+    // Transaction Report — gated by Cloudflare Turnstile which blocks all
+    // automated browsers. Manual CSV download required; use sync-to-sheets.ts
+    // to push manually downloaded CSV to Google Sheets for Meta Offline Conversion.
   } finally {
     if (browser) await browser.close()
   }
@@ -423,3 +427,4 @@ async function fetchEat365DailyClosing(
   fs.writeFileSync(filePath, JSON.stringify({ date: dateStr, json: captured }, null, 2))
   return { reportType: 'eat365-daily-closing', filePath, fileName, storeId, date: dateStr }
 }
+
