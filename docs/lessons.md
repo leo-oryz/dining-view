@@ -252,6 +252,13 @@
 - Fix: Refactored to use Supabase JS client with `.range(from, to)` for pagination, consistent with all other API routes.
 - Lesson: Always use `createServiceClient()` from `@/lib/supabase/server` for server-side DB access. Never use raw REST API fetch — it bypasses the established auth pattern and is harder to debug.
 
+### eat365 Transaction Report — Turnstile Blocks ALL Automated Access
+- The Transaction Report page (`/v2/report/transaction_report`) uses Cloudflare Turnstile that cannot be bypassed by any automated browser approach. Tested: stealth plugin + real Chrome, mock Turnstile script injection, dummy token injection, direct API calls, persistent Chrome profiles, Vue 3 internal method calls. All fail.
+- The `/report/transactionReport` API endpoint also requires a valid Turnstile token — direct `fetch()` calls from page context get 302 redirected to login.
+- Solution: Semi-automated flow. User manually downloads CSV from eat365 (30 seconds), then runs `npx tsx sync-to-sheets.ts` to parse and append to Google Sheets for Meta Offline Conversion.
+- The Google Sheets sync uses Serial Number (column L) for dedup — safe to run multiple times on the same CSV.
+- Lesson: When Cloudflare Turnstile blocks the endpoint itself (not just the page), there's no browser-side bypass. Accept the limitation and build a semi-automated flow that minimizes manual effort.
+
 ### Promise.all Resilience & AbortController
 - When using `Promise.all` with multiple fetches, a single un-caught fetch failure rejects the entire batch — all state updates are skipped.
 - Fix: Wrap every fetch in `.catch(() => ({ success: false }))` so individual failures don't cascade.
