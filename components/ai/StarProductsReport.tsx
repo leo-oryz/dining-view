@@ -36,7 +36,7 @@ export default function StarProductsReport({ data }: { data: StarData }) {
                       <Star size={14} className="text-amber-400 fill-amber-400" />
                       <span className="font-medium text-slate-900">{s.product_name}</span>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">{s.recommendation}</p>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">{s.recommendation}</p>
                   </td>
                   <td className="py-3 px-4 text-slate-500 hidden sm:table-cell">{s.category || '-'}</td>
                   <td className="py-3 px-4 text-right font-medium text-emerald-600">
