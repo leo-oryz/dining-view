@@ -20,9 +20,11 @@ interface DataPoint {
 interface SalesLineChartProps {
   data: DataPoint[]
   height?: number
+  valueLabel?: string
+  valuePrefix?: string
 }
 
-export function SalesLineChart({ data, height }: SalesLineChartProps) {
+export function SalesLineChart({ data, height, valueLabel = '淨銷售額', valuePrefix = 'NT$' }: SalesLineChartProps) {
   const chartData = data
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -47,7 +49,7 @@ export function SalesLineChart({ data, height }: SalesLineChartProps) {
         <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <Tooltip
-          formatter={(value) => [`NT$${Number(value).toLocaleString()}`, '淨銷售額']}
+          formatter={(value) => [`${valuePrefix}${Number(value).toLocaleString()}`, valueLabel]}
           labelFormatter={(label) => `日期: ${label}`}
         />
         <Line

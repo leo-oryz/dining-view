@@ -273,6 +273,8 @@ export default function MembersPage() {
                     net_sales: d.member_visits,
                     guests: d.new_members,
                   }))}
+                  valueLabel={t('members.periodGuests')}
+                  valuePrefix=""
                 />
                 {/* Typhoon day annotations */}
                 {(() => {
