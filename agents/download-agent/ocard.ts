@@ -66,13 +66,25 @@ async function login(page: Page, credentials?: StoreCredentials) {
     throw new Error('Ocard login credentials required (via store config or env vars)')
   }
 
-  await page.goto('https://crm.ocard.co/Login', { waitUntil: 'domcontentloaded', timeout: 30000 })
-  await page.waitForLoadState('networkidle').catch(() => {})
+  let lastErr: any
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await page.goto('https://crm.ocard.co/Login', { waitUntil: 'domcontentloaded', timeout: 60000 })
+      lastErr = undefined
+      break
+    } catch (e) {
+      lastErr = e
+      console.warn(`[ocard] Login page load attempt ${attempt} failed, retrying...`)
+      await page.waitForTimeout(2000)
+    }
+  }
+  if (lastErr) throw lastErr
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
   await page.fill('input[name="acc"]', email)
   await page.fill('input[name="pwd"]', password)
   await page.click('button:has-text("登入")')
-  await page.waitForURL((url) => !url.toString().includes('/Login'), { timeout: 30000 })
-  await page.waitForLoadState('networkidle').catch(() => {})
+  await page.waitForURL((url) => !url.toString().includes('/Login'), { timeout: 30000, waitUntil: 'domcontentloaded' })
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
 }
 
 function getYesterday(): string {

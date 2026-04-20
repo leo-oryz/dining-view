@@ -268,3 +268,9 @@
 - The `order_items` table can have 20k+ `__order__` rows for 90 days (one per transaction). Fetching all via pagination (22 pages) is slow and unreliable.
 - Fix: Query the pre-aggregated source first (`eat365-daily-closing`, ~3.5k rows), then only query raw transaction rows (`eat365`) for dates not already covered. Reduces pages from 22 to 4.
 - Lesson: When two data sources overlap, always query the more compact/aggregated one first, then backfill gaps with the granular source.
+
+### Ocard Login — Flaky `page.goto` in Headless Chromium
+- `page.goto('https://crm.ocard.co/Login', { waitUntil: 'domcontentloaded', timeout: 30000 })` intermittently times out even though curl returns 200 in <500ms. DOMContentLoaded never fires in some headless sessions — suspect recaptcha/gstatic resource hang blocking the main thread.
+- Symptom: repeated `page.goto: Timeout 30000ms exceeded` at `ocard.ts` login step, with no requestfailed events. Same script succeeds seconds later.
+- Fix: bump goto timeout to 60s and wrap in a 3-attempt retry loop; use `waitUntil: 'domcontentloaded'` on `waitForURL` after login too (default `load` can hang on the post-login `/brand` page for the same reason).
+- Lesson: for anti-bot protected sites with heavy 3rd-party resources, never rely on `load` event — use `domcontentloaded` + retry, and cap `networkidle` waits at 15s so they can't block the pipeline.
