@@ -1,0 +1,86 @@
+name: Daily Download Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'Target date YYYY-MM-DD (blank = yesterday)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Skip upload to Supabase (download + parse only)'
+        type: boolean
+        default: true
+  # Cron disabled until dry-run is verified. After verification, uncomment:
+  # schedule:
+  #   - cron: '3 3 * * *'  # 03:03 UTC = 10:03 Vietnam time
+
+concurrency:
+  group: daily-download-agent
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      EAT365_LOGIN_EMAIL: ${{ secrets.EAT365_LOGIN_EMAIL }}
+      EAT365_LOGIN_PASSWORD: ${{ secrets.EAT365_LOGIN_PASSWORD }}
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
+      GMAIL_USER_EMAIL: ${{ secrets.GMAIL_USER_EMAIL }}
+      AGENT_UPLOAD_BASE_URL: ${{ secrets.AGENT_UPLOAD_BASE_URL }}
+      DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: agents/download-agent/package-lock.json
+
+      - name: Install agent deps
+        working-directory: agents/download-agent
+        run: npm ci
+
+      - name: Install Chrome + Playwright browsers + xvfb
+        working-directory: agents/download-agent
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          npx playwright install --with-deps chromium
+          npx playwright install chrome
+
+      - name: Restore eat365 session cache
+        id: session-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: agents/download-agent/eat365-session.json
+          key: eat365-session-v1
+          restore-keys: |
+            eat365-session-
+
+      - name: Run agent (xvfb for headful eat365 login)
+        working-directory: agents/download-agent
+        run: xvfb-run -a npx tsx index.ts ${{ inputs.target_date }}
+
+      - name: Save eat365 session cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: agents/download-agent/eat365-session.json
+          key: eat365-session-v1-${{ github.run_id }}
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-artifacts-${{ github.run_id }}
+          path: |
+            agents/download-agent/downloads/
+            agents/download-agent/debug_*.png
+            agents/download-agent/debug_*.txt
+          retention-days: 3
+          if-no-files-found: ignore
