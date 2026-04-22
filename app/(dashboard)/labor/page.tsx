@@ -7,7 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts'
-import { Clock, DollarSign, TrendingUp, AlertTriangle, X } from 'lucide-react'
+import { Clock, DollarSign, TrendingUp, AlertTriangle, X, Calendar } from 'lucide-react'
 import clsx from 'clsx'
 
 // ─── Types ───
@@ -80,20 +80,36 @@ export default function LaborPage() {
   const [saving, setSaving] = useState(false)
   const [userRole, setUserRole] = useState<string>('manager')
 
-  const now = new Date()
-  const monthStart = format(startOfMonth(now), 'yyyy-MM-dd')
-  const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
-  const thirtyDaysAgo = format(subDays(now, 30), 'yyyy-MM-dd')
-  const today = format(now, 'yyyy-MM-dd')
+  // Date range state — default last 30 days. All charts/tables respect this.
+  const [startDate, setStartDate] = useState(() => format(subDays(new Date(), 29), 'yyyy-MM-dd'))
+  const [endDate, setEndDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+
+  const RANGE_PRESETS = [
+    { label: '近 7 天', days: 7 },
+    { label: '近 14 天', days: 14 },
+    { label: '近 30 天', days: 30 },
+    { label: '近 90 天', days: 90 },
+  ] as const
+
+  const applyPreset = (days: number) => {
+    setStartDate(format(subDays(new Date(), days - 1), 'yyyy-MM-dd'))
+    setEndDate(format(new Date(), 'yyyy-MM-dd'))
+  }
+
+  const applyThisMonth = () => {
+    setStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+    setEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'))
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
+      const qs = `from=${startDate}&to=${endDate}`
       const [sumRes, hourlyRes, staffRes, otRes, meRes] = await Promise.all([
-        fetch(`/api/labor/summary?from=${thirtyDaysAgo}&to=${today}`),
-        fetch(`/api/labor/hourly-efficiency?from=${thirtyDaysAgo}&to=${today}`),
-        fetch('/api/labor/staff'),
-        fetch(`/api/labor/overtime?from=${monthStart}&to=${monthEnd}`),
+        fetch(`/api/labor/summary?${qs}`),
+        fetch(`/api/labor/hourly-efficiency?${qs}`),
+        fetch(`/api/labor/staff?${qs}`),
+        fetch(`/api/labor/overtime?${qs}`),
         fetch('/api/auth/me'),
       ])
 
@@ -108,23 +124,22 @@ export default function LaborPage() {
       if (meJson.success) setUserRole(meJson.data?.role || 'manager')
     } catch { /* ignore */ }
     setLoading(false)
-  }, [thirtyDaysAgo, today, monthStart, monthEnd])
+  }, [startDate, endDate])
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // ─── KPI calculations ───
-  const monthSummary = summary.filter(s => s.date >= monthStart && s.date <= monthEnd)
-  const totalActualHours = monthSummary.reduce((s, r) => s + (r.total_actual_hours || 0), 0)
-  const totalRevenue = monthSummary.reduce((s, r) => s + (r.revenue || 0), 0)
-  const totalLaborCost = monthSummary.reduce((s, r) => s + (r.total_labor_cost || 0), 0)
-  const totalOvertimeHours = monthSummary.reduce((s, r) => s + (r.total_overtime_hours || 0), 0)
-  const hasAnyCost = monthSummary.some(r => r.total_labor_cost != null)
+  // ─── KPI calculations (over selected range) ───
+  const totalActualHours = summary.reduce((s, r) => s + (r.total_actual_hours || 0), 0)
+  const totalRevenue = summary.reduce((s, r) => s + (r.revenue || 0), 0)
+  const totalLaborCost = summary.reduce((s, r) => s + (r.total_labor_cost || 0), 0)
+  const totalOvertimeHours = summary.reduce((s, r) => s + (r.total_overtime_hours || 0), 0)
+  const hasAnyCost = summary.some(r => r.total_labor_cost != null)
 
   const avgRPH = totalActualHours > 0 ? totalRevenue / totalActualHours : 0
   const avgCostRatio = hasAnyCost && totalRevenue > 0 ? totalLaborCost / totalRevenue : 0
   const overtimeRate = totalActualHours > 0 ? totalOvertimeHours / totalActualHours : 0
   const overtimeCost = hasAnyCost
-    ? monthSummary.reduce((s, r) => {
+    ? summary.reduce((s, r) => {
         // rough estimate: overtime portion of labor cost
         if (r.total_labor_cost && r.total_actual_hours && r.total_overtime_hours) {
           return s + (r.total_labor_cost * r.total_overtime_hours / r.total_actual_hours)
@@ -233,6 +248,48 @@ export default function LaborPage() {
 
   return (
     <div className="space-y-6">
+      {/* Date range picker */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar size={16} className="text-slate-400" />
+          <span className="text-sm font-medium text-slate-700">時間區間</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <span className="text-slate-400 text-sm">~</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            {RANGE_PRESETS.map(p => (
+              <button
+                key={p.days}
+                onClick={() => applyPreset(p.days)}
+                className="px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+              >
+                {p.label}
+              </button>
+            ))}
+            <button
+              onClick={applyThisMonth}
+              className="px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+            >
+              本月
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Revenue per hour */}
@@ -273,7 +330,7 @@ export default function LaborPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center gap-2 mb-1">
             <Clock size={16} className="text-indigo-500" />
-            <span className="text-sm text-slate-500">本月總工時</span>
+            <span className="text-sm text-slate-500">期間總工時</span>
           </div>
           <div className="text-2xl font-bold text-slate-900">{Math.round(totalActualHours)} <span className="text-sm font-normal text-slate-400">小時</span></div>
           <div className="text-xs text-slate-400 mt-1">
@@ -285,7 +342,7 @@ export default function LaborPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle size={16} className="text-orange-500" />
-            <span className="text-sm text-slate-500">本月加班工時</span>
+            <span className="text-sm text-slate-500">期間加班工時</span>
           </div>
           <div className="text-2xl font-bold text-slate-900">{Math.round(totalOvertimeHours * 10) / 10} <span className="text-sm font-normal text-slate-400">小時</span></div>
           {hasAnyCost && overtimeCost > 0 && (
@@ -404,7 +461,7 @@ export default function LaborPage() {
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-2 px-2 text-slate-500 font-medium">姓名</th>
-                  <th className="text-right py-2 px-2 text-slate-500 font-medium">本月工時</th>
+                  <th className="text-right py-2 px-2 text-slate-500 font-medium">期間工時</th>
                   <th className="text-right py-2 px-2 text-slate-500 font-medium">加班工時</th>
                   <th className="text-right py-2 px-2 text-slate-500 font-medium">薪資成本</th>
                   <th className="text-right py-2 px-2 text-slate-500 font-medium">工時產出</th>

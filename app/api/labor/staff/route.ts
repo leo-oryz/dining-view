@@ -19,25 +19,31 @@ export async function GET(request: NextRequest) {
 
     if (staffErr) return apiError(staffErr.message, 500)
 
-    // Fetch current month shifts for each staff
+    // Accept ?from=YYYY-MM-DD&to=YYYY-MM-DD. Default to current month.
     const now = new Date()
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-    const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`
+    const defaultStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+    const defaultEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`
+    const fromDate = searchParams.get('from') || defaultStart
+    const toDate = searchParams.get('to') || defaultEnd
+
+    // Standard working hours threshold: 176 hrs per 30 days, scaled to selected range
+    const msPerDay = 24 * 60 * 60 * 1000
+    const rangeDays = Math.max(1, Math.round((new Date(toDate).getTime() - new Date(fromDate).getTime()) / msPerDay) + 1)
+    const overtimeThreshold = (176 * rangeDays) / 30
 
     const { data: shifts } = await supabase
       .from('staff_shifts')
       .select('staff_id, actual_hours, labor_cost, is_day_off')
       .eq('store_id', storeId)
-      .gte('date', monthStart)
-      .lte('date', monthEnd)
+      .gte('date', fromDate)
+      .lte('date', toDate)
 
-    // Fetch revenue for the month
     const { data: salesData } = await supabase
       .from('daily_sales')
       .select('net_sales')
       .eq('store_id', storeId)
-      .gte('date', monthStart)
-      .lte('date', monthEnd)
+      .gte('date', fromDate)
+      .lte('date', toDate)
 
     const totalRevenue = (salesData || []).reduce((s, r) => s + (Number(r.net_sales) || 0), 0)
 
@@ -67,7 +73,7 @@ export async function GET(request: NextRequest) {
       return {
         ...s,
         month_hours: Math.round(totalHours * 100) / 100,
-        overtime_hours: Math.max(0, totalHours - 176), // rough monthly standard
+        overtime_hours: Math.max(0, totalHours - overtimeThreshold),
         month_cost: agg?.hasCost ? Math.round(agg.totalCost * 100) / 100 : null,
         revenue_per_hour: totalHours > 0
           ? Math.round((totalRevenue / (staffList || []).reduce((sum, st) => {
