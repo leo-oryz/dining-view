@@ -269,6 +269,12 @@
 - Fix: Query the pre-aggregated source first (`eat365-daily-closing`, ~3.5k rows), then only query raw transaction rows (`eat365`) for dates not already covered. Reduces pages from 22 to 4.
 - Lesson: When two data sources overlap, always query the more compact/aggregated one first, then backfill gaps with the granular source.
 
+### nuEIP 班表+工時(直式) — Dates Lack Year, Silently Skipped
+- The `班表+工時(直式)` sheet puts dates as bare `M/D` (e.g. `3/26`) in column 0. `parseScheduleSheet` only matched `YYYY[/-]MM[/-]DD`, so every data row returned `dateStr=null` and the parser silently produced zero `staffShifts` — no error, upload history reports success, staff/shift_definitions upserted, staff_shifts empty.
+- Symptom: upload endpoint returns `success` with `imported: 0` and `days: 0`; `labor_daily_summary` / `labor_hourly` stay empty.
+- Fix: read `startDate` from the `metadata` sheet (exists in every nuEIP export as `YYYY-MM-DD`), use its year as the default when a row only has `M/D`. If the row's month precedes `startMonth`, roll the year forward so files spanning Dec→Jan still parse.
+- Lesson: nuEIP exports rely on the `metadata` sheet for context (year, row intervals, begin column). Don't trust the visible date columns alone.
+
 ### Ocard Login — Flaky `page.goto` in Headless Chromium
 - `page.goto('https://crm.ocard.co/Login', { waitUntil: 'domcontentloaded', timeout: 30000 })` intermittently times out even though curl returns 200 in <500ms. DOMContentLoaded never fires in some headless sessions — suspect recaptcha/gstatic resource hang blocking the main thread.
 - Symptom: repeated `page.goto: Timeout 30000ms exceeded` at `ocard.ts` login step, with no requestfailed events. Same script succeeds seconds later.

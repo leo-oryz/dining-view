@@ -190,11 +190,29 @@ function parseShiftDefinitions(workbook: XLSX.WorkBook): { shifts: ShiftDefiniti
 }
 
 /**
+ * Read startDate from the metadata sheet. Falls back to null.
+ * Used to recover the year for rows that only have "M/D" (no year).
+ */
+function readMetadataStart(workbook: XLSX.WorkBook): { year: number; month: number } | null {
+  const sheetName = workbook.SheetNames.find(n => n === 'metadata' || n.toLowerCase() === 'metadata')
+  if (!sheetName) return null
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1 }) as unknown as unknown[][]
+  for (const row of rows) {
+    if (!row || row[0] !== 'startDate') continue
+    const val = String(row[1] ?? '').trim()
+    const m = val.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+    if (m) return { year: parseInt(m[1], 10), month: parseInt(m[2], 10) }
+  }
+  return null
+}
+
+/**
  * Parse the 班表+工時(直式) sheet
  */
 function parseScheduleSheet(
   workbook: XLSX.WorkBook,
-  shiftMap: Map<string, ShiftDefinition>
+  shiftMap: Map<string, ShiftDefinition>,
+  fallbackStart: { year: number; month: number } | null
 ): { staff: StaffRecord[]; staffShifts: StaffShiftRecord[]; errors: ParseError[] } {
   const sheetName = workbook.SheetNames.find(n => n.includes('班表') && n.includes('直式'))
     || workbook.SheetNames.find(n => n.includes('班表'))
@@ -272,6 +290,16 @@ function parseScheduleSheet(
       const m = s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/)
       if (m) {
         dateStr = `${m[1]}-${String(parseInt(m[2])).padStart(2, '0')}-${String(parseInt(m[3])).padStart(2, '0')}`
+      } else if (fallbackStart) {
+        // nuEIP 直式 sheet uses "M/D" without year — derive year from metadata's startDate.
+        // Roll year forward if the row's month precedes startMonth (file spans year boundary).
+        const md = s.match(/^(\d{1,2})[\/\-](\d{1,2})$/)
+        if (md) {
+          const mm = parseInt(md[1], 10)
+          const dd = parseInt(md[2], 10)
+          const yy = mm < fallbackStart.month ? fallbackStart.year + 1 : fallbackStart.year
+          dateStr = `${yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+        }
       }
     }
 
@@ -342,7 +370,8 @@ export function parseNuEIPSchedule(buffer: ArrayBuffer): ParseResult {
   const shiftMap = new Map(shifts.map(s => [s.code, s]))
 
   // Step 2: Parse schedule + hours
-  const { staff, staffShifts, errors: scheduleErrors } = parseScheduleSheet(workbook, shiftMap)
+  const fallbackStart = readMetadataStart(workbook)
+  const { staff, staffShifts, errors: scheduleErrors } = parseScheduleSheet(workbook, shiftMap, fallbackStart)
 
   // Include any dynamically discovered shifts (e.g. BE烘焙早班)
   const finalShifts = Array.from(shiftMap.values())
