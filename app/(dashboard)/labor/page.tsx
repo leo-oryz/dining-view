@@ -44,6 +44,11 @@ interface StaffRow {
   overtime_hours: number
   month_cost: number | null
   revenue_per_hour: number | null
+  hired_at: string | null
+  left_at: string | null
+  last_seen_date: string | null
+  requires_review: boolean
+  suspected_left: boolean
 }
 
 interface OvertimeData {
@@ -473,7 +478,29 @@ export default function LaborPage() {
 
       {/* Staff Table */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">員工工時產出</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-slate-900">員工工時產出</h3>
+          <div className="flex gap-2 text-xs">
+            {(() => {
+              const reviewCount = staffList.filter(s => s.requires_review).length
+              const leftCount = staffList.filter(s => s.suspected_left).length
+              return (
+                <>
+                  {reviewCount > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded">
+                      📝 {reviewCount} 待審核
+                    </span>
+                  )}
+                  {leftCount > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-50 text-slate-600 border border-slate-200 rounded">
+                      👻 {leftCount} 疑似離職
+                    </span>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        </div>
         {staffList.length === 0 ? (
           <div className="text-center text-slate-400 text-sm py-8">尚無員工資料</div>
         ) : (
@@ -482,6 +509,7 @@ export default function LaborPage() {
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left py-2 px-2 text-slate-500 font-medium">姓名</th>
+                  <th className="text-left py-2 px-2 text-slate-500 font-medium">狀態</th>
                   <th className="text-right py-2 px-2 text-slate-500 font-medium">期間工時</th>
                   <th className="text-right py-2 px-2 text-slate-500 font-medium">加班工時</th>
                   <th className="text-right py-2 px-2 text-slate-500 font-medium">薪資成本</th>
@@ -498,6 +526,16 @@ export default function LaborPage() {
                       onClick={() => isOwner && openModal(s)}
                     >
                       <td className="py-2 px-2 text-slate-900">{s.name}</td>
+                      <td className="py-2 px-2">
+                        <div className="flex gap-1 flex-wrap">
+                          {s.requires_review && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">待審核</span>
+                          )}
+                          {s.suspected_left && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">疑似離職</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-2 px-2 text-right text-slate-700">{s.month_hours.toFixed(1)}</td>
                       <td className="py-2 px-2 text-right text-slate-700">
                         {s.overtime_hours > 0 ? s.overtime_hours.toFixed(1) : '—'}

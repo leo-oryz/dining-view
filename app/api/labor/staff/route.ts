@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     // Fetch active staff
     const { data: staffList, error: staffErr } = await supabase
       .from('staff')
-      .select('id, employee_id, name, name_en, employment_type, hourly_rate, monthly_salary, is_active')
+      .select('id, employee_id, name, name_en, employment_type, hourly_rate, monthly_salary, is_active, hired_at, left_at, last_seen_date, requires_review')
       .eq('store_id', storeId)
       .eq('is_active', true)
       .order('employee_id')
@@ -90,12 +90,22 @@ export async function GET(request: NextRequest) {
       return sum + (agg?.totalHours || 0)
     }, 0)
 
-    const finalResult = result.map(s => ({
-      ...s,
-      revenue_per_hour: s.month_hours > 0 && totalAllHours > 0
-        ? Math.round((totalRevenue / totalAllHours) * 100) / 100
-        : null,
-    }))
+    // Flag staff who haven't appeared in a schedule for 30+ days.
+    // Caller can highlight them as 疑似離職 without auto-deactivating.
+    const staleThresholdMs = 30 * 24 * 60 * 60 * 1000
+    const nowMs = Date.now()
+
+    const finalResult = result.map(s => {
+      const lastSeen = s.last_seen_date ? new Date(s.last_seen_date).getTime() : null
+      const suspectedLeft = lastSeen != null && nowMs - lastSeen > staleThresholdMs
+      return {
+        ...s,
+        revenue_per_hour: s.month_hours > 0 && totalAllHours > 0
+          ? Math.round((totalRevenue / totalAllHours) * 100) / 100
+          : null,
+        suspected_left: suspectedLeft,
+      }
+    })
 
     return apiSuccess(finalResult)
   } catch {

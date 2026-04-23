@@ -98,6 +98,11 @@ export async function POST(request: NextRequest) {
           is_day_off: ss.is_day_off,
           is_absent: ss.is_absent,
           labor_cost: laborCost != null ? Math.round(laborCost * 100) / 100 : null,
+          // Snapshots: freeze salary config at upload time so re-uploading
+          // a past period after a pay change does not rewrite history.
+          employment_type_snapshot: staffRecord.employment_type ?? null,
+          hourly_rate_snapshot: staffRecord.hourly_rate ?? null,
+          monthly_salary_snapshot: staffRecord.monthly_salary ?? null,
         }
       })
       .filter(Boolean)
@@ -111,6 +116,24 @@ export async function POST(request: NextRequest) {
           .upsert(chunk, { onConflict: 'store_id,staff_id,date' })
         if (ssErr) return apiError(`Staff shifts error: ${ssErr.message}`, 500)
       }
+    }
+
+    // 4b. Bump last_seen_date for every staff member in this upload.
+    // Only push forward — never pull back — so uploading a single department
+    // doesn't "un-see" staff from another department.
+    const lastSeenPerEmp = new Map<string, string>()
+    for (const ss of staffShifts) {
+      const prev = lastSeenPerEmp.get(ss.employee_id)
+      if (!prev || ss.date > prev) lastSeenPerEmp.set(ss.employee_id, ss.date)
+    }
+    for (const [empId, latestDate] of lastSeenPerEmp) {
+      const staffRecord = staffMap.get(empId)
+      if (!staffRecord) continue
+      await supabase
+        .from('staff')
+        .update({ last_seen_date: latestDate })
+        .eq('id', staffRecord.id)
+        .or(`last_seen_date.is.null,last_seen_date.lt.${latestDate}`)
     }
 
     // 5. Compute labor_daily_summary
