@@ -49,6 +49,9 @@ interface StaffRow {
   last_seen_date: string | null
   requires_review: boolean
   suspected_left: boolean
+  department: string | null
+  job_title: string | null
+  is_active: boolean
 }
 
 interface OvertimeData {
@@ -101,7 +104,16 @@ export default function LaborPage() {
   const [payrollCost, setPayrollCost] = useState<PayrollCost | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedStaff, setSelectedStaff] = useState<StaffRow | null>(null)
-  const [modalForm, setModalForm] = useState({ employment_type: 'full_time', hourly_rate: '', monthly_salary: '' })
+  const [modalForm, setModalForm] = useState({
+    employment_type: 'full_time',
+    hourly_rate: '',
+    monthly_salary: '',
+    department: '',
+    job_title: '',
+    hired_at: '',
+    left_at: '',
+    is_active: true,
+  })
   const [saving, setSaving] = useState(false)
   const [userRole, setUserRole] = useState<string>('manager')
 
@@ -247,10 +259,15 @@ export default function LaborPage() {
       employment_type: s.employment_type,
       hourly_rate: s.hourly_rate?.toString() || '',
       monthly_salary: s.monthly_salary?.toString() || '',
+      department: s.department || '',
+      job_title: s.job_title || '',
+      hired_at: s.hired_at || '',
+      left_at: s.left_at || '',
+      is_active: s.is_active ?? true,
     })
   }
 
-  const saveStaff = async () => {
+  const saveStaff = async (markReviewed: boolean) => {
     if (!selectedStaff) return
     setSaving(true)
     try {
@@ -262,6 +279,33 @@ export default function LaborPage() {
           employment_type: modalForm.employment_type,
           hourly_rate: modalForm.hourly_rate ? parseFloat(modalForm.hourly_rate) : null,
           monthly_salary: modalForm.monthly_salary ? parseFloat(modalForm.monthly_salary) : null,
+          department: modalForm.department || null,
+          job_title: modalForm.job_title || null,
+          hired_at: modalForm.hired_at || null,
+          left_at: modalForm.left_at || null,
+          is_active: modalForm.is_active,
+          mark_reviewed: markReviewed,
+        }),
+      })
+      setSelectedStaff(null)
+      fetchData()
+    } catch { /* ignore */ }
+    setSaving(false)
+  }
+
+  const markStaffLeft = async () => {
+    if (!selectedStaff) return
+    const today = format(new Date(), 'yyyy-MM-dd')
+    setSaving(true)
+    try {
+      await fetch('/api/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staff_id: selectedStaff.id,
+          is_active: false,
+          left_at: today,
+          mark_reviewed: true,
         }),
       })
       setSelectedStaff(null)
@@ -681,30 +725,69 @@ export default function LaborPage() {
         </div>
       </div>
 
-      {/* Staff Salary Modal */}
+      {/* Staff Detail Modal */}
       {selectedStaff && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedStaff(null)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">員工薪資設定</h3>
+              <h3 className="text-lg font-semibold text-slate-900">員工資料</h3>
               <button onClick={() => setSelectedStaff(null)} className="text-slate-400 hover:text-slate-600">
                 <X size={20} />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-500 mb-1">員工編號</label>
-                <div className="text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">{selectedStaff.employee_id}</div>
+            {(selectedStaff.requires_review || selectedStaff.suspected_left) && (
+              <div className="mb-4 flex gap-2 flex-wrap">
+                {selectedStaff.requires_review && (
+                  <span className="text-xs px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200">📝 待審核</span>
+                )}
+                {selectedStaff.suspected_left && (
+                  <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                    👻 疑似離職（最後出現 {selectedStaff.last_seen_date || '未知'}）
+                  </span>
+                )}
               </div>
-              <div>
-                <label className="block text-sm text-slate-500 mb-1">姓名</label>
-                <div className="text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">
-                  {selectedStaff.name}{selectedStaff.name_en ? ` (${selectedStaff.name_en})` : ''}
+            )}
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">員工編號</label>
+                  <div className="text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg">{selectedStaff.employee_id}</div>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">姓名</label>
+                  <div className="text-sm text-slate-700 bg-slate-50 px-3 py-2 rounded-lg truncate">
+                    {selectedStaff.name}{selectedStaff.name_en ? ` (${selectedStaff.name_en})` : ''}
+                  </div>
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">部門</label>
+                  <input
+                    type="text"
+                    value={modalForm.department}
+                    onChange={e => setModalForm(f => ({ ...f, department: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    placeholder="如：烘焙部"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">職稱</label>
+                  <input
+                    type="text"
+                    value={modalForm.job_title}
+                    onChange={e => setModalForm(f => ({ ...f, job_title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                    placeholder="如：烘焙二手"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm text-slate-500 mb-1">雇用類型</label>
+                <label className="block text-xs text-slate-500 mb-1">雇用類型</label>
                 <select
                   value={modalForm.employment_type}
                   onChange={e => setModalForm(f => ({ ...f, employment_type: e.target.value }))}
@@ -714,47 +797,85 @@ export default function LaborPage() {
                   <option value="part_time">兼職</option>
                 </select>
               </div>
-              {modalForm.employment_type === 'full_time' ? (
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-slate-500 mb-1">月薪</label>
+                  <label className="block text-xs text-slate-500 mb-1">到職日</label>
                   <input
-                    type="number"
-                    value={modalForm.monthly_salary}
-                    onChange={e => setModalForm(f => ({ ...f, monthly_salary: e.target.value }))}
+                    type="date"
+                    value={modalForm.hired_at}
+                    onChange={e => setModalForm(f => ({ ...f, hired_at: e.target.value }))}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
-                    placeholder="例：35000"
                   />
                 </div>
-              ) : (
                 <div>
-                  <label className="block text-sm text-slate-500 mb-1">時薪</label>
+                  <label className="block text-xs text-slate-500 mb-1">離職日</label>
                   <input
-                    type="number"
-                    value={modalForm.hourly_rate}
-                    onChange={e => setModalForm(f => ({ ...f, hourly_rate: e.target.value }))}
+                    type="date"
+                    value={modalForm.left_at}
+                    onChange={e => setModalForm(f => ({ ...f, left_at: e.target.value }))}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
-                    placeholder="例：183"
                   />
                 </div>
-              )}
-              <div>
-                <label className="block text-sm text-slate-500 mb-1">加班時薪（計算加班費用）</label>
-                <input
-                  type="number"
-                  value={modalForm.hourly_rate}
-                  onChange={e => setModalForm(f => ({ ...f, hourly_rate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
-                  placeholder="例：183"
-                />
               </div>
 
-              <button
-                onClick={saveStaff}
-                disabled={saving}
-                className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
-                {saving ? '儲存中...' : '儲存'}
-              </button>
+              <details className="bg-slate-50 rounded-lg">
+                <summary className="px-3 py-2 text-xs text-slate-500 cursor-pointer">薪資設定值（選填，payroll 未上傳時 fallback 用）</summary>
+                <div className="px-3 pb-3 space-y-3">
+                  {modalForm.employment_type === 'full_time' ? (
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">月薪</label>
+                      <input
+                        type="number"
+                        value={modalForm.monthly_salary}
+                        onChange={e => setModalForm(f => ({ ...f, monthly_salary: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
+                        placeholder="例：35000"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">時薪</label>
+                      <input
+                        type="number"
+                        value={modalForm.hourly_rate}
+                        onChange={e => setModalForm(f => ({ ...f, hourly_rate: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
+                        placeholder="例：183"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">加班時薪</label>
+                    <input
+                      type="number"
+                      value={modalForm.hourly_rate}
+                      onChange={e => setModalForm(f => ({ ...f, hourly_rate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
+                      placeholder="例：183"
+                    />
+                  </div>
+                </div>
+              </details>
+
+              <div className="pt-2 space-y-2">
+                <button
+                  onClick={() => saveStaff(true)}
+                  disabled={saving}
+                  className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {saving ? '儲存中...' : selectedStaff.requires_review ? '儲存並標記已審核' : '儲存'}
+                </button>
+                {selectedStaff.is_active && (
+                  <button
+                    onClick={markStaffLeft}
+                    disabled={saving}
+                    className="w-full py-2 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50 disabled:opacity-50"
+                  >
+                    標記為已離職（不會刪除歷史資料）
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

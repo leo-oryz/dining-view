@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     // Fetch active staff
     const { data: staffList, error: staffErr } = await supabase
       .from('staff')
-      .select('id, employee_id, name, name_en, employment_type, hourly_rate, monthly_salary, is_active, hired_at, left_at, last_seen_date, requires_review')
+      .select('id, employee_id, name, name_en, employment_type, hourly_rate, monthly_salary, is_active, hired_at, left_at, last_seen_date, requires_review, department, job_title')
       .eq('store_id', storeId)
       .eq('is_active', true)
       .order('employee_id')

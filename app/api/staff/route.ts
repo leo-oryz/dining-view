@@ -5,18 +5,30 @@ import { apiSuccess, apiError, DEFAULT_STORE_ID } from '@/lib/api-utils'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { staff_id, employment_type, hourly_rate, monthly_salary } = body
+    const {
+      staff_id, employment_type, hourly_rate, monthly_salary,
+      department, job_title, hired_at, left_at, is_active,
+      requires_review, mark_reviewed,
+    } = body
     const storeId = body.store_id || DEFAULT_STORE_ID
 
     if (!staff_id) return apiError('staff_id is required', 400)
 
     const supabase = createServiceClient()
 
-    // Update staff record
+    // Update staff record — only touch fields the caller sent.
     const updates: Record<string, unknown> = {}
     if (employment_type) updates.employment_type = employment_type
     if (hourly_rate !== undefined) updates.hourly_rate = hourly_rate
     if (monthly_salary !== undefined) updates.monthly_salary = monthly_salary
+    if (department !== undefined) updates.department = department
+    if (job_title !== undefined) updates.job_title = job_title
+    if (hired_at !== undefined) updates.hired_at = hired_at || null
+    if (left_at !== undefined) updates.left_at = left_at || null
+    if (is_active !== undefined) updates.is_active = is_active
+    if (requires_review !== undefined) updates.requires_review = requires_review
+    // Convenience flag from the modal's "標記已審核" button.
+    if (mark_reviewed) updates.requires_review = false
 
     const { error: updateErr } = await supabase
       .from('staff')
