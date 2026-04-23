@@ -56,6 +56,25 @@ interface OvertimeData {
   dateBreakdown: { date: string; overtime_hours: number }[]
 }
 
+interface PayrollCost {
+  per_month: {
+    year: number
+    month: number
+    total_payable: number | null
+    total_revenue: number
+    cost_ratio: number | null
+    staff_count: number
+    department_breakdown: { department: string; total: number }[]
+  }[]
+  aggregate: {
+    total_payable: number
+    total_revenue: number
+    cost_ratio: number | null
+    months_covered: string[]
+  } | null
+  months_missing: string[]
+}
+
 // ─── Helpers ───
 const fmtNT = (v: number) => `NT$${Math.round(v).toLocaleString()}`
 const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`
@@ -79,6 +98,7 @@ export default function LaborPage() {
   const [hourly, setHourly] = useState<HourlyEfficiency[]>([])
   const [staffList, setStaffList] = useState<StaffRow[]>([])
   const [overtime, setOvertime] = useState<OvertimeData | null>(null)
+  const [payrollCost, setPayrollCost] = useState<PayrollCost | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedStaff, setSelectedStaff] = useState<StaffRow | null>(null)
   const [modalForm, setModalForm] = useState({ employment_type: 'full_time', hourly_rate: '', monthly_salary: '' })
@@ -110,22 +130,24 @@ export default function LaborPage() {
     setLoading(true)
     try {
       const qs = `from=${startDate}&to=${endDate}`
-      const [sumRes, hourlyRes, staffRes, otRes, meRes] = await Promise.all([
+      const [sumRes, hourlyRes, staffRes, otRes, costRes, meRes] = await Promise.all([
         fetch(`/api/labor/summary?${qs}`),
         fetch(`/api/labor/hourly-efficiency?${qs}`),
         fetch(`/api/labor/staff?${qs}`),
         fetch(`/api/labor/overtime?${qs}`),
+        fetch(`/api/labor/payroll-cost?${qs}`),
         fetch('/api/auth/me'),
       ])
 
-      const [sumJson, hourlyJson, staffJson, otJson, meJson] = await Promise.all([
-        sumRes.json(), hourlyRes.json(), staffRes.json(), otRes.json(), meRes.json(),
+      const [sumJson, hourlyJson, staffJson, otJson, costJson, meJson] = await Promise.all([
+        sumRes.json(), hourlyRes.json(), staffRes.json(), otRes.json(), costRes.json(), meRes.json(),
       ])
 
       if (sumJson.success) setSummary(sumJson.data || [])
       if (hourlyJson.success) setHourly(hourlyJson.data || [])
       if (staffJson.success) setStaffList(staffJson.data || [])
       if (otJson.success) setOvertime(otJson.data || null)
+      if (costJson.success) setPayrollCost(costJson.data || null)
       if (meJson.success) setUserRole(meJson.data?.role || 'manager')
     } catch { /* ignore */ }
     setLoading(false)
@@ -148,12 +170,15 @@ export default function LaborPage() {
   // ─── KPI calculations (over selected range, excluding incomplete days) ───
   const totalActualHours = completeSummary.reduce((s, r) => s + (r.total_actual_hours || 0), 0)
   const totalRevenue = completeSummary.reduce((s, r) => s + (r.revenue || 0), 0)
-  const totalLaborCost = completeSummary.reduce((s, r) => s + (r.total_labor_cost || 0), 0)
   const totalOvertimeHours = completeSummary.reduce((s, r) => s + (r.total_overtime_hours || 0), 0)
   const hasAnyCost = completeSummary.some(r => r.total_labor_cost != null)
 
+  // Cost ratio prefers payroll (ground truth) over the derived daily labor_cost.
+  const payrollCostRatio = payrollCost?.aggregate?.cost_ratio ?? null
+  const payrollMonths = payrollCost?.aggregate?.months_covered ?? []
+  const missingMonths = payrollCost?.months_missing ?? []
+
   const avgRPH = totalActualHours > 0 ? totalRevenue / totalActualHours : 0
-  const avgCostRatio = hasAnyCost && totalRevenue > 0 ? totalLaborCost / totalRevenue : 0
   const overtimeRate = totalActualHours > 0 ? totalOvertimeHours / totalActualHours : 0
   const overtimeCost = hasAnyCost
     ? completeSummary.reduce((s, r) => {
@@ -333,23 +358,29 @@ export default function LaborPage() {
           </div>
         </div>
 
-        {/* Labor cost ratio */}
+        {/* Labor cost ratio (from payroll — ground truth) */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="flex items-center gap-2 mb-1">
             <DollarSign size={16} className="text-amber-500" />
             <span className="text-sm text-slate-500">人力成本率</span>
           </div>
           <div className="text-2xl font-bold text-slate-900">
-            {hasAnyCost ? fmtPct(avgCostRatio) : '—'}
+            {payrollCostRatio != null ? fmtPct(payrollCostRatio) : '—'}
           </div>
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
             <span className="text-xs text-slate-400">目標 {fmtPct(TARGET_COST_RATIO)}</span>
-            {hasAnyCost && (
-              <span className={clsx('text-xs font-medium', avgCostRatio <= TARGET_COST_RATIO ? 'text-emerald-600' : 'text-red-500')}>
-                {avgCostRatio <= TARGET_COST_RATIO ? '🟢 達標' : '🔴 未達標'}
+            {payrollCostRatio != null && (
+              <span className={clsx('text-xs font-medium', payrollCostRatio <= TARGET_COST_RATIO ? 'text-emerald-600' : 'text-red-500')}>
+                {payrollCostRatio <= TARGET_COST_RATIO ? '🟢 達標' : '🔴 未達標'}
               </span>
             )}
           </div>
+          {payrollMonths.length > 0 && (
+            <div className="text-[10px] text-slate-400 mt-1">
+              計算範圍：{payrollMonths.join(', ')}
+              {missingMonths.length > 0 && <span className="text-amber-600"> · {missingMonths.join(', ')} 薪資未上傳</span>}
+            </div>
+          )}
         </div>
 
         {/* Total hours */}
@@ -378,6 +409,48 @@ export default function LaborPage() {
           )}
         </div>
       </div>
+
+      {/* Payroll breakdown by month + department */}
+      {payrollCost && payrollCost.per_month.some(m => m.total_payable != null) && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <h3 className="text-base font-semibold text-slate-900 mb-1">月人力成本（實際薪資）</h3>
+          <p className="text-xs text-slate-400 mb-4">來源：人事薪資表；部門拆解顯示該月實付總額</p>
+          <div className="space-y-4">
+            {payrollCost.per_month.filter(m => m.total_payable != null).map(m => {
+              const label = `${m.year}-${String(m.month).padStart(2, '0')}`
+              const ratio = m.cost_ratio
+              return (
+                <div key={label} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-slate-900">{label}</div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="text-slate-500">營收 {fmtNT(m.total_revenue)}</span>
+                      <span className="text-slate-500">薪資 {fmtNT(m.total_payable || 0)}</span>
+                      <span className={clsx('font-semibold', ratio == null ? 'text-slate-400' : ratio <= TARGET_COST_RATIO ? 'text-emerald-600' : 'text-red-500')}>
+                        {ratio != null ? fmtPct(ratio) : '—'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {m.department_breakdown.map(d => (
+                      <span key={d.department} className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-slate-50 border border-slate-200 rounded-md">
+                        <span className="text-slate-600">{d.department}</span>
+                        <span className="text-slate-900 font-medium">{fmtNT(d.total)}</span>
+                        <span className="text-slate-400">({((d.total / (m.total_payable || 1)) * 100).toFixed(0)}%)</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {payrollCost.months_missing.length > 0 && (
+            <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+              ⚠️ {payrollCost.months_missing.join(', ')} 薪資尚未上傳，這幾個月不計入成本率
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Trend Chart */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
