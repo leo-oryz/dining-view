@@ -12,18 +12,53 @@ type OrderRow = {
   source: string
 }
 
-async function fetchPaginated(
+const CHUNK_DAYS = 7
+const PAGE = 1000
+const MAX_CONCURRENCY = 4
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let next = 0
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = next++
+      if (i >= items.length) return
+      results[i] = await worker(items[i])
+    }
+  })
+  await Promise.all(runners)
+  return results
+}
+
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d)
+  x.setUTCDate(x.getUTCDate() + n)
+  return x
+}
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+// Fetches order-header rows in small date chunks, in parallel. Chunking keeps
+// each query narrow enough that Postgres can satisfy it via the (store_id, date)
+// index without hitting the statement timeout that deep OFFSET pagination
+// triggered on YTD-sized ranges; parallelism then collapses wall-clock time to
+// roughly the cost of one chunk regardless of range width.
+async function fetchChunk(
   supabase: ReturnType<typeof createServiceClient>,
   storeId: string,
-  startDate: string,
-  endDate: string,
+  cs: string,
+  ce: string,
   source: string,
-  excludeDates?: Set<string>
+  keepDate?: (date: string) => boolean
 ): Promise<{ rows: OrderRow[]; error: string | null }> {
-  const PAGE = 1000
   const rows: OrderRow[] = []
   let from = 0
-
   while (true) {
     const { data, error } = await supabase
       .from('order_items')
@@ -31,23 +66,46 @@ async function fetchPaginated(
       .eq('store_id', storeId)
       .eq('item_name', '__order__')
       .eq('source', source)
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: true })
-      .order('time', { ascending: true })
+      .gte('date', cs)
+      .lte('date', ce)
       .range(from, from + PAGE - 1)
     if (error) return { rows: [], error: error.message }
 
-    if (excludeDates && excludeDates.size > 0) {
-      rows.push(...(data || []).filter((r) => !excludeDates.has(r.date)))
-    } else {
-      rows.push(...(data || []))
-    }
+    const batch = keepDate ? (data || []).filter((r) => keepDate(r.date)) : data || []
+    rows.push(...batch)
 
     if (!data || data.length < PAGE) break
     from += PAGE
   }
+  return { rows, error: null }
+}
 
+async function fetchByChunks(
+  supabase: ReturnType<typeof createServiceClient>,
+  storeId: string,
+  startDate: string,
+  endDate: string,
+  source: string,
+  keepDate?: (date: string) => boolean
+): Promise<{ rows: OrderRow[]; error: string | null }> {
+  const chunks: { cs: string; ce: string }[] = []
+  const endD = new Date(endDate + 'T00:00:00Z')
+  let cursor = new Date(startDate + 'T00:00:00Z')
+  while (cursor <= endD) {
+    const chunkEnd = addDays(cursor, CHUNK_DAYS - 1)
+    const actualEnd = chunkEnd > endD ? endD : chunkEnd
+    chunks.push({ cs: isoDate(cursor), ce: isoDate(actualEnd) })
+    cursor = addDays(actualEnd, 1)
+  }
+
+  const results = await mapWithConcurrency(chunks, MAX_CONCURRENCY, (c) =>
+    fetchChunk(supabase, storeId, c.cs, c.ce, source, keepDate)
+  )
+  const rows: OrderRow[] = []
+  for (const r of results) {
+    if (r.error) return { rows: [], error: r.error }
+    rows.push(...r.rows)
+  }
   return { rows, error: null }
 }
 
@@ -66,20 +124,37 @@ export async function GET(request: NextRequest) {
 
     // Strategy: fetch daily-closing first (preferred source, fewer rows per date).
     // Then only fetch eat365 transaction rows for dates NOT covered by daily-closing.
-    const { rows: dcRows, error: dcErr } = await fetchPaginated(
+    const { rows: dcRows, error: dcErr } = await fetchByChunks(
       supabase, storeId, startDate, endDate, 'eat365-daily-closing'
     )
     if (dcErr) return apiError(dcErr, 500)
 
     const dcDates = new Set(dcRows.map((r) => r.date))
 
-    // Only fetch eat365 rows for dates missing daily-closing data
-    let allRows = dcRows
-    const { rows: etRows, error: etErr } = await fetchPaginated(
-      supabase, storeId, startDate, endDate, 'eat365', dcDates
-    )
-    if (etErr) return apiError(etErr, 500)
-    allRows = [...dcRows, ...etRows]
+    // Compute dates in range NOT covered by daily-closing. If empty, skip the
+    // eat365 backfill fetch entirely — otherwise we'd waste tens of thousands
+    // of rows of network/DB work just to filter them all out client-side.
+    const missingDates: string[] = []
+    const rangeEnd = new Date(endDate + 'T00:00:00Z')
+    let c = new Date(startDate + 'T00:00:00Z')
+    while (c <= rangeEnd) {
+      const d = isoDate(c)
+      if (!dcDates.has(d)) missingDates.push(d)
+      c = addDays(c, 1)
+    }
+
+    let etRows: OrderRow[] = []
+    if (missingDates.length > 0) {
+      const missingSet = new Set(missingDates)
+      const result = await fetchByChunks(
+        supabase, storeId, missingDates[0], missingDates[missingDates.length - 1],
+        'eat365', (date) => missingSet.has(date)
+      )
+      if (result.error) return apiError(result.error, 500)
+      etRows = result.rows
+    }
+
+    const allRows = [...dcRows, ...etRows]
 
     if (allRows.length === 0) {
       return apiSuccess({
