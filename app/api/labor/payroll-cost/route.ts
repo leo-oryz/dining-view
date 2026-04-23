@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError, getStoreId } from '@/lib/api-utils'
+import { getSession } from '@/lib/auth/getSession'
 
 /**
  * Cost ratio computed from payroll_records (ground truth) ÷ daily_sales.
@@ -11,6 +12,12 @@ import { apiSuccess, apiError, getStoreId } from '@/lib/api-utils'
  */
 export async function GET(request: NextRequest) {
   try {
+    // Payroll totals expose salary info — owners only.
+    const session = await getSession()
+    if (!session || session.role !== 'owner') {
+      return apiError('Forbidden', 403)
+    }
+
     const { searchParams } = new URL(request.url)
     const storeId = getStoreId(searchParams)
     const fromStr = searchParams.get('from')

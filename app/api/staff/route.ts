@@ -1,9 +1,14 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError, DEFAULT_STORE_ID } from '@/lib/api-utils'
+import { getSession } from '@/lib/auth/getSession'
 
 export async function POST(request: NextRequest) {
   try {
+    // Owner-only: edits salary + employment fields.
+    const session = await getSession()
+    if (!session || session.role !== 'owner') return apiError('Forbidden', 403)
+
     const body = await request.json()
     const {
       staff_id, employment_type, hourly_rate, monthly_salary,

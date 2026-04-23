@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError, getStoreId } from '@/lib/api-utils'
+import { getSession } from '@/lib/auth/getSession'
 
 export async function GET(request: NextRequest) {
   try {
@@ -107,7 +108,20 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return apiSuccess(finalResult)
+    // Strip salary fields for non-owners so they can't be read from the
+    // network response even though the UI hides them.
+    const session = await getSession()
+    const isOwner = session?.role === 'owner'
+    const safeResult = isOwner
+      ? finalResult
+      : finalResult.map(s => ({
+          ...s,
+          hourly_rate: null,
+          monthly_salary: null,
+          month_cost: null,
+        }))
+
+    return apiSuccess(safeResult)
   } catch {
     return apiError('Internal server error', 500)
   }

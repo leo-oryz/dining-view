@@ -402,30 +402,32 @@ export default function LaborPage() {
           </div>
         </div>
 
-        {/* Labor cost ratio (from payroll — ground truth) */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign size={16} className="text-amber-500" />
-            <span className="text-sm text-slate-500">人力成本率</span>
-          </div>
-          <div className="text-2xl font-bold text-slate-900">
-            {payrollCostRatio != null ? fmtPct(payrollCostRatio) : '—'}
-          </div>
-          <div className="flex items-center gap-1 mt-1 flex-wrap">
-            <span className="text-xs text-slate-400">目標 {fmtPct(TARGET_COST_RATIO)}</span>
-            {payrollCostRatio != null && (
-              <span className={clsx('text-xs font-medium', payrollCostRatio <= TARGET_COST_RATIO ? 'text-emerald-600' : 'text-red-500')}>
-                {payrollCostRatio <= TARGET_COST_RATIO ? '🟢 達標' : '🔴 未達標'}
-              </span>
+        {/* Labor cost ratio (owner-only — exposes salary info) */}
+        {isOwner && (
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign size={16} className="text-amber-500" />
+              <span className="text-sm text-slate-500">人力成本率</span>
+            </div>
+            <div className="text-2xl font-bold text-slate-900">
+              {payrollCostRatio != null ? fmtPct(payrollCostRatio) : '—'}
+            </div>
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              <span className="text-xs text-slate-400">目標 {fmtPct(TARGET_COST_RATIO)}</span>
+              {payrollCostRatio != null && (
+                <span className={clsx('text-xs font-medium', payrollCostRatio <= TARGET_COST_RATIO ? 'text-emerald-600' : 'text-red-500')}>
+                  {payrollCostRatio <= TARGET_COST_RATIO ? '🟢 達標' : '🔴 未達標'}
+                </span>
+              )}
+            </div>
+            {payrollMonths.length > 0 && (
+              <div className="text-[10px] text-slate-400 mt-1">
+                計算範圍：{payrollMonths.join(', ')}
+                {missingMonths.length > 0 && <span className="text-amber-600"> · {missingMonths.join(', ')} 薪資未上傳</span>}
+              </div>
             )}
           </div>
-          {payrollMonths.length > 0 && (
-            <div className="text-[10px] text-slate-400 mt-1">
-              計算範圍：{payrollMonths.join(', ')}
-              {missingMonths.length > 0 && <span className="text-amber-600"> · {missingMonths.join(', ')} 薪資未上傳</span>}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Total hours */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -446,7 +448,7 @@ export default function LaborPage() {
             <span className="text-sm text-slate-500">期間加班工時</span>
           </div>
           <div className="text-2xl font-bold text-slate-900">{Math.round(totalOvertimeHours * 10) / 10} <span className="text-sm font-normal text-slate-400">小時</span></div>
-          {hasAnyCost && overtimeCost > 0 && (
+          {isOwner && hasAnyCost && overtimeCost > 0 && (
             <div className="text-xs text-slate-400 mt-1">
               加班成本 {fmtNT(overtimeCost)}
             </div>
@@ -454,8 +456,8 @@ export default function LaborPage() {
         </div>
       </div>
 
-      {/* Payroll breakdown by month + department */}
-      {payrollCost && payrollCost.per_month.some(m => m.total_payable != null) && (
+      {/* Payroll breakdown (owner-only) */}
+      {isOwner && payrollCost && payrollCost.per_month.some(m => m.total_payable != null) && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h3 className="text-base font-semibold text-slate-900 mb-1">月人力成本（實際薪資）</h3>
           <p className="text-xs text-slate-400 mb-4">來源：人事薪資表；部門拆解顯示該月實付總額</p>
