@@ -48,40 +48,50 @@ export async function GET(request: NextRequest) {
 
     const totalRevenue = (salesData || []).reduce((s, r) => s + (Number(r.net_sales) || 0), 0)
 
-    // Aggregate per staff
-    const staffAgg = new Map<string, {
-      totalHours: number
-      overtimeHours: number
-      totalCost: number
-      hasCost: boolean
-    }>()
-
+    // Aggregate per staff (hours only — cost now comes from payroll)
+    const staffAgg = new Map<string, { totalHours: number }>()
     for (const s of shifts || []) {
-      const agg = staffAgg.get(s.staff_id) || { totalHours: 0, overtimeHours: 0, totalCost: 0, hasCost: false }
-      if (!s.is_day_off) {
-        agg.totalHours += Number(s.actual_hours) || 0
-      }
-      if (s.labor_cost != null) {
-        agg.totalCost += Number(s.labor_cost)
-        agg.hasCost = true
-      }
+      const agg = staffAgg.get(s.staff_id) || { totalHours: 0 }
+      if (!s.is_day_off) agg.totalHours += Number(s.actual_hours) || 0
       staffAgg.set(s.staff_id, agg)
+    }
+
+    // Pull payroll for every (year, month) pair that overlaps the selected range.
+    // This is the real salary paid — beats trying to derive from hourly_rate config.
+    const monthsInRange: { year: number; month: number }[] = []
+    {
+      const a = new Date(fromDate)
+      const b = new Date(toDate)
+      let cur = new Date(a.getFullYear(), a.getMonth(), 1)
+      const end = new Date(b.getFullYear(), b.getMonth(), 1)
+      while (cur <= end) {
+        monthsInRange.push({ year: cur.getFullYear(), month: cur.getMonth() + 1 })
+        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1)
+      }
+    }
+
+    const payrollByStaff = new Map<string, number>()
+    for (const { year, month } of monthsInRange) {
+      const { data: pr } = await supabase
+        .from('payroll_records')
+        .select('staff_id, total_payable')
+        .eq('store_id', storeId).eq('year', year).eq('month', month)
+      for (const row of pr || []) {
+        const prev = payrollByStaff.get(row.staff_id) || 0
+        payrollByStaff.set(row.staff_id, prev + Number(row.total_payable))
+      }
     }
 
     const result = (staffList || []).map(s => {
       const agg = staffAgg.get(s.id)
       const totalHours = agg?.totalHours || 0
+      const payrollCost = payrollByStaff.get(s.id)
       return {
         ...s,
         month_hours: Math.round(totalHours * 100) / 100,
         overtime_hours: Math.max(0, totalHours - overtimeThreshold),
-        month_cost: agg?.hasCost ? Math.round(agg.totalCost * 100) / 100 : null,
-        revenue_per_hour: totalHours > 0
-          ? Math.round((totalRevenue / (staffList || []).reduce((sum, st) => {
-              const a = staffAgg.get(st.id)
-              return sum + (a?.totalHours || 0)
-            }, 0)) * totalHours / totalHours * 100) / 100
-          : null,
+        month_cost: payrollCost != null ? Math.round(payrollCost * 100) / 100 : null,
+        revenue_per_hour: null as number | null, // recomputed below
       }
     })
 
