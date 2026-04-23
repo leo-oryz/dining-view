@@ -128,18 +128,30 @@ export default function LaborPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // ─── KPI calculations (over selected range) ───
-  const totalActualHours = summary.reduce((s, r) => s + (r.total_actual_hours || 0), 0)
-  const totalRevenue = summary.reduce((s, r) => s + (r.revenue || 0), 0)
-  const totalLaborCost = summary.reduce((s, r) => s + (r.total_labor_cost || 0), 0)
-  const totalOvertimeHours = summary.reduce((s, r) => s + (r.total_overtime_hours || 0), 0)
-  const hasAnyCost = summary.some(r => r.total_labor_cost != null)
+  // A day is "incomplete" when scheduled hours exist but actual_hours captured
+  // is <30% of scheduled — usually because the nuEIP schedule was exported
+  // mid-day (staff hadn't clocked out yet) or the day is still in the future.
+  // These days have wildly misleading revenue_per_hour and must be excluded
+  // from KPI aggregates and the trend line.
+  const isIncomplete = (r: DailySummary) =>
+    r.total_scheduled_hours > 0 &&
+    r.total_actual_hours < r.total_scheduled_hours * 0.3
+
+  const completeSummary = summary.filter(r => !isIncomplete(r))
+  const incompleteCount = summary.length - completeSummary.length
+
+  // ─── KPI calculations (over selected range, excluding incomplete days) ───
+  const totalActualHours = completeSummary.reduce((s, r) => s + (r.total_actual_hours || 0), 0)
+  const totalRevenue = completeSummary.reduce((s, r) => s + (r.revenue || 0), 0)
+  const totalLaborCost = completeSummary.reduce((s, r) => s + (r.total_labor_cost || 0), 0)
+  const totalOvertimeHours = completeSummary.reduce((s, r) => s + (r.total_overtime_hours || 0), 0)
+  const hasAnyCost = completeSummary.some(r => r.total_labor_cost != null)
 
   const avgRPH = totalActualHours > 0 ? totalRevenue / totalActualHours : 0
   const avgCostRatio = hasAnyCost && totalRevenue > 0 ? totalLaborCost / totalRevenue : 0
   const overtimeRate = totalActualHours > 0 ? totalOvertimeHours / totalActualHours : 0
   const overtimeCost = hasAnyCost
-    ? summary.reduce((s, r) => {
+    ? completeSummary.reduce((s, r) => {
         // rough estimate: overtime portion of labor cost
         if (r.total_labor_cost && r.total_actual_hours && r.total_overtime_hours) {
           return s + (r.total_labor_cost * r.total_overtime_hours / r.total_actual_hours)
@@ -186,13 +198,17 @@ export default function LaborPage() {
     .sort((a, b) => a.slot.localeCompare(b.slot))
 
   // ─── Chart data ───
-  const trendData = summary.map(s => ({
-    date: format(new Date(s.date), 'M/d'),
-    rph: s.revenue_per_hour,
-    ma7: s.revenue_per_hour_ma7,
-    revenue: s.revenue,
-    hours: s.total_actual_hours,
-  }))
+  // Null out incomplete days so recharts skips them (no misleading spikes/dips)
+  const trendData = summary.map(s => {
+    const incomplete = isIncomplete(s)
+    return {
+      date: format(new Date(s.date), 'M/d'),
+      rph: incomplete ? null : s.revenue_per_hour,
+      ma7: incomplete ? null : s.revenue_per_hour_ma7,
+      revenue: incomplete ? null : s.revenue,
+      hours: incomplete ? null : s.total_actual_hours,
+    }
+  })
 
   // ─── Modal handlers ───
   const openModal = (s: StaffRow) => {
@@ -288,6 +304,11 @@ export default function LaborPage() {
             </button>
           </div>
         </div>
+        {incompleteCount > 0 && (
+          <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            ⚠️ 已排除 {incompleteCount} 天資料不完整的日期（實際工時 &lt; 排班 30%，通常是班表剛匯出尚未打卡完畢或未來日期）
+          </div>
+        )}
       </div>
 
       {/* KPI Cards */}
