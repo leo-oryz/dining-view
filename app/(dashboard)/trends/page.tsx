@@ -275,6 +275,20 @@ export default function TrendsPage() {
     ? pctChange(turnoverRate, prevTurnoverRate)
     : null
 
+  // Channel KPI period-over-period changes
+  const dineInOrderPctChange = prevChannelData
+    ? pctChange(channelData?.summary.dine_in.order_pct ?? 0, prevChannelData.summary.dine_in.order_pct)
+    : null
+  const takeoutOrderPctChange = prevChannelData
+    ? pctChange(channelData?.summary.takeout.order_pct ?? 0, prevChannelData.summary.takeout.order_pct)
+    : null
+  const dineInAvgSpendChange = prevChannelData
+    ? pctChange(channelData?.summary.dine_in.avg_spend ?? 0, prevChannelData.summary.dine_in.avg_spend)
+    : null
+  const takeoutAvgSpendChange = prevChannelData
+    ? pctChange(channelData?.summary.takeout.avg_spend ?? 0, prevChannelData.summary.takeout.avg_spend)
+    : null
+
   const rangeTarget = calcRangeTarget(targets, startDate, endDate)
   const achievementPct = rangeTarget != null && rangeTarget > 0 ? (totalRevenue / rangeTarget) * 100 : null
 
@@ -599,12 +613,16 @@ export default function TrendsPage() {
                   title={t('trends.dineInOrderPct')}
                   value={`${channelData.summary.dine_in.order_pct}%`}
                   subtitle={`${channelData.summary.dine_in.order_count.toLocaleString()} ${t('trends.orderCountLabel')}`}
+                  change={dineInOrderPctChange}
+                  changeLabel={changeLabel}
                   icon={<UtensilsCrossed size={20} />}
                 />
                 <KpiCard
                   title={t('trends.takeoutOrderPct')}
                   value={`${channelData.summary.takeout.order_pct}%`}
                   subtitle={`${channelData.summary.takeout.order_count.toLocaleString()} ${t('trends.orderCountLabel')}`}
+                  change={takeoutOrderPctChange}
+                  changeLabel={changeLabel}
                   icon={<ShoppingBag size={20} />}
                 />
                 <KpiCard
@@ -615,11 +633,15 @@ export default function TrendsPage() {
                     const sign = diff >= 0 ? '+' : ''
                     return `${sign}NT$${diff.toLocaleString()} ${t('trends.vsOther')}`
                   })()}
+                  change={dineInAvgSpendChange}
+                  changeLabel={changeLabel}
                   icon={<DollarSign size={20} />}
                 />
                 <KpiCard
                   title={t('trends.takeoutAvgSpend')}
                   value={`NT$${channelData.summary.takeout.avg_spend.toLocaleString()}`}
+                  change={takeoutAvgSpendChange}
+                  changeLabel={changeLabel}
                   icon={<DollarSign size={20} />}
                 />
               </div>
