@@ -6,12 +6,14 @@ import ReportHistory from '@/components/ai/ReportHistory'
 import AttributionReportView from '@/components/ai/AttributionReport'
 import StarProductsReportView from '@/components/ai/StarProductsReport'
 import RetireCandidatesReportView from '@/components/ai/RetireCandidatesReport'
+import LaborCostReportView from '@/components/ai/LaborCostReport'
 import {
   ReportRecord,
   ReportType,
   parseAttributionReport,
   parseStarProductsReport,
   parseRetireCandidatesReport,
+  parseLaborCostReport,
 } from '@/lib/ai/reportRenderer'
 import { useI18n } from '@/lib/i18n/context'
 
@@ -28,10 +30,15 @@ function daysAgo(days: number): string {
 export default function AiPage() {
   const { t } = useI18n()
 
+  const [userRole, setUserRole] = useState<string>('manager')
+  const isOwner = userRole === 'owner'
+
   const reportTypeOptions: { value: ReportType; label: string; defaultDays: number }[] = [
     { value: 'attribution', label: t('ai.revenueAttribution'), defaultDays: 30 },
     { value: 'star_products', label: t('ai.starProducts'), defaultDays: 60 },
     { value: 'retire_candidates', label: t('ai.discontinueCandidates'), defaultDays: 90 },
+    // labor_cost is owner-only (reveals salary) — filtered below
+    ...(isOwner ? [{ value: 'labor_cost' as ReportType, label: '人力成本分析', defaultDays: 90 }] : []),
   ]
 
   const RANGE_PRESETS = [
@@ -81,8 +88,17 @@ export default function AiPage() {
     }
   }
 
+  const fetchRole = async () => {
+    try {
+      const res = await fetch('/api/auth/me')
+      const json = await res.json()
+      if (json.success) setUserRole(json.data?.role || 'manager')
+    } catch { /* silent */ }
+  }
+
   useEffect(() => {
     fetchReports()
+    fetchRole()
   }, [])
 
   const handleSelectReport = async (report: ReportRecord) => {
@@ -159,6 +175,10 @@ export default function AiPage() {
       case 'retire_candidates': {
         const parsed = parseRetireCandidatesReport(activeReport.content)
         return parsed ? <RetireCandidatesReportView data={parsed} /> : <p className="text-sm text-red-500">{t('ai.invalidFormat')}</p>
+      }
+      case 'labor_cost': {
+        const parsed = parseLaborCostReport(activeReport.content)
+        return parsed ? <LaborCostReportView data={parsed} /> : <p className="text-sm text-red-500">{t('ai.invalidFormat')}</p>
       }
       default:
         return <pre className="text-xs bg-slate-50 p-4 rounded overflow-auto">{JSON.stringify(activeReport.content, null, 2)}</pre>

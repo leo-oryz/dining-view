@@ -2,14 +2,15 @@ import Anthropic from '@anthropic-ai/sdk'
 import { AnalysisContext } from './dataPrep'
 import { ProductPair } from './basketAnalysis'
 import { SkuMargin } from './marginMatrix'
+import { LaborContext } from './laborDataPrep'
 
 const MAX_RETRIES = 2
 
-type ReportType = 'attribution' | 'star_products' | 'retire_candidates' | 'expansion'
+type ReportType = 'attribution' | 'star_products' | 'retire_candidates' | 'expansion' | 'labor_cost'
 
 export async function analyzeWithClaude(
   reportType: ReportType,
-  context: AnalysisContext,
+  context: AnalysisContext | LaborContext,
   basketPairs: ProductPair[],
   marginMatrix: SkuMargin[]
 ): Promise<Record<string, unknown>> {
@@ -17,7 +18,9 @@ export async function analyzeWithClaude(
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
 
   const client = new Anthropic({ apiKey })
-  const prompt = buildPrompt(reportType, context, basketPairs, marginMatrix)
+  const prompt = reportType === 'labor_cost'
+    ? buildLaborPrompt(context as LaborContext)
+    : buildPrompt(reportType, context as AnalysisContext, basketPairs, marginMatrix)
   const systemPrompt = getSystemPrompt(reportType)
 
   let lastError: Error | null = null
@@ -130,6 +133,66 @@ function getSystemPrompt(reportType: ReportType): string {
       "verdict": "retire | caution | monitor",
       "reason": "string",
       "evidence": "string — 若有銷量異常請引用具體日期和 delta%"
+    }
+  ]
+}`,
+    labor_cost: `${base}
+
+你正在分析一家餐飲店的人力成本狀況。資料為每月實際發放薪資（ground truth）。
+目標成本率為 30%；低於 30% 健康，高於 40% 嚴重。
+餐飲業兼職薪資占比 30-40% 通常為健康結構。
+
+輸出格式：
+{
+  "period": { "from": "YYYY-MM-DD", "to": "YYYY-MM-DD" },
+  "summary": "2-3 句執行摘要",
+  "headline_metrics": {
+    "avg_cost_ratio": number (0-1),
+    "target_ratio": 0.30,
+    "revenue_per_salary": number,
+    "trend": "improving | stable | worsening",
+    "months_analyzed": ["YYYY-MM"]
+  },
+  "department_insights": [
+    {
+      "department": "string",
+      "payroll_share_pct": number (0-100),
+      "concern": "over-indexed | under-indexed | balanced",
+      "observation": "string — 為什麼這部門成本偏高/偏低，給出具體推論"
+    }
+  ],
+  "overtime_analysis": {
+    "total_ot_hours": number,
+    "ot_ratio_pct": number (0-100),
+    "ot_premium_estimate": number (台幣),
+    "top_concerns": [
+      {
+        "name": "string",
+        "ot_hours": number,
+        "implication": "string — 例如：OT 規律性高，可能是排班不足"
+      }
+    ],
+    "assessment": "string — OT 整體健康度評估"
+  },
+  "employment_mix": {
+    "ft_share_pct": number (0-100),
+    "pt_share_pct": number (0-100),
+    "assessment": "healthy | too-rigid | too-fluid",
+    "observation": "string"
+  },
+  "anomalies": [
+    {
+      "category": "ratio | department | overtime | individual_pay",
+      "severity": "high | medium | low",
+      "description": "string",
+      "evidence": "具體數字"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "high | medium | low",
+      "action": "string — 具體可執行動作",
+      "expected_impact": "string — 預期效益"
     }
   ]
 }`,
@@ -314,6 +377,81 @@ function buildPrompt(
   }
 
   sections.push('\n請根據以上數據產生分析報告 JSON。')
+
+  return sections.join('\n')
+}
+
+function buildLaborPrompt(ctx: LaborContext): string {
+  const sections: string[] = []
+  sections.push(`# 分析請求：人力成本分析`)
+  sections.push(`分析期間：${ctx.periodStart} ~ ${ctx.periodEnd}`)
+  sections.push(`目標成本率：${(ctx.targetCostRatio * 100).toFixed(0)}%`)
+
+  if (ctx.monthsMissing.length > 0) {
+    sections.push(`\n⚠️ 下列月份薪資未上傳，不計入分析：${ctx.monthsMissing.join(', ')}`)
+  }
+
+  sections.push('\n## 每月薪資與營收')
+  sections.push('month | payroll | revenue | cost_ratio | revenue_per_salary | staff | ft_count | pt_count | ot_hours | ot_ratio | ot_premium_est')
+  for (const m of ctx.perMonth) {
+    sections.push(
+      `${m.label} | ${m.total_payable} | ${m.total_revenue} | ${m.cost_ratio != null ? (m.cost_ratio * 100).toFixed(1) + '%' : '-'} | ${m.revenue_per_salary ?? '-'} | ${m.staff_count} | ${m.ft_count} | ${m.pt_count} | ${m.total_overtime_hours}h | ${m.ot_hours_ratio != null ? (m.ot_hours_ratio * 100).toFixed(1) + '%' : '-'} | ${m.estimated_ot_premium}`
+    )
+  }
+
+  sections.push('\n## 每月部門薪資拆解')
+  for (const m of ctx.perMonth) {
+    const parts = m.departments.map(d => `${d.name} ${d.total} (${d.share_pct}%)`).join(' | ')
+    sections.push(`${m.label}: ${parts}`)
+  }
+
+  sections.push('\n## 每月正職 vs 兼職薪資')
+  sections.push('month | ft_payable | pt_payable | ft_share% | pt_share%')
+  for (const m of ctx.perMonth) {
+    const total = m.ft_payable + m.pt_payable
+    const ftShare = total > 0 ? ((m.ft_payable / total) * 100).toFixed(1) : '-'
+    const ptShare = total > 0 ? ((m.pt_payable / total) * 100).toFixed(1) : '-'
+    sections.push(`${m.label} | ${m.ft_payable} | ${m.pt_payable} | ${ftShare}% | ${ptShare}%`)
+  }
+
+  if (ctx.topOvertimeStaff.length > 0) {
+    sections.push('\n## 加班最多員工 Top 5（區間彙總）')
+    sections.push('name | dept | total_hours | ot_hours | implied_hourly')
+    for (const s of ctx.topOvertimeStaff) {
+      sections.push(`${s.name} | ${s.department ?? '-'} | ${s.total_hours}h | ${s.total_overtime_hours}h | ${s.implied_hourly ?? '-'}`)
+    }
+  }
+
+  // Staff table — focus on outliers (highest implied hourly, lowest implied hourly)
+  const sortedByHourly = [...ctx.staffAnalysis]
+    .filter(s => s.implied_hourly != null)
+    .sort((a, b) => (b.implied_hourly || 0) - (a.implied_hourly || 0))
+  const topHourly = sortedByHourly.slice(0, 10)
+  const bottomHourly = sortedByHourly.slice(-5)
+  if (topHourly.length > 0) {
+    sections.push('\n## 實質時薪最高 Top 10（可能為高階或大量加班）')
+    sections.push('name | type | dept | hours | implied_hourly | total_pay')
+    for (const s of topHourly) {
+      sections.push(`${s.name} | ${s.employment_type === 'part_time' ? 'PT' : 'FT'} | ${s.department ?? '-'} | ${s.total_hours}h | ${s.implied_hourly} | ${s.total_payable}`)
+    }
+  }
+  if (bottomHourly.length > 0) {
+    sections.push('\n## 實質時薪最低 Bottom 5')
+    sections.push('name | type | dept | hours | implied_hourly | total_pay')
+    for (const s of bottomHourly) {
+      sections.push(`${s.name} | ${s.employment_type === 'part_time' ? 'PT' : 'FT'} | ${s.department ?? '-'} | ${s.total_hours}h | ${s.implied_hourly} | ${s.total_payable}`)
+    }
+  }
+
+  sections.push(`\n共 ${ctx.staffAnalysis.length} 位員工在這段期間有薪資紀錄。`)
+
+  sections.push('\n請根據以上資料產生人力成本分析 JSON。特別注意：')
+  sections.push('1. 成本率趨勢（是否穩定在目標內、月與月的差異由什麼造成）')
+  sections.push('2. 部門成本是否過度集中某一個部門，該部門的貢獻是否匹配其成本')
+  sections.push('3. 加班是否顯著（個人 vs 整體），哪些人有「經常性加班」訊號')
+  sections.push('4. FT/PT 比例是否健康；有沒有過度僵化或過度依賴兼職的風險')
+  sections.push('5. 是否有實質時薪明顯異常的員工（可能需要審查計薪或排班）')
+  sections.push('6. 給 2-4 條具體、可執行的建議')
 
   return sections.join('\n')
 }

@@ -8,6 +8,7 @@ const typeLabels: Record<ReportType, string> = {
   attribution: '營收歸因',
   star_products: '明星商品',
   retire_candidates: '下架候選',
+  labor_cost: '人力成本分析',
 }
 
 function formatPeriodLabel(start: string | null, end: string | null): string {

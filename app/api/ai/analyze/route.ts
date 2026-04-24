@@ -2,13 +2,15 @@ import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError, DEFAULT_STORE_ID } from '@/lib/api-utils'
 import { prepareAnalysisContext } from '@/lib/ai/dataPrep'
+import { prepareLaborContext } from '@/lib/ai/laborDataPrep'
 import { getTopProductPairs } from '@/lib/ai/basketAnalysis'
 import { getMarginMatrix } from '@/lib/ai/marginMatrix'
 import { analyzeWithClaude } from '@/lib/ai/claudeAnalyzer'
+import { getSession } from '@/lib/auth/getSession'
 
 export const maxDuration = 120
 
-const VALID_TYPES = ['attribution', 'star_products', 'retire_candidates'] as const
+const VALID_TYPES = ['attribution', 'star_products', 'retire_candidates', 'labor_cost'] as const
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +26,12 @@ export async function POST(request: NextRequest) {
       return apiError(`Invalid report_type. Must be one of: ${VALID_TYPES.join(', ')}`, 400)
     }
 
+    // labor_cost reveals salary — owner-only.
+    if (report_type === 'labor_cost') {
+      const session = await getSession()
+      if (!session || session.role !== 'owner') return apiError('Forbidden', 403)
+    }
+
     const storeId = store_id || DEFAULT_STORE_ID
 
     // Default period: last 30 days
@@ -34,20 +42,24 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient()
 
-    // Gather data in parallel
-    const [context, basketResult, marginMatrix] = await Promise.all([
-      prepareAnalysisContext(supabase, storeId, start, end),
-      getTopProductPairs(supabase, storeId),
-      getMarginMatrix(supabase, storeId, start, end),
-    ])
+    let reportJson: Record<string, unknown>
 
-    // Call Claude
-    const reportJson = await analyzeWithClaude(
-      report_type,
-      context,
-      basketResult.pairs,
-      marginMatrix
-    )
+    if (report_type === 'labor_cost') {
+      const laborCtx = await prepareLaborContext(supabase, storeId, start, end)
+      reportJson = await analyzeWithClaude('labor_cost', laborCtx, [], [])
+    } else {
+      const [context, basketResult, marginMatrix] = await Promise.all([
+        prepareAnalysisContext(supabase, storeId, start, end),
+        getTopProductPairs(supabase, storeId),
+        getMarginMatrix(supabase, storeId, start, end),
+      ])
+      reportJson = await analyzeWithClaude(
+        report_type,
+        context,
+        basketResult.pairs,
+        marginMatrix
+      )
+    }
 
     // Save to DB
     const today = new Date().toISOString().slice(0, 10)
