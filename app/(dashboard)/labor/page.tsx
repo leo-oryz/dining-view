@@ -66,15 +66,50 @@ interface PayrollCost {
     total_payable: number | null
     total_revenue: number
     cost_ratio: number | null
+    revenue_per_salary: number | null
     staff_count: number
+    ft_payable: number
+    pt_payable: number
+    ft_count: number
+    pt_count: number
+    total_overtime_hours: number
+    total_actual_hours: number
+    ot_hours_ratio: number | null
+    estimated_ot_premium: number
     department_breakdown: { department: string; total: number }[]
   }[]
   aggregate: {
     total_payable: number
     total_revenue: number
     cost_ratio: number | null
+    revenue_per_salary: number | null
+    ft_payable: number
+    pt_payable: number
+    total_overtime_hours: number
+    total_actual_hours: number
+    estimated_ot_premium: number
     months_covered: string[]
   } | null
+  staff_analysis: {
+    staff_id: string
+    name: string
+    department: string | null
+    employment_type: string
+    total_payable: number
+    total_hours: number
+    total_overtime_hours: number
+    implied_hourly: number | null
+  }[]
+  top_ot_staff: {
+    staff_id: string
+    name: string
+    department: string | null
+    total_hours: number
+    total_overtime_hours: number
+    implied_hourly: number | null
+    total_payable: number
+    employment_type: string
+  }[]
   months_missing: string[]
 }
 
@@ -420,6 +455,11 @@ export default function LaborPage() {
                 </span>
               )}
             </div>
+            {payrollCost?.aggregate?.revenue_per_salary != null && (
+              <div className="text-xs text-slate-500 mt-2">
+                每 NT$1 薪資產生 <span className="font-semibold text-slate-900">NT${payrollCost.aggregate.revenue_per_salary}</span> 營收
+              </div>
+            )}
             {payrollMonths.length > 0 && (
               <div className="text-[10px] text-slate-400 mt-1">
                 計算範圍：{payrollMonths.join(', ')}
@@ -497,6 +537,177 @@ export default function LaborPage() {
           )}
         </div>
       )}
+
+      {/* Salary cost analysis (owner-only) */}
+      {isOwner && payrollCost && payrollCost.per_month.some(m => m.total_payable != null) && (() => {
+        const validMonths = payrollCost.per_month.filter(m => m.total_payable != null)
+        const monthLabels = validMonths.map(m => `${m.year}-${String(m.month).padStart(2, '0')}`)
+
+        // #1: trend chart data
+        const trend = validMonths.map((m, i) => ({
+          label: monthLabels[i],
+          ratio: m.cost_ratio != null ? Math.round(m.cost_ratio * 1000) / 10 : null,
+          rev_per_salary: m.revenue_per_salary,
+        }))
+
+        // #4: FT vs PT stacked
+        const ftPt = validMonths.map((m, i) => ({
+          label: monthLabels[i],
+          全職: m.ft_payable,
+          兼職: m.pt_payable,
+          ft_share: m.total_payable ? Math.round((m.ft_payable / m.total_payable) * 1000) / 10 : 0,
+          pt_share: m.total_payable ? Math.round((m.pt_payable / m.total_payable) * 1000) / 10 : 0,
+        }))
+
+        // #3: OT bar — hours per month
+        const otMonthly = validMonths.map((m, i) => ({
+          label: monthLabels[i],
+          加班工時: m.total_overtime_hours,
+          加班佔比: m.ot_hours_ratio != null ? Math.round(m.ot_hours_ratio * 1000) / 10 : 0,
+        }))
+
+        // #2: implied hourly table — sorted desc, grouped by PT/FT
+        const sortedStaff = [...payrollCost.staff_analysis]
+          .filter(s => s.implied_hourly != null)
+          .sort((a, b) => (b.implied_hourly || 0) - (a.implied_hourly || 0))
+
+        return (
+          <div className="space-y-6">
+            {/* #1 Cost ratio trend */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">成本率趨勢</h3>
+              <p className="text-xs text-slate-400 mb-4">以 {fmtPct(TARGET_COST_RATIO)} 為目標基準</p>
+              <div className="h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} unit="%" domain={[0, 'auto']} />
+                    <Tooltip formatter={(v) => [typeof v === 'number' ? `${v}%` : String(v), '成本率']} />
+                    <ReferenceLine y={TARGET_COST_RATIO * 100} stroke="#9ca3af" strokeDasharray="6 4" label={{ value: `目標 ${fmtPct(TARGET_COST_RATIO)}`, position: 'right', fontSize: 11, fill: '#9ca3af' }} />
+                    <Line type="monotone" dataKey="ratio" name="成本率" stroke="#f97316" strokeWidth={2.5} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* #4 FT vs PT structure */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">正職 vs 兼職薪資結構</h3>
+              <p className="text-xs text-slate-400 mb-4">餐飲業兼職 30-40% 為健康區間；過低=人力僵化、過高=培訓成本高</p>
+              <div className="h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={ftPt}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v) => [fmtNT(Number(v)), '']} />
+                    <Legend />
+                    <Bar dataKey="全職" stackId="a" fill="#3b82f6" />
+                    <Bar dataKey="兼職" stackId="a" fill="#10b981" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {ftPt.map(m => (
+                  <span key={m.label} className="text-xs px-2 py-1 bg-slate-50 rounded-md border border-slate-200">
+                    <span className="text-slate-500">{m.label}</span>
+                    <span className="ml-2">正 {m.ft_share}% · 兼 <span className={clsx(m.pt_share >= 30 && m.pt_share <= 40 ? 'text-emerald-600' : 'text-slate-900', 'font-medium')}>{m.pt_share}%</span></span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* #3 Overtime analysis */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">加班成本分析</h3>
+              <p className="text-xs text-slate-400 mb-4">
+                OT 佔總工時 &gt; 10% 通常是排班不足的訊號
+                {payrollCost.aggregate && payrollCost.aggregate.estimated_ot_premium > 0 && (
+                  <span> · 區間內 OT 溢價估計 <span className="text-slate-700 font-medium">{fmtNT(payrollCost.aggregate.estimated_ot_premium)}</span></span>
+                )}
+              </p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <div className="text-xs text-slate-500 mb-2">每月加班工時</div>
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={otMonthly}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip formatter={(v, name) => [name === '加班佔比' ? `${v}%` : `${v} h`, String(name)]} />
+                        <Bar dataKey="加班工時" fill="#f97316" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 mb-2">加班最多員工（Top 5，依區間 OT 總時數）</div>
+                  {payrollCost.top_ot_staff.length === 0 ? (
+                    <div className="text-sm text-slate-400 py-6 text-center">區間內無加班紀錄</div>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-slate-500 border-b border-slate-200">
+                          <th className="text-left py-1.5">姓名</th>
+                          <th className="text-left py-1.5 hidden sm:table-cell">部門</th>
+                          <th className="text-right py-1.5">OT 小時</th>
+                          <th className="text-right py-1.5">實質時薪</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {payrollCost.top_ot_staff.map(s => (
+                          <tr key={s.staff_id} className="border-b border-slate-100">
+                            <td className="py-1.5 text-slate-900">{s.name}</td>
+                            <td className="py-1.5 text-slate-500 hidden sm:table-cell">{s.department || '—'}</td>
+                            <td className="py-1.5 text-right font-medium text-orange-600">{s.total_overtime_hours}</td>
+                            <td className="py-1.5 text-right text-slate-700">{s.implied_hourly ? fmtNT(s.implied_hourly) : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* #2 Implied hourly table */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="text-base font-semibold text-slate-900 mb-1">員工實質時薪（區間彙總）</h3>
+              <p className="text-xs text-slate-400 mb-4">
+                實質時薪 = 應付總額 ÷ 實際工時。跟同職等同事比對，找出排班/計薪異常。
+              </p>
+              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white">
+                    <tr className="border-b border-slate-200 text-xs text-slate-500">
+                      <th className="text-left py-2 px-2">姓名</th>
+                      <th className="text-left py-2 px-2 hidden sm:table-cell">部門</th>
+                      <th className="text-left py-2 px-2">類型</th>
+                      <th className="text-right py-2 px-2">工時</th>
+                      <th className="text-right py-2 px-2">實質時薪</th>
+                      <th className="text-right py-2 px-2">薪資</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedStaff.map(s => (
+                      <tr key={s.staff_id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-1.5 px-2 text-slate-900">{s.name}</td>
+                        <td className="py-1.5 px-2 text-slate-500 hidden sm:table-cell">{s.department || '—'}</td>
+                        <td className="py-1.5 px-2 text-slate-500">{s.employment_type === 'part_time' ? '兼職' : '全職'}</td>
+                        <td className="py-1.5 px-2 text-right text-slate-700">{s.total_hours}</td>
+                        <td className="py-1.5 px-2 text-right font-medium text-slate-900">{s.implied_hourly ? fmtNT(s.implied_hourly) : '—'}</td>
+                        <td className="py-1.5 px-2 text-right text-slate-600">{fmtNT(s.total_payable)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Trend Chart */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
