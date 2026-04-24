@@ -162,14 +162,30 @@ export default function DashboardLayout({
           .order('name')
         if (storeList && storeList.length > 0) {
           setStores(storeList)
-          setActiveStore(storeList[0].id)
+          const cookieStoreId = document.cookie
+            .split('; ')
+            .find((c) => c.startsWith('active_store_id='))
+            ?.split('=')[1]
+          const initial = storeList.find((s) => s.id === cookieStoreId)?.id || storeList[0].id
+          setActiveStore(initial)
+          if (!cookieStoreId || cookieStoreId !== initial) {
+            document.cookie = `active_store_id=${initial}; path=/; max-age=2592000; samesite=lax`
+          }
         }
       } else if (json.data.store_id) {
         setActiveStore(json.data.store_id)
+        document.cookie = `active_store_id=${json.data.store_id}; path=/; max-age=2592000; samesite=lax`
       }
     }
     loadProfile()
   }, [router])
+
+  function handleStoreSwitch(storeId: string) {
+    document.cookie = `active_store_id=${storeId}; path=/; max-age=2592000; samesite=lax`
+    setActiveStore(storeId)
+    setStoreDropdownOpen(false)
+    router.refresh()
+  }
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -178,7 +194,7 @@ export default function DashboardLayout({
     router.refresh()
   }
 
-  const activeStoreName = stores.find((s) => s.id === activeStore)?.name || 'BE& 西門'
+  const activeStoreName = stores.find((s) => s.id === activeStore)?.name || ''
   const isOwner = profile?.role === 'owner'
 
   // Filter owner-only items from groups
@@ -246,10 +262,7 @@ export default function DashboardLayout({
                 {stores.map((store) => (
                   <button
                     key={store.id}
-                    onClick={() => {
-                      setActiveStore(store.id)
-                      setStoreDropdownOpen(false)
-                    }}
+                    onClick={() => handleStoreSwitch(store.id)}
                     className={clsx(
                       'w-full text-left px-3 py-2 text-sm transition-colors min-h-[44px]',
                       store.id === activeStore
@@ -352,7 +365,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page content — add bottom padding on mobile for tab bar */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto pb-20 lg:pb-6">
+        <main key={activeStore || 'no-store'} className="flex-1 p-4 lg:p-6 overflow-auto pb-20 lg:pb-6">
           {children}
         </main>
       </div>
