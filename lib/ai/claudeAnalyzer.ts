@@ -12,7 +12,8 @@ export async function analyzeWithClaude(
   reportType: ReportType,
   context: AnalysisContext | LaborContext,
   basketPairs: ProductPair[],
-  marginMatrix: SkuMargin[]
+  marginMatrix: SkuMargin[],
+  businessContext?: string | null,
 ): Promise<Record<string, unknown>> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
@@ -20,7 +21,7 @@ export async function analyzeWithClaude(
   const client = new Anthropic({ apiKey })
   const prompt = reportType === 'labor_cost'
     ? buildLaborPrompt(context as LaborContext)
-    : buildPrompt(reportType, context as AnalysisContext, basketPairs, marginMatrix)
+    : buildPrompt(reportType, context as AnalysisContext, basketPairs, marginMatrix, businessContext)
   const systemPrompt = getSystemPrompt(reportType)
 
   let lastError: Error | null = null
@@ -147,19 +148,14 @@ function getSystemPrompt(reportType: ReportType): string {
     labor_cost: `${base}
 
 你正在分析一家餐飲店的人力成本狀況。資料為每月實際發放薪資（ground truth）。
-目標成本率為 30%；低於 30% 健康，高於 40% 嚴重。
-餐飲業兼職薪資占比 30-40% 通常為健康結構。
 
 ⚠️ 嚴格規則（違反會產出錯誤報告）：
 1. 所有數字、比例、員工姓名、類型（FT/PT）、部門、旗標都來自 prompt 中的資料；絕對不要捏造或從訓練資料引用。
-2. 只能使用以下法規基準值（台灣勞基法），不要發明其他「標準」：
-   - 正職標準月工時：176h（8h × 22 工作日）
-   - 單月加班上限：46h
-   - 三個月累計加班上限：138h
-   若 prompt 未標示某員工為 FT 或 PT，不要替他加上雇用類型描述。
+2. Prompt 會列出本次分析使用的所有基準值（目標成本率、OT 上限等）— 只能引用這些數字，不要發明其他「業界標準」或「法規值」。若 prompt 未標示某員工為 FT 或 PT，不要替他加上雇用類型描述。
 3. 做比較時務必再確認方向：X < Y 代表「低於」「不足」；X > Y 才是「高於」「超過」。
 4. Prompt 會提供一個「🚩 自動偵測的關注點」區塊，裡面是系統根據明確規則預先計算的 flags；你應該**優先引用這些 flags**，而不是自己重新推論。
 5. 引用員工時一律同時提到「FT 或 PT」；prompt 中所有員工表格都已標註類型。
+6. Prompt 開頭若有「本店業務背景」段落，請在分析時尊重該背景（例如某些時段是正常的業務型態而非異常）。
 
 輸出格式：
 {
@@ -243,13 +239,19 @@ function buildPrompt(
   reportType: ReportType,
   ctx: AnalysisContext,
   basketPairs: ProductPair[],
-  marginMatrix: SkuMargin[]
+  marginMatrix: SkuMargin[],
+  businessContext?: string | null,
 ): string {
   const sections: string[] = []
 
   sections.push(`# 分析請求：${reportType}`)
   sections.push(`店家：${ctx.storeName}`)
   sections.push(`分析期間：${ctx.periodStart} ~ ${ctx.periodEnd}`)
+
+  if (businessContext) {
+    sections.push(`\n## 本店業務背景（owner 提供，分析時請納入考量）`)
+    sections.push(businessContext)
+  }
 
   // Daily sales
   if (ctx.dailySales.length > 0) {
@@ -404,7 +406,20 @@ function buildLaborPrompt(ctx: LaborContext): string {
   const sections: string[] = []
   sections.push(`# 分析請求：人力成本分析`)
   sections.push(`分析期間：${ctx.periodStart} ~ ${ctx.periodEnd}`)
-  sections.push(`目標成本率：${(ctx.targetCostRatio * 100).toFixed(0)}%`)
+
+  if (ctx.businessContext) {
+    sections.push(`\n## 本店業務背景（owner 提供，分析時請納入考量）`)
+    sections.push(ctx.businessContext)
+  }
+
+  sections.push('\n## 本次分析使用的基準值（唯一合法可引用的閾值）')
+  sections.push(`- 目標人力成本率：${(ctx.thresholds.targetCostRatio * 100).toFixed(1)}%`)
+  sections.push(`- PT 健康薪資占比區間：${(ctx.thresholds.ptHealthyMin * 100).toFixed(0)}% - ${(ctx.thresholds.ptHealthyMax * 100).toFixed(0)}%`)
+  sections.push(`- OT 單月上限：${ctx.thresholds.otMonthlyCap}h`)
+  sections.push(`- OT 三個月累計上限：${ctx.thresholds.otQuarterlyCap}h`)
+  sections.push(`- FT 月工時偏低警戒：< ${ctx.thresholds.ftLowThreshold}h`)
+  sections.push(`- PT 月工時偏高警戒：> ${ctx.thresholds.ptHighThreshold}h`)
+  sections.push(`- 正職標準月工時參考：176h（8h × 22 工作日）`)
 
   if (ctx.monthsMissing.length > 0) {
     sections.push(`\n⚠️ 下列月份薪資未上傳，不計入分析：${ctx.monthsMissing.join(', ')}`)

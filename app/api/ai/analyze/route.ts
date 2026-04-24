@@ -42,11 +42,20 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient()
 
+    // Common business context (store-level) — injected into every report type.
+    const { data: cfg } = await supabase
+      .from('ai_analysis_config')
+      .select('business_context')
+      .eq('store_id', storeId)
+      .maybeSingle()
+    const businessContext: string | null = cfg?.business_context ?? null
+
     let reportJson: Record<string, unknown>
 
     if (report_type === 'labor_cost') {
+      // laborDataPrep already loads config internally (thresholds + context)
       const laborCtx = await prepareLaborContext(supabase, storeId, start, end)
-      reportJson = await analyzeWithClaude('labor_cost', laborCtx, [], [])
+      reportJson = await analyzeWithClaude('labor_cost', laborCtx, [], [], businessContext)
     } else {
       const [context, basketResult, marginMatrix] = await Promise.all([
         prepareAnalysisContext(supabase, storeId, start, end),
@@ -57,7 +66,8 @@ export async function POST(request: NextRequest) {
         report_type,
         context,
         basketResult.pairs,
-        marginMatrix
+        marginMatrix,
+        businessContext,
       )
     }
 

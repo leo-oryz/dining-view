@@ -8,6 +8,7 @@ import {
   Mail, Bell, X, Send, Cloud, RefreshCw,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
+import AiConfigPanel from '@/components/settings/AiConfigPanel'
 
 interface StoreInfo { id: string; name: string; location: string | null; timezone: string; is_active: boolean; created_at: string; phone: string | null; business_hours: string | null; opened_date: string | null; google_maps_url: string | null; google_place_id: string | null; seat_count: number | null; manager_name: string | null; manager_email: string | null }
 interface TeamMember { id: string; email: string; name: string | null; display_name: string | null; role: string; store_id: string | null; store_name: string | null; is_active: boolean; invited_by: string | null; invited_at: string | null; created_at: string; auth_id: string | null }
@@ -132,6 +133,7 @@ export default function SettingsPage() {
         </div>
       </div>
       <WeatherSettingsPanel />
+      <AiConfigPanel isOwner={isOwner} />
       {isOwner && (<div className="bg-white rounded-xl border border-slate-200">
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between"><div className="flex items-center gap-2"><Users size={16} className="text-slate-500" /><h4 className="text-sm font-semibold text-slate-900">{t('settings.teamMembers')}</h4></div><button onClick={() => setShowInvite(!showInvite)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"><UserPlus size={14} />{t('settings.inviteMember')}</button></div>
         {teamMessage && (<div className={`mx-5 mt-3 text-sm px-4 py-2 rounded-lg ${teamMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{teamMessage.text}</div>)}

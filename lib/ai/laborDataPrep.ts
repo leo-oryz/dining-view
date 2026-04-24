@@ -1,5 +1,52 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+export interface LaborCostThresholds {
+  targetCostRatio: number
+  ptHealthyMin: number
+  ptHealthyMax: number
+  otMonthlyCap: number
+  otQuarterlyCap: number
+  ftLowThreshold: number
+  ptHighThreshold: number
+}
+
+const DEFAULT_THRESHOLDS: LaborCostThresholds = {
+  targetCostRatio: 0.30,
+  ptHealthyMin: 0.30,
+  ptHealthyMax: 0.40,
+  otMonthlyCap: 46,
+  otQuarterlyCap: 138,
+  ftLowThreshold: 140,
+  ptHighThreshold: 80,
+}
+
+async function loadThresholds(
+  supabase: SupabaseClient,
+  storeId: string,
+): Promise<{ thresholds: LaborCostThresholds; businessContext: string | null }> {
+  const { data } = await supabase
+    .from('ai_analysis_config')
+    .select('business_context, labor_target_cost_ratio, labor_pt_healthy_min, labor_pt_healthy_max, labor_ot_monthly_cap, labor_ot_quarterly_cap, labor_ft_low_threshold, labor_pt_high_threshold')
+    .eq('store_id', storeId)
+    .maybeSingle()
+
+  if (!data) {
+    return { thresholds: DEFAULT_THRESHOLDS, businessContext: null }
+  }
+  return {
+    thresholds: {
+      targetCostRatio: Number(data.labor_target_cost_ratio) || DEFAULT_THRESHOLDS.targetCostRatio,
+      ptHealthyMin: Number(data.labor_pt_healthy_min) || DEFAULT_THRESHOLDS.ptHealthyMin,
+      ptHealthyMax: Number(data.labor_pt_healthy_max) || DEFAULT_THRESHOLDS.ptHealthyMax,
+      otMonthlyCap: Number(data.labor_ot_monthly_cap) || DEFAULT_THRESHOLDS.otMonthlyCap,
+      otQuarterlyCap: Number(data.labor_ot_quarterly_cap) || DEFAULT_THRESHOLDS.otQuarterlyCap,
+      ftLowThreshold: Number(data.labor_ft_low_threshold) || DEFAULT_THRESHOLDS.ftLowThreshold,
+      ptHighThreshold: Number(data.labor_pt_high_threshold) || DEFAULT_THRESHOLDS.ptHighThreshold,
+    },
+    businessContext: data.business_context || null,
+  }
+}
+
 /**
  * Labor cost context for AI analysis — gathered from payroll_records and
  * daily_sales across the months overlapping [periodStart, periodEnd].
@@ -7,6 +54,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export interface LaborContext {
   periodStart: string
   periodEnd: string
+  thresholds: LaborCostThresholds
+  businessContext: string | null
   targetCostRatio: number
   perMonth: {
     label: string
@@ -62,6 +111,7 @@ export async function prepareLaborContext(
   periodStart: string,
   periodEnd: string,
 ): Promise<LaborContext> {
+  const { thresholds, businessContext } = await loadThresholds(supabase, storeId)
   const from = new Date(periodStart)
   const to = new Date(periodEnd)
   const months: { year: number; month: number }[] = []
@@ -196,11 +246,12 @@ export async function prepareLaborContext(
 
   // Legal baselines (Taiwan 勞基法) — used for pre-computed compliance flags so
   // Claude doesn't have to invent thresholds.
-  // Standard FT month is 176h (8h × 22 days); 140 and 80 are soft flags.
-  const OT_MONTHLY_CAP = 46
-  const OT_THREEMONTH_CAP = 138
-  const FT_LOW_THRESHOLD = 140
-  const PT_HIGH_THRESHOLD = 80
+  // Standard FT month is 176h (8h × 22 days). All below come from config,
+  // with sensible defaults baked into ai_analysis_config on row creation.
+  const OT_MONTHLY_CAP = thresholds.otMonthlyCap
+  const OT_THREEMONTH_CAP = thresholds.otQuarterlyCap
+  const FT_LOW_THRESHOLD = thresholds.ftLowThreshold
+  const PT_HIGH_THRESHOLD = thresholds.ptHighThreshold
 
   // Finalize per-staff analysis with derived metrics + compliance flags
   const staffAnalysis: LaborContext['staffAnalysis'] = []
@@ -256,7 +307,9 @@ export async function prepareLaborContext(
   return {
     periodStart,
     periodEnd,
-    targetCostRatio: 0.30,
+    thresholds,
+    businessContext,
+    targetCostRatio: thresholds.targetCostRatio,
     perMonth,
     monthsMissing,
     staffAnalysis,
