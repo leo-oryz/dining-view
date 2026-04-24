@@ -29,7 +29,9 @@ export async function analyzeWithClaude(
     try {
       const message = await client.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
+        // labor_cost schema is ~2x the size of the product reports; leave
+        // headroom so we don't get truncated JSON.
+        max_tokens: reportType === 'labor_cost' ? 8192 : 4096,
         messages: [{ role: 'user', content: prompt }],
         system: systemPrompt,
       })
@@ -39,17 +41,23 @@ export async function analyzeWithClaude(
         throw new Error('No text in Claude response')
       }
 
-      // Extract JSON from response (handle markdown code blocks)
+      // Extract JSON from response. Strip optional ```json fence, then
+      // fall back to locating the first { and last } — robust to truncated
+      // fences and any preamble Claude occasionally adds despite instruction.
       let jsonStr = textBlock.text.trim()
-      const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/)
-      if (fenceMatch) {
-        jsonStr = fenceMatch[1].trim()
+      jsonStr = jsonStr.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')
+      const firstBrace = jsonStr.indexOf('{')
+      const lastBrace = jsonStr.lastIndexOf('}')
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        jsonStr = jsonStr.slice(firstBrace, lastBrace + 1)
       }
 
       const parsed = JSON.parse(jsonStr)
       return parsed
     } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err))
+      lastError = err instanceof Error
+        ? new Error(`Claude analysis failed (attempt ${attempt + 1}): ${err.message}`)
+        : new Error(String(err))
       if (attempt < MAX_RETRIES) continue
     }
   }
