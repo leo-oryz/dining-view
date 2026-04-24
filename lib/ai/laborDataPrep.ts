@@ -34,13 +34,25 @@ export interface LaborContext {
     total_hours: number
     total_overtime_hours: number
     implied_hourly: number | null
+    months_active: number
+    max_monthly_ot: number
+    avg_monthly_hours: number
+    flags: string[]
   }[]
   topOvertimeStaff: {
     name: string
     department: string | null
+    employment_type: string
     total_hours: number
     total_overtime_hours: number
+    max_monthly_ot: number
     implied_hourly: number | null
+  }[]
+  complianceFlags: {
+    name: string
+    department: string | null
+    employment_type: string
+    flags: string[]
   }[]
 }
 
@@ -62,7 +74,17 @@ export async function prepareLaborContext(
 
   const perMonth: LaborContext['perMonth'] = []
   const monthsMissing: string[] = []
-  const staffAgg = new Map<string, LaborContext['staffAnalysis'][number]>()
+  type StaffAcc = {
+    name: string
+    department: string | null
+    employment_type: string
+    total_payable: number
+    total_hours: number
+    total_overtime_hours: number
+    months_active: number
+    max_monthly_ot: number
+  }
+  const staffAgg = new Map<string, StaffAcc>()
 
   for (const { year, month } of months) {
     const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
@@ -129,6 +151,8 @@ export async function prepareLaborContext(
         prev.total_payable += pay
         prev.total_hours += hours
         prev.total_overtime_hours += ot
+        prev.months_active += 1
+        if (ot > prev.max_monthly_ot) prev.max_monthly_ot = ot
       } else {
         staffAgg.set(r.staff_id, {
           name,
@@ -137,7 +161,8 @@ export async function prepareLaborContext(
           total_payable: pay,
           total_hours: hours,
           total_overtime_hours: ot,
-          implied_hourly: null,
+          months_active: 1,
+          max_monthly_ot: ot,
         })
       }
     }
@@ -169,15 +194,51 @@ export async function prepareLaborContext(
     })
   }
 
-  // Finalize implied_hourly per staff across whole period
+  // Legal baselines (Taiwan 勞基法) — used for pre-computed compliance flags so
+  // Claude doesn't have to invent thresholds.
+  // Standard FT month is 176h (8h × 22 days); 140 and 80 are soft flags.
+  const OT_MONTHLY_CAP = 46
+  const OT_THREEMONTH_CAP = 138
+  const FT_LOW_THRESHOLD = 140
+  const PT_HIGH_THRESHOLD = 80
+
+  // Finalize per-staff analysis with derived metrics + compliance flags
   const staffAnalysis: LaborContext['staffAnalysis'] = []
   for (const s of staffAgg.values()) {
+    const totalHours = Math.round(s.total_hours * 10) / 10
+    const totalOt = Math.round(s.total_overtime_hours * 10) / 10
+    const maxMonthlyOt = Math.round(s.max_monthly_ot * 10) / 10
+    const avgMonthlyHours = s.months_active > 0
+      ? Math.round((s.total_hours / s.months_active) * 10) / 10
+      : 0
+    const impliedHourly = s.total_hours > 0 ? Math.round(s.total_payable / s.total_hours) : null
+
+    const flags: string[] = []
+    if (maxMonthlyOt > OT_MONTHLY_CAP) {
+      flags.push(`單月最高 OT ${maxMonthlyOt}h > 法規上限 ${OT_MONTHLY_CAP}h`)
+    }
+    if (s.months_active >= 3 && totalOt > OT_THREEMONTH_CAP) {
+      flags.push(`三個月累計 OT ${totalOt}h > 法規上限 ${OT_THREEMONTH_CAP}h`)
+    }
+    if (s.employment_type === 'part_time' && avgMonthlyHours > PT_HIGH_THRESHOLD) {
+      flags.push(`PT 平均月工時 ${avgMonthlyHours}h > ${PT_HIGH_THRESHOLD}h (可能應檢視是否轉正)`)
+    }
+    if (s.employment_type === 'full_time' && s.months_active >= 2 && avgMonthlyHours < FT_LOW_THRESHOLD) {
+      flags.push(`FT 平均月工時 ${avgMonthlyHours}h < ${FT_LOW_THRESHOLD}h (工時偏低)`)
+    }
+
     staffAnalysis.push({
-      ...s,
+      name: s.name,
+      department: s.department,
+      employment_type: s.employment_type,
       total_payable: Math.round(s.total_payable),
-      total_hours: Math.round(s.total_hours * 10) / 10,
-      total_overtime_hours: Math.round(s.total_overtime_hours * 10) / 10,
-      implied_hourly: s.total_hours > 0 ? Math.round(s.total_payable / s.total_hours) : null,
+      total_hours: totalHours,
+      total_overtime_hours: totalOt,
+      implied_hourly: impliedHourly,
+      months_active: s.months_active,
+      max_monthly_ot: maxMonthlyOt,
+      avg_monthly_hours: avgMonthlyHours,
+      flags,
     })
   }
 
@@ -185,8 +246,12 @@ export async function prepareLaborContext(
     .filter(s => s.total_overtime_hours > 0)
     .sort((a, b) => b.total_overtime_hours - a.total_overtime_hours)
     .slice(0, 5)
-    .map(({ name, department, total_hours, total_overtime_hours, implied_hourly }) =>
-      ({ name, department, total_hours, total_overtime_hours, implied_hourly }))
+    .map(({ name, department, employment_type, total_hours, total_overtime_hours, max_monthly_ot, implied_hourly }) =>
+      ({ name, department, employment_type, total_hours, total_overtime_hours, max_monthly_ot, implied_hourly }))
+
+  const complianceFlags = staffAnalysis
+    .filter(s => s.flags.length > 0)
+    .map(({ name, department, employment_type, flags }) => ({ name, department, employment_type, flags }))
 
   return {
     periodStart,
@@ -196,5 +261,6 @@ export async function prepareLaborContext(
     monthsMissing,
     staffAnalysis,
     topOvertimeStaff,
+    complianceFlags,
   }
 }

@@ -150,6 +150,17 @@ function getSystemPrompt(reportType: ReportType): string {
 目標成本率為 30%；低於 30% 健康，高於 40% 嚴重。
 餐飲業兼職薪資占比 30-40% 通常為健康結構。
 
+⚠️ 嚴格規則（違反會產出錯誤報告）：
+1. 所有數字、比例、員工姓名、類型（FT/PT）、部門、旗標都來自 prompt 中的資料；絕對不要捏造或從訓練資料引用。
+2. 只能使用以下法規基準值（台灣勞基法），不要發明其他「標準」：
+   - 正職標準月工時：176h（8h × 22 工作日）
+   - 單月加班上限：46h
+   - 三個月累計加班上限：138h
+   若 prompt 未標示某員工為 FT 或 PT，不要替他加上雇用類型描述。
+3. 做比較時務必再確認方向：X < Y 代表「低於」「不足」；X > Y 才是「高於」「超過」。
+4. Prompt 會提供一個「🚩 自動偵測的關注點」區塊，裡面是系統根據明確規則預先計算的 flags；你應該**優先引用這些 flags**，而不是自己重新推論。
+5. 引用員工時一律同時提到「FT 或 PT」；prompt 中所有員工表格都已標註類型。
+
 輸出格式：
 {
   "period": { "from": "YYYY-MM-DD", "to": "YYYY-MM-DD" },
@@ -424,10 +435,26 @@ function buildLaborPrompt(ctx: LaborContext): string {
 
   if (ctx.topOvertimeStaff.length > 0) {
     sections.push('\n## 加班最多員工 Top 5（區間彙總）')
-    sections.push('name | dept | total_hours | ot_hours | implied_hourly')
+    sections.push('name | type | dept | total_hours | ot_hours | max_monthly_ot | implied_hourly')
     for (const s of ctx.topOvertimeStaff) {
-      sections.push(`${s.name} | ${s.department ?? '-'} | ${s.total_hours}h | ${s.total_overtime_hours}h | ${s.implied_hourly ?? '-'}`)
+      const type = s.employment_type === 'part_time' ? 'PT' : 'FT'
+      sections.push(`${s.name} | ${type} | ${s.department ?? '-'} | ${s.total_hours}h | ${s.total_overtime_hours}h | ${s.max_monthly_ot}h | ${s.implied_hourly ?? '-'}`)
     }
+  }
+
+  // Pre-computed compliance / load flags — Claude should cite these verbatim
+  // instead of inventing thresholds.
+  if (ctx.complianceFlags.length > 0) {
+    sections.push('\n## 🚩 自動偵測的關注點（請優先引用這些，不要自行推算閾值）')
+    for (const s of ctx.complianceFlags) {
+      const type = s.employment_type === 'part_time' ? 'PT' : 'FT'
+      const dept = s.department ?? '-'
+      for (const flag of s.flags) {
+        sections.push(`- ${s.name} (${type}, ${dept}): ${flag}`)
+      }
+    }
+  } else {
+    sections.push('\n## 🚩 自動偵測的關注點\n（無）')
   }
 
   // Staff table — focus on outliers (highest implied hourly, lowest implied hourly)
