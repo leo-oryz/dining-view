@@ -231,11 +231,11 @@ export default function DashboardLayout({
       {/* Sidebar — desktop always visible, mobile slide-in */}
       <aside
         className={clsx(
-          'fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-800 text-slate-200 transform transition-transform lg:transform-none',
+          'fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-800 text-slate-200 transform transition-transform lg:transform-none flex flex-col lg:h-screen',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-700">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-slate-700 shrink-0">
           <Link href="/dashboard" className="text-lg font-bold text-white">
             FnB Pulse
           </Link>
@@ -249,7 +249,7 @@ export default function DashboardLayout({
 
         {/* Store switcher (owner only) */}
         {isOwner && stores.length > 1 && (
-          <div className="px-3 mt-3 relative">
+          <div className="px-3 mt-3 relative shrink-0">
             <button
               onClick={() => setStoreDropdownOpen(!storeDropdownOpen)}
               className="w-full flex items-center justify-between px-3 py-2 bg-slate-700 rounded-lg text-sm text-white hover:bg-slate-600 transition-colors min-h-[44px]"
@@ -278,7 +278,7 @@ export default function DashboardLayout({
           </div>
         )}
 
-        <nav className="mt-4 px-3 overflow-y-auto max-h-[calc(100vh-180px)]">
+        <nav className="mt-4 px-3 overflow-y-auto flex-1 min-h-0">
           {filteredGroups.map((group, gi) => (
             <div key={group.titleKey} className={clsx(gi > 0 && 'mt-6')}>
               <div className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
@@ -320,7 +320,7 @@ export default function DashboardLayout({
           ))}
         </nav>
 
-        <div className="absolute bottom-4 left-0 right-0 px-3">
+        <div className="shrink-0 px-3 pt-2 pb-4 border-t border-slate-700/50 mt-2">
           <div className="px-3 mb-2">
             <LocaleSwitcher />
           </div>
