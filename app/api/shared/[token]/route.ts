@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError } from '@/lib/api-utils'
+import { getSession } from '@/lib/auth/getSession'
 import { createHmac } from 'crypto'
 
 function verifyShareToken(token: string): string | null {
@@ -36,6 +37,15 @@ export async function GET(
       .single()
 
     if (error || !data) return apiError('Report not found', 404)
+
+    // Labor-cost reports reveal salary — require owner login even with a
+    // valid share token. Use distinct error codes so the page can offer
+    // the right next step (log in vs access denied).
+    if (data.report_type === 'labor_cost') {
+      const session = await getSession()
+      if (!session) return apiError('login_required', 401)
+      if (session.role !== 'owner') return apiError('owner_required', 403)
+    }
 
     // Fetch store name for display
     const { data: store } = await supabase

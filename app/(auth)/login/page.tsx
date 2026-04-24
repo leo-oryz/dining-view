@@ -1,20 +1,45 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useI18n } from '@/lib/i18n/context'
 import { LocaleSwitcher } from '@/components/ui/LocaleSwitcher'
 
+// Only allow same-origin relative paths so ?next= can't be used for open redirect.
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null
+  return raw
+}
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-full max-w-sm mx-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">FnB Pulse</h1>
+          </div>
+        </div>
+      </div>
+    }>
+      <LoginInner />
+    </Suspense>
+  )
+}
+
+function LoginInner() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [tokenLoading, setTokenLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const { t } = useI18n()
+  const nextPath = safeNext(searchParams.get('next'))
 
   // Handle invite/recovery tokens from URL hash (Supabase implicit flow)
   useEffect(() => {
@@ -38,10 +63,10 @@ export default function LoginPage() {
         if (type === 'invite' || type === 'recovery') {
           router.push('/set-password')
         } else {
-          router.push('/dashboard')
+          router.push(nextPath || '/dashboard')
         }
       })
-  }, [router, supabase.auth])
+  }, [router, supabase.auth, nextPath])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,7 +86,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    router.push(nextPath || '/dashboard')
     router.refresh()
   }
 

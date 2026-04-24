@@ -33,11 +33,13 @@ interface SharedReport {
   store_name: string | null
 }
 
+type AccessState = 'ok' | 'not_found' | 'login_required' | 'owner_required'
+
 export default function SharedReportPage() {
   const { token } = useParams<{ token: string }>()
   const [report, setReport] = useState<SharedReport | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [access, setAccess] = useState<AccessState>('ok')
 
   useEffect(() => {
     async function fetchReport() {
@@ -46,11 +48,16 @@ export default function SharedReportPage() {
         const json = await res.json()
         if (json.success) {
           setReport(json.data)
+          setAccess('ok')
+        } else if (res.status === 401 && json.error === 'login_required') {
+          setAccess('login_required')
+        } else if (res.status === 403 && json.error === 'owner_required') {
+          setAccess('owner_required')
         } else {
-          setError(true)
+          setAccess('not_found')
         }
       } catch {
-        setError(true)
+        setAccess('not_found')
       } finally {
         setLoading(false)
       }
@@ -66,7 +73,42 @@ export default function SharedReportPage() {
     )
   }
 
-  if (error || !report) {
+  if (access === 'login_required') {
+    const loginHref = `/login?next=${encodeURIComponent(`/shared/${token}`)}`
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 max-w-sm text-center">
+          <Brain size={48} className="mx-auto mb-4 text-purple-400" />
+          <h1 className="text-lg font-semibold text-slate-800 mb-1">需要登入</h1>
+          <p className="text-sm text-slate-500 mb-5">
+            人力成本分析包含薪資資訊，僅限 owner 權限查看。
+          </p>
+          <a
+            href={loginHref}
+            className="inline-block w-full px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            前往登入
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  if (access === 'owner_required') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 max-w-sm text-center">
+          <Brain size={48} className="mx-auto mb-4 text-slate-300" />
+          <h1 className="text-lg font-semibold text-slate-800 mb-1">權限不足</h1>
+          <p className="text-sm text-slate-500">
+            此報告僅限 owner 角色查看。請聯繫管理員。
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (access === 'not_found' || !report) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
