@@ -6,16 +6,19 @@ import { Brain, Loader2 } from 'lucide-react'
 import AttributionReportView from '@/components/ai/AttributionReport'
 import StarProductsReportView from '@/components/ai/StarProductsReport'
 import RetireCandidatesReportView from '@/components/ai/RetireCandidatesReport'
+import LaborCostReportView from '@/components/ai/LaborCostReport'
 import {
   parseAttributionReport,
   parseStarProductsReport,
   parseRetireCandidatesReport,
+  parseLaborCostReport,
 } from '@/lib/ai/reportRenderer'
 
 const reportTypeLabels: Record<string, string> = {
   attribution: '營收歸因分析',
   star_products: '明星商品分析',
   retire_candidates: '下架候選分析',
+  labor_cost: '人力成本分析',
 }
 
 interface SharedReport {
@@ -89,6 +92,10 @@ export default function SharedReportPage() {
       case 'retire_candidates': {
         const parsed = parseRetireCandidatesReport(report.content)
         return parsed ? <RetireCandidatesReportView data={parsed} /> : null
+      }
+      case 'labor_cost': {
+        const parsed = parseLaborCostReport(report.content)
+        return parsed ? <LaborCostReportView data={parsed} /> : null
       }
       default:
         return (
