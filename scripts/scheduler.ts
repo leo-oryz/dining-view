@@ -142,21 +142,9 @@ cron.schedule('0 8 * * 1', async () => {
   heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
-// Weekly AI report: Tuesday 08:30
-cron.schedule('30 8 * * 2', async () => {
-  console.log(`[scheduler] ${new Date().toISOString()} — Sending weekly AI report`)
-  try {
-    const res = await fetch(`${BASE_URL}/api/cron/weekly-ai-report`, {
-      method: 'POST',
-      headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
-    })
-    const json = await res.json()
-    console.log('[scheduler] Weekly AI report result:', json)
-  } catch (err) {
-    console.error('[scheduler] Weekly AI report failed:', err)
-  }
-  heartbeat()
-}, { timezone: 'Asia/Taipei' })
+// Weekly AI report moved to GitHub Actions (.github/workflows/weekly-ai-report.yml)
+// so it runs Monday 11:00 Vietnam time with a freshness-check + auto-backfill
+// step that this Zeabur container can't perform (no Playwright/Chrome).
 
 // --- Heartbeat update after each job ---
 function heartbeat() {
@@ -183,5 +171,6 @@ console.log('  03:00 — Anomaly detection + LINE alerts')
 console.log('  03:30 — KOL posts sync (Apify)')
 console.log('  Mon 04:00 — Google Reviews sync (Apify)')
 console.log('  Mon 08:00 — Weekly digest email')
+console.log('  (Weekly AI report runs in GitHub Actions, not here)')
 console.log(`  Base URL: ${BASE_URL}`)
 console.log(`  Timezone: Asia/Taipei`)

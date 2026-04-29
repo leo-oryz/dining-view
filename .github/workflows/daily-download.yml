@@ -10,10 +10,9 @@ on:
       dry_run:
         description: 'Skip upload to Supabase (download + parse only)'
         type: boolean
-        default: true
-  # Cron disabled until dry-run is verified. After verification, uncomment:
-  # schedule:
-  #   - cron: '3 3 * * *'  # 03:03 UTC = 10:03 Vietnam time
+        default: false
+  schedule:
+    - cron: '3 3 * * *'  # 03:03 UTC = 10:03 Vietnam time
 
 concurrency:
   group: daily-download-agent
@@ -26,6 +25,8 @@ jobs:
     env:
       EAT365_LOGIN_EMAIL: ${{ secrets.EAT365_LOGIN_EMAIL }}
       EAT365_LOGIN_PASSWORD: ${{ secrets.EAT365_LOGIN_PASSWORD }}
+      OCARD_LOGIN_EMAIL: ${{ secrets.OCARD_LOGIN_EMAIL }}
+      OCARD_LOGIN_PASSWORD: ${{ secrets.OCARD_LOGIN_PASSWORD }}
       GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
       GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
       GMAIL_USER_EMAIL: ${{ secrets.GMAIL_USER_EMAIL }}

@@ -1,0 +1,134 @@
+name: Weekly AI Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_backfill:
+        description: 'Skip the freshness check + backfill step'
+        type: boolean
+        default: false
+      dry_run_report:
+        description: 'Skip the actual report POST (check + backfill only)'
+        type: boolean
+        default: false
+  schedule:
+    # 04:00 UTC Monday = 11:00 Vietnam time, Monday.
+    # Daily download cron runs at 03:03 UTC Monday, so by 04:00 we already have
+    # Sunday's data.
+    - cron: '0 4 * * 1'
+
+concurrency:
+  group: weekly-ai-report
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EAT365_LOGIN_EMAIL: ${{ secrets.EAT365_LOGIN_EMAIL }}
+      EAT365_LOGIN_PASSWORD: ${{ secrets.EAT365_LOGIN_PASSWORD }}
+      OCARD_LOGIN_EMAIL: ${{ secrets.OCARD_LOGIN_EMAIL }}
+      OCARD_LOGIN_PASSWORD: ${{ secrets.OCARD_LOGIN_PASSWORD }}
+      GMAIL_USER_EMAIL: ${{ secrets.GMAIL_USER_EMAIL }}
+      AGENT_UPLOAD_BASE_URL: ${{ secrets.AGENT_UPLOAD_BASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root deps (for check + report trigger)
+        run: npm ci
+
+      - name: Run freshness check
+        id: check
+        run: npx tsx scripts/check_weekly_data.ts
+
+      - name: Show check summary
+        run: |
+          echo "Window: ${{ steps.check.outputs.window_start }} → ${{ steps.check.outputs.window_end }}"
+          echo "Missing count: ${{ steps.check.outputs.missing_count }}"
+          echo "Missing dates: ${{ steps.check.outputs.missing_dates }}"
+
+      - name: Install agent deps
+        if: steps.check.outputs.missing_count != '0' && inputs.skip_backfill != true
+        working-directory: agents/download-agent
+        run: npm ci
+
+      - name: Install Chrome + Playwright browsers + xvfb
+        if: steps.check.outputs.missing_count != '0' && inputs.skip_backfill != true
+        working-directory: agents/download-agent
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          npx playwright install --with-deps chromium
+          npx playwright install chrome
+
+      - name: Restore eat365 session cache
+        if: steps.check.outputs.missing_count != '0' && inputs.skip_backfill != true
+        uses: actions/cache/restore@v4
+        with:
+          path: agents/download-agent/eat365-session.json
+          key: eat365-session-v1
+          restore-keys: |
+            eat365-session-
+
+      - name: Backfill missing dates
+        if: steps.check.outputs.missing_count != '0' && inputs.skip_backfill != true
+        working-directory: agents/download-agent
+        env:
+          MISSING_DATES: ${{ steps.check.outputs.missing_dates }}
+        # MISSING_DATES is a comma-separated list. backfill.ts takes a range
+        # [start, end]; eat365/Ocard upserts make re-touching present dates safe.
+        run: |
+          start=$(echo "$MISSING_DATES" | cut -d, -f1)
+          end=$(echo "$MISSING_DATES" | tr ',' '\n' | tail -1)
+          echo "Backfilling $start → $end"
+          xvfb-run -a npx tsx backfill.ts "$start" "$end"
+
+      - name: Save eat365 session cache
+        if: always() && steps.check.outputs.missing_count != '0' && inputs.skip_backfill != true
+        uses: actions/cache/save@v4
+        with:
+          path: agents/download-agent/eat365-session.json
+          key: eat365-session-v1-${{ github.run_id }}
+
+      - name: Re-check after backfill
+        id: recheck
+        if: steps.check.outputs.missing_count != '0' && inputs.skip_backfill != true
+        run: npx tsx scripts/check_weekly_data.ts
+
+      - name: Trigger weekly AI report
+        if: inputs.dry_run_report != true
+        run: |
+          echo "POST to ${AGENT_UPLOAD_BASE_URL}/api/cron/weekly-ai-report"
+          response=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" \
+            -X POST "${AGENT_UPLOAD_BASE_URL}/api/cron/weekly-ai-report" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            --max-time 300)
+          status=$(echo "$response" | grep -oE 'HTTP_STATUS:[0-9]+' | cut -d: -f2)
+          body=$(echo "$response" | sed '/HTTP_STATUS:/d')
+          echo "Response body: $body"
+          echo "HTTP status: $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::weekly-ai-report endpoint returned $status"
+            exit 1
+          fi
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-debug-${{ github.run_id }}
+          path: |
+            agents/download-agent/downloads/
+            agents/download-agent/debug_*.png
+            agents/download-agent/debug_*.txt
+          retention-days: 3
+          if-no-files-found: ignore
