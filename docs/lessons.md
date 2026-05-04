@@ -150,6 +150,7 @@
 - `weather_code` column is always null in current sync logic; weather classification (sunny/rainy/typhoon) is derived at runtime from `description` text via `weatherUtils.getWeatherType()`.
 - When adding weather overlays to Recharts ComposedChart, dual Y-axes require explicit `yAxisId` on ALL chart elements (bars, lines, reference lines) — omitting it causes silent render failures.
 - `CWA_API_KEY` in `.env.local` was commented out — weather sync returns null without it. Check env config before debugging empty weather_daily table.
+- Weather auto-sync was originally driven by in-process `node-cron` in `instrumentation.ts` (06:00 Asia/Taipei). On Zeabur this is unreliable — the cron only fires while the Next.js process is alive, so any container restart/sleep around 06:00 silently misses a day. Symptom: `weather_daily` lags real date by N days with no error in logs. Fix: drive weather sync from `.github/workflows/daily-download.yml` (already a working scheduled cron) by POSTing to `/api/weather/backfill` with a 7-day rolling window. Backfill is idempotent (upsert on `store_id,date`) and pulls from Open-Meteo, so any missed day in the window self-heals on the next run.
 
 ### LINE OA Insight API
 - LINE Insight API (`/v2/bot/insight/followers`, `/v2/bot/insight/message/delivery`) provides follower count and broadcast delivery stats — but NOT message content or title.

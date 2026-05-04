@@ -74,6 +74,33 @@ jobs:
           path: agents/download-agent/eat365-session.json
           key: eat365-session-v1-${{ github.run_id }}
 
+      # Weather sync: in-process node-cron in instrumentation.ts is unreliable on
+      # Zeabur (only fires while the Next.js process is alive). Drive it from CI
+      # instead. backfill is idempotent (upsert on store_id,date) and pulls a
+      # 7-day window from Open-Meteo so any missed days self-heal.
+      - name: Sync weather (last 7 days, idempotent)
+        if: always()
+        env:
+          AGENT_UPLOAD_BASE_URL: ${{ secrets.AGENT_UPLOAD_BASE_URL }}
+        run: |
+          start=$(date -u -d '7 days ago' +%Y-%m-%d)
+          end=$(date -u +%Y-%m-%d)
+          echo "Backfilling weather $start → $end"
+          response=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" \
+            -X POST "${AGENT_UPLOAD_BASE_URL}/api/weather/backfill" \
+            -H "Content-Type: application/json" \
+            -d "{\"start_date\":\"$start\",\"end_date\":\"$end\"}" \
+            --max-time 120)
+          status=$(echo "$response" | grep -oE 'HTTP_STATUS:[0-9]+' | cut -d: -f2)
+          body=$(echo "$response" | sed '/HTTP_STATUS:/d')
+          echo "Response: $body"
+          echo "HTTP status: $status"
+          # Don't fail the whole workflow if weather is flaky — the daily
+          # download is the critical path; weather will retry tomorrow.
+          if [ "$status" != "200" ]; then
+            echo "::warning::weather backfill returned $status (non-fatal)"
+          fi
+
       - name: Upload debug artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
