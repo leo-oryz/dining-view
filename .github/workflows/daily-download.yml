@@ -79,12 +79,14 @@ jobs:
       # instead. The script talks directly to Supabase via service role +
       # Open-Meteo — no Next.js API hop, so it works even if the deploy is
       # asleep or AGENT_UPLOAD_BASE_URL is unset. Idempotent (upsert on
-      # store_id,date) over a 7-day window so missed days self-heal.
+      # store_id,date) over a 30-day window so missed days self-heal — even
+      # ones from a couple weeks ago. (Was 7; widened after a 4/24-4/26 gap
+      # only became visible >7 days later in the trend chart.)
       - name: Install root deps (for weather sync)
         if: always()
         run: npm ci
 
-      - name: Sync weather (last 7 days, idempotent)
+      - name: Sync weather (last 30 days, idempotent)
         if: always()
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

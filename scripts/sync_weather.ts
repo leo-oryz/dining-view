@@ -1,7 +1,9 @@
 // Weather sync — self-contained: Open-Meteo → Supabase via service role.
 // Works locally (reads .env.local) and in GitHub Actions (env vars from secrets).
-// Idempotent: upsert on (store_id, date) over a rolling 7-day window so any
-// missed day in the window self-heals on the next run.
+// Idempotent: upsert on (store_id, date) over a rolling 30-day window so any
+// missed day in the window self-heals on the next run. (Was 7 days; widened
+// after a 4/24-4/26 gap appeared but 7-day reruns couldn't reach back to fix
+// it.) The 30-day window is ~60 rows × N stores — trivially cheap to upsert.
 import { resolve } from 'path'
 import { existsSync, readFileSync } from 'fs'
 import { createClient } from '@supabase/supabase-js'
@@ -38,7 +40,7 @@ function daysAgo(n: number): string {
 }
 
 async function main() {
-  const startDate = process.argv[2] || daysAgo(7)
+  const startDate = process.argv[2] || daysAgo(30)
   const endDate = process.argv[3] || daysAgo(0)
 
   console.log(`[weather-sync] window: ${startDate} → ${endDate}`)
