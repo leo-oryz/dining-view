@@ -1,4 +1,4 @@
-const zhTW = {
+const vi = {
   // Login
   'login.password': '密碼',
   'login.forgotPassword': '忘記密碼？',
@@ -50,7 +50,7 @@ const zhTW = {
   'nav.aiAnalysis': 'AI 分析',
   'nav.expansion': '展店分析',
   'nav.upload': '資料上傳',
-  'nav.iposUpload': 'iPOS 上傳',
+  'nav.iposUpload': 'Tải iPOS',
   'nav.export': '資料匯出',
   'nav.compare': '跨店對比',
   'nav.reports': '投資人報告',
@@ -629,4 +629,4 @@ const zhTW = {
   'heatmap.guests': '來客數',
 } as const
 
-export default zhTW
+export default vi

@@ -12,7 +12,6 @@ import {
   TrendingUp,
   Brain,
   BarChart3,
-  Truck,
   Menu,
   X,
   LogOut,
@@ -60,7 +59,6 @@ const navGroups: NavGroup[] = [
     titleKey: 'nav.products',
     items: [
       { href: '/products', labelKey: 'nav.productRanking', icon: ShoppingBag },
-      { href: '/delivery', labelKey: 'nav.delivery', icon: Truck },
       { href: '/labor', labelKey: 'nav.labor', icon: Clock },
     ],
   },
@@ -92,6 +90,7 @@ const navGroups: NavGroup[] = [
     titleKey: 'nav.management',
     items: [
       { href: '/upload', labelKey: 'nav.upload', icon: Upload },
+      { href: '/upload/ipos', labelKey: 'nav.iposUpload', icon: Upload },
       { href: '/export', labelKey: 'nav.export', icon: Download },
       { href: '/compare', labelKey: 'nav.compare', icon: GitCompareArrows, ownerOnly: true },
       { href: '/reports', labelKey: 'nav.reports', icon: FileText, ownerOnly: true },
@@ -235,7 +234,7 @@ export default function DashboardLayout({
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-slate-700 shrink-0">
           <Link href="/dashboard" className="text-lg font-bold text-white">
-            FnB Pulse
+            DiningView
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -357,7 +356,7 @@ export default function DashboardLayout({
           <h2 className="text-lg font-semibold text-slate-900">
             {(() => {
               const item = allNavItems.find((item) => item.href === pathname)
-              return item ? t(item.labelKey) : 'FnB Pulse'
+              return item ? t(item.labelKey) : 'DiningView'
             })()}
           </h2>
         </header>
