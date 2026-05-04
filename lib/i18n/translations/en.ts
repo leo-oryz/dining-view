@@ -594,6 +594,8 @@ const en = {
   'settings.googlePlaceId': 'Google Place ID',
   'settings.placeIdHint': 'Used to auto-fetch Google reviews.',
   'settings.placeIdLink': 'How to find Place ID?',
+  'settings.eat365Hint': 'eat365 credentials (optional, for Playwright Agent)',
+  'settings.ocardHint': 'Ocard credentials (optional, for Playwright Agent)',
   'settings.passwordPlaceholder': '•••••••• (leave blank to keep)',
   'settings.revenueTargets': 'Revenue Targets',
   'settings.collapseTargets': 'Collapse Targets',

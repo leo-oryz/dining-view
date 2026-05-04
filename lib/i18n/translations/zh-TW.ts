@@ -594,6 +594,8 @@ const zhTW = {
   'settings.googlePlaceId': 'Google Place ID',
   'settings.placeIdHint': '用於自動抓取 Google 評論。',
   'settings.placeIdLink': '如何找到 Place ID？',
+  'settings.eat365Hint': 'eat365 登入憑證（選填，Playwright Agent 用）',
+  'settings.ocardHint': 'Ocard 登入憑證（選填，Playwright Agent 用）',
   'settings.passwordPlaceholder': '••••••••（不修改請留空）',
   'settings.revenueTargets': '營收目標',
   'settings.collapseTargets': '收起目標',
