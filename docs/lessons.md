@@ -288,3 +288,8 @@
 - Symptom: repeated `page.goto: Timeout 30000ms exceeded` at `ocard.ts` login step, with no requestfailed events. Same script succeeds seconds later.
 - Fix: bump goto timeout to 60s and wrap in a 3-attempt retry loop; use `waitUntil: 'domcontentloaded'` on `waitForURL` after login too (default `load` can hang on the post-login `/brand` page for the same reason).
 - Lesson: for anti-bot protected sites with heavy 3rd-party resources, never rely on `load` event — use `domcontentloaded` + retry, and cap `networkidle` waits at 15s so they can't block the pipeline.
+
+### Active Store Lookup — `is_active` Is NOT the Active-Switcher Source of Truth
+- Trends page disabled the dine-in turnover button even after seat_count=20 was saved, because it picked the active store via `find((s) => s.is_active) || data[0]`. With multiple stores all marked `is_active=true`, `find` returns the first (alphabetical from `/api/stores`) — `BE& 0km` (seats=null) — instead of the user's actually-selected store `BE& 西門店` (seats=20). Sales/channel API calls were correct because server-side `getStoreId()` reads the `active_store_id` cookie; only the seat lookup was inconsistent.
+- Fix: read the same `active_store_id` cookie on the client (`document.cookie.split('; ').find(c => c.startsWith('active_store_id='))?.split('=')[1]`) and `find(s.id === cookieStoreId)`. Falls back to `data[0]` only if cookie missing (first paint before layout sets it).
+- Lesson: since commit `b0c68b9`, the active store is the cookie. `is_active` is just a "store is operational" flag — multiple rows can be true. Any client code that needs to mirror what the API is querying must read the cookie, not `is_active`. Audit any other `find(is_active)` patterns that crept in before the switcher landed.

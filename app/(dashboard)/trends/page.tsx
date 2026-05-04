@@ -223,7 +223,12 @@ export default function TrendsPage() {
         setChannelData(channelJson.success ? channelJson.data : null)
         setPrevChannelData(prevChannelJson.success ? prevChannelJson.data : null)
         if (storesJson.success && Array.isArray(storesJson.data)) {
-          const activeStore = storesJson.data.find((s: { is_active: boolean; seat_count: number | null }) => s.is_active) || storesJson.data[0]
+          // Match the store the sidebar switcher selected — same cookie the API
+          // reads server-side via getStoreId(). Falls back to first store.
+          const cookieStoreId = typeof document !== 'undefined'
+            ? document.cookie.split('; ').find((c) => c.startsWith('active_store_id='))?.split('=')[1]
+            : undefined
+          const activeStore = storesJson.data.find((s: { id: string }) => s.id === cookieStoreId) || storesJson.data[0]
           setSeatCount(activeStore?.seat_count ?? null)
         } else {
           setSeatCount(null)
