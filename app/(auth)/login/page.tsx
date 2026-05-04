@@ -19,7 +19,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="w-full max-w-sm mx-4">
           <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">FnB Pulse</h1>
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">DiningView</h1>
           </div>
         </div>
       </div>
@@ -95,7 +95,7 @@ function LoginInner() {
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="w-full max-w-sm mx-4">
           <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">FnB Pulse</h1>
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">DiningView</h1>
             <p className="text-sm text-slate-500">驗證中，請稍候...</p>
           </div>
         </div>
@@ -108,7 +108,7 @@ function LoginInner() {
       <div className="w-full max-w-sm mx-4">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">FnB Pulse</h1>
+            <h1 className="text-2xl font-bold text-slate-900">DiningView</h1>
             <p className="text-sm text-slate-500 mt-1">Restaurant Intelligence Platform</p>
           </div>
 
