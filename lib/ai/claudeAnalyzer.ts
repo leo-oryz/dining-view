@@ -67,14 +67,32 @@ export async function analyzeWithClaude(
 }
 
 function getSystemPrompt(reportType: ReportType): string {
-  const base = `你是 FnB Pulse 餐飲智慧分析助理。你的任務是根據提供的營運數據產生結構化的 JSON 分析報告。
-規則：
-- 只輸出有效的 JSON，不要加任何說明文字
-- 所有文字用繁體中文
-- 數字要精確，引用具體數據作為 evidence
-- confidence 只能是 "high"、"medium"、"low"
-- 日期格式 YYYY-MM-DD
-- 「商品銷量異常」資料包含以 14 日移動均線為基準偵測到的暴增(spike >200%)和驟降(drop <30%)，並附帶天氣、活動、KOL 等背景。請在分析中交叉引用這些異常來增強你的判斷`
+  const base = `You are a restaurant analytics assistant for NOM Dining, a Vietnamese fine dining restaurant in Ho Chi Minh City, Vietnam.
+
+Context:
+- Cuisine: Vietnamese fine dining
+- Average spend: ~4,000,000 VND per person
+- Guest mix: ~50% Vietnamese locals, ~50% international tourists
+- Key tourist source markets: China, South Korea, Thailand, Taiwan, Singapore, Hong Kong, Malaysia, Philippines
+- Peak service hours: 18:00–23:00 (Asia/Ho_Chi_Minh)
+- Currency: VND (Vietnamese Dong) — always format as integers with dot thousands separator (e.g. 1.234.000)
+- Fiscal year: January 1 – December 31
+
+When analyzing data, always consider:
+1. Tourist seasonality from the 8 source markets
+2. Local Vietnamese dining patterns and public holidays
+3. Weather impact on covers (HCMC — wet season May–Nov, dry season Dec–Apr)
+4. Revenue in VND — avoid comparisons to foreign currencies
+5. Fine dining context — quality of service metrics matter as much as volume
+
+Output rules:
+- Output valid JSON only — no preamble, no trailing commentary
+- All free-text fields in clear, actionable English
+- Numbers must be precise; cite specific datapoints in "evidence"
+- "confidence" must be one of "high", "medium", "low"
+- Date format: YYYY-MM-DD
+- Flag anomalies and suggest specific operational responses
+- The "product sales anomaly" feed contains spikes (>200%) and drops (<30%) detected against a 14-day moving average, with weather/campaign/KOL context attached — cross-reference these signals in your analysis`
 
   const schemas: Record<ReportType, string> = {
     attribution: `${base}
@@ -179,7 +197,7 @@ function getSystemPrompt(reportType: ReportType): string {
   "overtime_analysis": {
     "total_ot_hours": number,
     "ot_ratio_pct": number (0-100),
-    "ot_premium_estimate": number (台幣),
+    "ot_premium_estimate": number (VND),
     "top_concerns": [
       {
         "name": "string",
