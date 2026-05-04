@@ -91,6 +91,25 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npx tsx scripts/sync_weather.ts || echo "::warning::weather sync failed (non-fatal)"
 
+      # Anomaly detection runs here (after data + weather are loaded) instead of
+      # in the Zeabur node-cron scheduler, which fires before the daily download
+      # has run and is unreliable on Zeabur restarts. Non-fatal so a flaky
+      # endpoint doesn't fail the whole pipeline.
+      - name: Detect anomalies
+        if: always()
+        run: |
+          echo "POST to ${AGENT_UPLOAD_BASE_URL}/api/alerts/detect"
+          response=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" \
+            -X POST "${AGENT_UPLOAD_BASE_URL}/api/alerts/detect" \
+            --max-time 120) || true
+          status=$(echo "$response" | grep -oE 'HTTP_STATUS:[0-9]+' | cut -d: -f2)
+          body=$(echo "$response" | sed '/HTTP_STATUS:/d')
+          echo "Response body: $body"
+          echo "HTTP status: $status"
+          if [ "$status" != "200" ]; then
+            echo "::warning::anomaly detection returned $status (non-fatal)"
+          fi
+
       - name: Upload debug artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4

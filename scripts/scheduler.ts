@@ -97,20 +97,11 @@ cron.schedule('30 3 * * *', async () => {
   heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
-// Anomaly detection: 03:00 daily
-cron.schedule('0 3 * * *', async () => {
-  console.log(`[scheduler] ${new Date().toISOString()} — Running anomaly detection`)
-  try {
-    const res = await fetch(`${BASE_URL}/api/alerts/detect`, {
-      method: 'POST',
-    })
-    const json = await res.json()
-    console.log('[scheduler] Anomaly detection result:', json)
-  } catch (err) {
-    console.error('[scheduler] Anomaly detection failed:', err)
-  }
-  heartbeat()
-}, { timezone: 'Asia/Taipei' })
+// Anomaly detection moved to GitHub Actions (.github/workflows/daily-download.yml)
+// so it runs immediately after the daily data download finishes. The previous
+// 03:00 schedule here fired before that download (which now runs ~11:00 Taipei
+// via CI), so it always analysed stale data — and the Zeabur scheduler container
+// is itself unreliable across restarts.
 
 // Google Reviews sync: Monday 04:00
 cron.schedule('0 4 * * 1', async () => {
@@ -167,7 +158,6 @@ console.log('  00:30 — Download agent (eat365 + Ocard)')
 console.log('  01:00 — Weather sync (CWA)')
 console.log('  02:00 — Google sync (GSC + GA4)')
 console.log('  02:45 — TikTok Ads sync')
-console.log('  03:00 — Anomaly detection + LINE alerts')
 console.log('  03:30 — KOL posts sync (Apify)')
 console.log('  Mon 04:00 — Google Reviews sync (Apify)')
 console.log('  Mon 08:00 — Weekly digest email')
