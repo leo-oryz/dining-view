@@ -73,7 +73,7 @@ export async function sendAiReport(
 ): Promise<{ recipientCount: number; reportsGenerated: number; periodLabel: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@fnbpulse.com'
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fnb-pluse.zeabur.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fnb-pulse.zeabur.app'
 
   if (!apiKey) {
     return { recipientCount: 0, reportsGenerated: 0, periodLabel: '', error: 'RESEND_API_KEY not configured' }
