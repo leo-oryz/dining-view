@@ -1,0 +1,39 @@
+name: Report Dispatcher
+
+# Hourly tick that POSTs to /api/cron/report-dispatcher. The endpoint reads
+# `report_schedules` (configured by owners in Settings) and fires any rows
+# whose next_run_at has passed. Lightweight — does NOT do data backfill;
+# `daily-download.yml` (03:03 UTC daily) handles that.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'
+
+concurrency:
+  group: report-dispatcher
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AGENT_UPLOAD_BASE_URL: ${{ secrets.AGENT_UPLOAD_BASE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: POST to dispatcher
+        run: |
+          echo "POST to ${AGENT_UPLOAD_BASE_URL}/api/cron/report-dispatcher"
+          response=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" \
+            -X POST "${AGENT_UPLOAD_BASE_URL}/api/cron/report-dispatcher" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            --max-time 300)
+          status=$(echo "$response" | grep -oE 'HTTP_STATUS:[0-9]+' | cut -d: -f2)
+          body=$(echo "$response" | sed '/HTTP_STATUS:/d')
+          echo "Response body: $body"
+          echo "HTTP status: $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::report-dispatcher endpoint returned $status"
+            exit 1
+          fi

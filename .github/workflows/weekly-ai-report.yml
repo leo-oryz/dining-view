@@ -1,6 +1,9 @@
 name: Weekly AI Report
 
 on:
+  # Scheduled cron disabled — automated sending is now driven by
+  # `report-dispatcher.yml` (hourly) + `report_schedules` table configured in
+  # Settings. This workflow is kept as a manual safety net (backfill + send).
   workflow_dispatch:
     inputs:
       skip_backfill:
@@ -11,11 +14,6 @@ on:
         description: 'Skip the actual report POST (check + backfill only)'
         type: boolean
         default: false
-  schedule:
-    # 04:00 UTC Monday = 11:00 Vietnam time, Monday.
-    # Daily download cron runs at 03:03 UTC Monday, so by 04:00 we already have
-    # Sunday's data.
-    - cron: '0 4 * * 1'
 
 concurrency:
   group: weekly-ai-report
