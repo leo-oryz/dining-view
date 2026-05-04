@@ -106,6 +106,24 @@ jobs:
           APIFY_ACTOR_ID: ${{ secrets.APIFY_ACTOR_ID }}
         run: npx tsx scripts/sync_reviews.ts || echo "::warning::reviews sync failed (non-fatal)"
 
+      # Google sync (GSC + GA4): same Zeabur reliability problem as weather and
+      # reviews — the 02:00 node-cron in scripts/scheduler.ts silently skips
+      # whenever the Next.js process is asleep, restarted, or redeployed, which
+      # is why digital marketing data kept lagging until someone hit "立即同步"
+      # by hand. Drive it from CI daily; the script talks directly to Supabase
+      # via service role + Google APIs (no Next.js API hop), with a 180-day
+      # window so any missed day self-heals on the next run.
+      - name: Sync Google (GSC + GA4, 180-day window, idempotent)
+        if: always()
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
+          GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
+          GSC_SITE_URL: ${{ secrets.GSC_SITE_URL }}
+        run: npx tsx scripts/google_sync_local.ts || echo "::warning::google sync failed (non-fatal)"
+
       # Anomaly detection runs here (after data + weather are loaded) instead of
       # in the Zeabur node-cron scheduler, which fires before the daily download
       # has run and is unreliable on Zeabur restarts. Non-fatal so a flaky

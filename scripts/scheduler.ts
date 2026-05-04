@@ -54,18 +54,10 @@ cron.schedule('0 1 * * *', async () => {
   heartbeat()
 }, { timezone: 'Asia/Taipei' })
 
-// Google sync: 02:00 daily
-cron.schedule('0 2 * * *', async () => {
-  console.log(`[scheduler] ${new Date().toISOString()} — Running Google sync`)
-  try {
-    const res = await fetch(`${BASE_URL}/api/google/sync`, { method: 'POST' })
-    const json = await res.json()
-    console.log('[scheduler] Google sync result:', json)
-  } catch (err) {
-    console.error('[scheduler] Google sync failed:', err)
-  }
-  heartbeat()
-}, { timezone: 'Asia/Taipei' })
+// Google sync moved to GitHub Actions (.github/workflows/daily-download.yml)
+// for the same reason as weather/reviews: this Zeabur node-cron silently skips
+// whenever the Next.js process is asleep, restarted, or redeployed, which made
+// digital marketing data lag until someone hit "立即同步" manually.
 
 // TikTok Ads sync: 02:45 daily
 cron.schedule('45 2 * * *', async () => {
@@ -156,8 +148,8 @@ process.on('unhandledRejection', (reason) => {
 console.log('[scheduler] Started. Schedules:')
 console.log('  00:30 — Download agent (eat365 + Ocard)')
 console.log('  01:00 — Weather sync (CWA)')
-console.log('  02:00 — Google sync (GSC + GA4)')
 console.log('  02:45 — TikTok Ads sync')
+console.log('  (Google sync runs in GitHub Actions, not here)')
 console.log('  03:30 — KOL posts sync (Apify)')
 console.log('  Mon 04:00 — Google Reviews sync (Apify)')
 console.log('  Mon 08:00 — Weekly digest email')
