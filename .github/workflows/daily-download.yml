@@ -76,30 +76,20 @@ jobs:
 
       # Weather sync: in-process node-cron in instrumentation.ts is unreliable on
       # Zeabur (only fires while the Next.js process is alive). Drive it from CI
-      # instead. backfill is idempotent (upsert on store_id,date) and pulls a
-      # 7-day window from Open-Meteo so any missed days self-heal.
+      # instead. The script talks directly to Supabase via service role +
+      # Open-Meteo — no Next.js API hop, so it works even if the deploy is
+      # asleep or AGENT_UPLOAD_BASE_URL is unset. Idempotent (upsert on
+      # store_id,date) over a 7-day window so missed days self-heal.
+      - name: Install root deps (for weather sync)
+        if: always()
+        run: npm ci
+
       - name: Sync weather (last 7 days, idempotent)
         if: always()
         env:
-          AGENT_UPLOAD_BASE_URL: ${{ secrets.AGENT_UPLOAD_BASE_URL }}
-        run: |
-          start=$(date -u -d '7 days ago' +%Y-%m-%d)
-          end=$(date -u +%Y-%m-%d)
-          echo "Backfilling weather $start → $end"
-          response=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" \
-            -X POST "${AGENT_UPLOAD_BASE_URL}/api/weather/backfill" \
-            -H "Content-Type: application/json" \
-            -d "{\"start_date\":\"$start\",\"end_date\":\"$end\"}" \
-            --max-time 120)
-          status=$(echo "$response" | grep -oE 'HTTP_STATUS:[0-9]+' | cut -d: -f2)
-          body=$(echo "$response" | sed '/HTTP_STATUS:/d')
-          echo "Response: $body"
-          echo "HTTP status: $status"
-          # Don't fail the whole workflow if weather is flaky — the daily
-          # download is the critical path; weather will retry tomorrow.
-          if [ "$status" != "200" ]; then
-            echo "::warning::weather backfill returned $status (non-fatal)"
-          fi
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx scripts/sync_weather.ts || echo "::warning::weather sync failed (non-fatal)"
 
       - name: Upload debug artifacts on failure
         if: failure()
