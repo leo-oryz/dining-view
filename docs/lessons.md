@@ -275,6 +275,13 @@
 - Fix: read `startDate` from the `metadata` sheet (exists in every nuEIP export as `YYYY-MM-DD`), use its year as the default when a row only has `M/D`. If the row's month precedes `startMonth`, roll the year forward so files spanning Dec→Jan still parse.
 - Lesson: nuEIP exports rely on the `metadata` sheet for context (year, row intervals, begin column). Don't trust the visible date columns alone.
 
+### Daily Agent Upload — Single `fetch failed` Loses a Whole Day's KPI
+- 2026-04-27: `eat365-summary` upload returned `fetch failed` (Zeabur cold-start / transient network). Other 8 files for that day uploaded fine. Result: `daily_sales` row missing for 4/27 — top-line net_sales/orders/AOV gone, but hourly/items/daily-closing/ocard all present, so dashboard looked partially populated and the gap was easy to miss.
+- Symptom: agent log shows `[agent] Upload failed for eat365-summary: fetch failed`; no exception, no retry. Daily run continues to next date.
+- Fix: `agents/download-agent/uploader.ts` now retries 3× with 1s/2s/4s backoff on transient errors (fetch throws, HTTP 5xx). 4xx and `success: false` from the API are NOT retried — those indicate real bugs (bad payload, validation), not transient.
+- Recovery: `agents/download-agent/upload_missing.ts` re-POSTs from `./downloads/<type>_<date>.<ext>` — the agent keeps every downloaded file, so backfill = just resubmit, no need to re-scrape.
+- Lesson: `fetch failed` against Zeabur (or any container PaaS) is normal — containers cold-start, edges flap. Every external POST in an unattended pipeline needs retry-with-backoff; one-shot calls will eventually drop a day's data.
+
 ### Ocard Login — Flaky `page.goto` in Headless Chromium
 - `page.goto('https://crm.ocard.co/Login', { waitUntil: 'domcontentloaded', timeout: 30000 })` intermittently times out even though curl returns 200 in <500ms. DOMContentLoaded never fires in some headless sessions — suspect recaptcha/gstatic resource hang blocking the main thread.
 - Symptom: repeated `page.goto: Timeout 30000ms exceeded` at `ocard.ts` login step, with no requestfailed events. Same script succeeds seconds later.
