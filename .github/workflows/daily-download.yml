@@ -91,6 +91,19 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npx tsx scripts/sync_weather.ts || echo "::warning::weather sync failed (non-fatal)"
 
+      # Reviews sync: same Zeabur reliability problem as weather — the weekly
+      # node-cron in scripts/scheduler.ts only fires while the Next.js process
+      # is alive, so weeks get silently skipped. Drive it from CI daily so
+      # reviews stay fresh; incremental + upsert means any missed day self-heals.
+      - name: Sync Google reviews (incremental, idempotent)
+        if: always()
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
+          APIFY_ACTOR_ID: ${{ secrets.APIFY_ACTOR_ID }}
+        run: npx tsx scripts/sync_reviews.ts || echo "::warning::reviews sync failed (non-fatal)"
+
       # Anomaly detection runs here (after data + weather are loaded) instead of
       # in the Zeabur node-cron scheduler, which fires before the daily download
       # has run and is unreliable on Zeabur restarts. Non-fatal so a flaky
