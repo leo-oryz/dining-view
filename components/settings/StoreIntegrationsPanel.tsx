@@ -92,7 +92,7 @@ function BetterHRBlock({ storeId }: { storeId: string }) {
     try {
       const res = await fetch('/api/integrations/betterhr/test', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: apiKey || undefined, company_id: companyId || undefined }),
+        body: JSON.stringify({ store_id: storeId, api_key: apiKey || undefined, company_id: companyId || undefined }),
       })
       const json = await res.json()
       if (json.success && json.data?.success) {
@@ -198,7 +198,7 @@ function GHLBlock({ storeId }: { storeId: string }) {
     try {
       const res = await fetch('/api/integrations/ghl/test', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: apiKey || undefined }),
+        body: JSON.stringify({ store_id: storeId, api_key: apiKey || undefined }),
       })
       const json = await res.json()
       if (json.success && json.data?.success) setMsg({ text: json.data.detail, type: 'success' })
@@ -311,6 +311,7 @@ function InstagramBlock({ storeId }: { storeId: string }) {
       const res = await fetch('/api/integrations/instagram/test', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          store_id: storeId,
           ig_token: igToken || undefined, ig_user_id: igUserId || undefined,
           fb_token: fbToken || undefined, fb_page_id: fbPageId || undefined,
         }),
@@ -430,7 +431,7 @@ function TikTokBlock({ storeId }: { storeId: string }) {
     try {
       const res = await fetch('/api/integrations/tiktok/test', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: accessToken || undefined }),
+        body: JSON.stringify({ store_id: storeId, access_token: accessToken || undefined }),
       })
       const json = await res.json()
       const detail = json.data?.detail ?? json.error ?? 'unknown'

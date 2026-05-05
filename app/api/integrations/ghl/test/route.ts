@@ -1,7 +1,26 @@
 import { NextRequest } from 'next/server'
 import { apiSuccess, apiError } from '@/lib/api-utils'
 import { getSession } from '@/lib/auth/getSession'
+import { createServiceClient } from '@/lib/supabase/server'
 import { fetchCampaigns } from '@/lib/integrations/gohighlevel/client'
+
+const KEY_API = 'ghl_api_key'
+
+async function resolveApiKey(body: { store_id?: string; api_key?: string }): Promise<string | undefined> {
+  const fromBody = body.api_key?.trim() || undefined
+  if (fromBody) return fromBody
+  const storeId = body.store_id?.trim()
+  if (!storeId) return undefined
+
+  const supabase = createServiceClient()
+  const { data } = await supabase
+    .from('store_settings')
+    .select('setting_value')
+    .eq('store_id', storeId)
+    .eq('setting_key', KEY_API)
+    .limit(1)
+  return (data?.[0]?.setting_value as string | null) || undefined
+}
 
 async function run(apiKey?: string) {
   try {
@@ -25,7 +44,7 @@ export async function POST(request: NextRequest) {
   if (!profile) return apiError('Unauthorized', 401)
   if (profile.role !== 'owner') return apiError('Forbidden', 403)
   const body = await request.json().catch(() => ({}))
-  const apiKey = typeof body.api_key === 'string' && body.api_key.trim() ? body.api_key.trim() : undefined
+  const apiKey = await resolveApiKey(body)
   const result = await run(apiKey)
   return apiSuccess(result)
 }
