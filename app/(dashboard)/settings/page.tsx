@@ -5,18 +5,23 @@ import {
   Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
   Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
   ExternalLink, User, Power, PowerOff, Trash2, Target, ChevronLeft, ChevronRight,
-  Mail, Bell, X, Send, Cloud, RefreshCw,
+  Mail, Bell, X, Send, Cloud, RefreshCw, CalendarRange,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import AiConfigPanel from '@/components/settings/AiConfigPanel'
 import ReportSchedulesPanel from '@/components/settings/ReportSchedulesPanel'
+import BetterHRSettingsPanel from '@/components/settings/BetterHRSettingsPanel'
+import GHLSettingsPanel from '@/components/settings/GHLSettingsPanel'
+import InstagramSettingsPanel from '@/components/settings/InstagramSettingsPanel'
+import TikTokSettingsPanel from '@/components/settings/TikTokSettingsPanel'
+import IntelligenceSettingsPanel from '@/components/settings/IntelligenceSettingsPanel'
 
-interface StoreInfo { id: string; name: string; location: string | null; timezone: string; is_active: boolean; created_at: string; phone: string | null; business_hours: string | null; opened_date: string | null; google_maps_url: string | null; google_place_id: string | null; seat_count: number | null; manager_name: string | null; manager_email: string | null }
+interface StoreInfo { id: string; name: string; location: string | null; timezone: string; is_active: boolean; created_at: string; phone: string | null; business_hours: string | null; opened_date: string | null; google_maps_url: string | null; google_place_id: string | null; seat_count: number | null; manager_name: string | null; manager_email: string | null; tablecheck_shop_id: string | null }
 interface TeamMember { id: string; email: string; name: string | null; display_name: string | null; role: string; store_id: string | null; store_name: string | null; is_active: boolean; invited_by: string | null; invited_at: string | null; created_at: string; auth_id: string | null }
 interface UserMe { role: string }
-interface StoreFormData { name: string; location: string; timezone: string; phone: string; business_hours: string; opened_date: string; seat_count: string; google_maps_url: string; google_place_id: string; manager_name: string; manager_email: string; eat365_email: string; eat365_password: string; ocard_email: string; ocard_password: string }
+interface StoreFormData { name: string; location: string; timezone: string; phone: string; business_hours: string; opened_date: string; seat_count: string; google_maps_url: string; google_place_id: string; manager_name: string; manager_email: string }
 
-const emptyForm: StoreFormData = { name: '', location: '', timezone: 'Asia/Taipei', phone: '', business_hours: '', opened_date: '', seat_count: '', google_maps_url: '', google_place_id: '', manager_name: '', manager_email: '', eat365_email: '', eat365_password: '', ocard_email: '', ocard_password: '' }
+const emptyForm: StoreFormData = { name: '', location: '', timezone: 'Asia/Ho_Chi_Minh', phone: '', business_hours: '', opened_date: '', seat_count: '', google_maps_url: '', google_place_id: '', manager_name: '', manager_email: '' }
 const ROLE_LABELS: Record<string, string> = { owner: 'Owner', manager: 'Manager', marketing: 'Marketing', investor: 'Investor' }
 const ROLE_DESCRIPTION_KEYS: Record<string, string> = { owner: 'settings.roleAdmin', manager: 'settings.roleStore', marketing: 'settings.roleViewer', investor: 'settings.roleInvestor' }
 const ROLE_COLORS: Record<string, string> = { owner: 'bg-purple-100 text-purple-700', manager: 'bg-blue-100 text-blue-700', marketing: 'bg-green-100 text-green-700', investor: 'bg-amber-100 text-amber-700' }
@@ -44,6 +49,117 @@ function WeatherSettingsPanel() {
   )
 }
 
+function TableCheckSettingsPanel({ stores, onSaved }: { stores: StoreInfo[]; onSaved: () => void }) {
+  const [edits, setEdits] = useState<Record<string, string>>({})
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+
+  const handleSave = async (storeId: string) => {
+    const value = (edits[storeId] ?? '').trim()
+    setSavingId(storeId)
+    setMsg(null)
+    try {
+      const res = await fetch(`/api/stores/${storeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tablecheck_shop_id: value || null }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setMsg({ text: 'Saved', type: 'success' })
+        setEdits((e) => { const next = { ...e }; delete next[storeId]; return next })
+        onSaved()
+      } else {
+        setMsg({ text: `Save failed: ${json.error}`, type: 'error' })
+      }
+    } catch {
+      setMsg({ text: 'Save failed', type: 'error' })
+    }
+    setSavingId(null)
+  }
+
+  const handleSyncNow = async () => {
+    setSyncing(true)
+    setMsg(null)
+    try {
+      const res = await fetch('/api/sync/tablecheck', { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        const summary = (json.data?.results ?? [])
+          .map((r: { store: string; synced?: number; error?: string }) =>
+            r.error ? `${r.store}: error` : `${r.store}: ${r.synced ?? 0}`
+          )
+          .join(' · ')
+        setMsg({ text: `Sync complete. ${summary || 'No stores synced.'}`, type: 'success' })
+      } else {
+        setMsg({ text: `Sync failed: ${json.error}`, type: 'error' })
+      }
+    } catch {
+      setMsg({ text: 'Sync failed', type: 'error' })
+    }
+    setSyncing(false)
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200">
+      <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CalendarRange size={16} className="text-emerald-500" />
+          <h4 className="text-sm font-semibold text-slate-900">TableCheck Reservations</h4>
+        </div>
+        <button
+          onClick={handleSyncNow}
+          disabled={syncing}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? 'Syncing…' : 'Sync Now'}
+        </button>
+      </div>
+      <div className="p-5 space-y-4">
+        <p className="text-xs text-slate-500">
+          The shop_id is the slug from your TableCheck account (e.g. <code className="px-1 bg-slate-100 rounded">nom-dining-hcmc</code>) — not a UUID. Auto-syncs every 30 minutes.
+        </p>
+        {stores.length === 0 ? (
+          <p className="text-sm text-slate-400">No stores configured.</p>
+        ) : (
+          <div className="space-y-2">
+            {stores.map((store) => {
+              const draftValue = edits[store.id] ?? (store.tablecheck_shop_id ?? '')
+              const isDirty = (edits[store.id] ?? null) !== null && draftValue !== (store.tablecheck_shop_id ?? '')
+              return (
+                <div key={store.id} className="flex items-center gap-2">
+                  <span className="text-sm text-slate-700 w-40 shrink-0 truncate">{store.name}</span>
+                  <input
+                    type="text"
+                    value={draftValue}
+                    onChange={(e) => setEdits({ ...edits, [store.id]: e.target.value })}
+                    placeholder="e.g. nom-dining-hcmc"
+                    className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <button
+                    onClick={() => handleSave(store.id)}
+                    disabled={!isDirty || savingId === store.id}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40"
+                  >
+                    {savingId === store.id ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {msg && (
+          <div className={`text-sm px-3 py-2 rounded-lg ${msg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            {msg.text}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function StoreForm({ form, onChange, onSubmit, onCancel, saving, submitLabel }: { form: StoreFormData; onChange: (f: StoreFormData) => void; onSubmit: (e: React.FormEvent) => void; onCancel: () => void; saving: boolean; submitLabel: string }) {
   const { t } = useI18n()
   const set = (field: keyof StoreFormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onChange({ ...form, [field]: e.target.value })
@@ -51,10 +167,9 @@ function StoreForm({ form, onChange, onSubmit, onCancel, saving, submitLabel }: 
   const labelCls = 'block text-xs font-medium text-slate-700 mb-1'
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <div><h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t('settings.basicInfo')}</h5><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className={labelCls}>{t('settings.storeName')} *</label><input type="text" value={form.name} onChange={set('name')} placeholder="例：BE& 信義" required className={inputCls} /></div><div><label className={labelCls}>{t('settings.address')}</label><input type="text" value={form.location} onChange={set('location')} placeholder="例：台北市信義區..." className={inputCls} /></div><div><label className={labelCls}>{t('settings.phone')}</label><input type="text" value={form.phone} onChange={set('phone')} placeholder="例：02-2345-6789" className={inputCls} /></div><div><label className={labelCls}>{t('settings.timezone')}</label><select value={form.timezone} onChange={set('timezone')} className={inputCls}><option value="Asia/Taipei">Asia/Taipei (UTC+8)</option><option value="Asia/Tokyo">Asia/Tokyo (UTC+9)</option><option value="Asia/Hong_Kong">Asia/Hong_Kong (UTC+8)</option></select></div><div><label className={labelCls}>{t('settings.openingDate')}</label><input type="date" value={form.opened_date} onChange={set('opened_date')} className={inputCls} /></div><div><label className={labelCls}>{t('settings.businessHours')}</label><input type="text" value={form.business_hours} onChange={set('business_hours')} placeholder="08:00–19:00" className={inputCls} /></div><div><label className={labelCls}>{t('settings.seatCount')}</label><input type="number" value={form.seat_count} onChange={set('seat_count')} placeholder="例：50" min="0" className={inputCls} /></div></div></div>
+      <div><h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t('settings.basicInfo')}</h5><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className={labelCls}>{t('settings.storeName')} *</label><input type="text" value={form.name} onChange={set('name')} placeholder="例：BE& 信義" required className={inputCls} /></div><div><label className={labelCls}>{t('settings.address')}</label><input type="text" value={form.location} onChange={set('location')} placeholder="例：台北市信義區..." className={inputCls} /></div><div><label className={labelCls}>{t('settings.phone')}</label><input type="text" value={form.phone} onChange={set('phone')} placeholder="例：02-2345-6789" className={inputCls} /></div><div><label className={labelCls}>{t('settings.timezone')}</label><select value={form.timezone} onChange={set('timezone')} className={inputCls}><option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (UTC+7)</option><option value="Asia/Bangkok">Asia/Bangkok (UTC+7)</option><option value="Asia/Singapore">Asia/Singapore (UTC+8)</option></select></div><div><label className={labelCls}>{t('settings.openingDate')}</label><input type="date" value={form.opened_date} onChange={set('opened_date')} className={inputCls} /></div><div><label className={labelCls}>{t('settings.businessHours')}</label><input type="text" value={form.business_hours} onChange={set('business_hours')} placeholder="08:00–19:00" className={inputCls} /></div><div><label className={labelCls}>{t('settings.seatCount')}</label><input type="number" value={form.seat_count} onChange={set('seat_count')} placeholder="例：50" min="0" className={inputCls} /></div></div></div>
       <div className="border-t border-slate-200 pt-4"><h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t('settings.googleReviews')}</h5><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className={labelCls}>{t('settings.googleMapsUrl')}</label><input type="url" value={form.google_maps_url} onChange={set('google_maps_url')} placeholder="https://maps.google.com/..." className={inputCls} /></div><div><label className={labelCls}>{t('settings.googlePlaceId')}</label><input type="text" value={form.google_place_id} onChange={set('google_place_id')} placeholder="ChIJxxxxxxxx" className={inputCls} /><p className="mt-1 text-xs text-slate-400">{t('settings.placeIdHint')}<a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline ml-1">{t('settings.placeIdLink')}</a></p></div></div></div>
       <div className="border-t border-slate-200 pt-4"><h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t('settings.opsManager')}</h5><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label className={labelCls}>{t('settings.managerName')}</label><input type="text" value={form.manager_name} onChange={set('manager_name')} placeholder="例：王小明" className={inputCls} /></div><div><label className={labelCls}>{t('settings.managerEmail')}</label><input type="email" value={form.manager_email} onChange={set('manager_email')} placeholder="manager@example.com" className={inputCls} /></div></div></div>
-      <div className="border-t border-slate-200 pt-4"><h5 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t('settings.integration')}</h5><div className="space-y-4"><div><p className="text-xs text-slate-600 mb-2">{t('settings.eat365Hint')}</p><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><input type="email" value={form.eat365_email} onChange={set('eat365_email')} placeholder="eat365 Email" className={inputCls} /><input type="password" value={form.eat365_password} onChange={set('eat365_password')} placeholder={submitLabel === t('common.save') ? t('settings.passwordPlaceholder') : 'eat365 密碼'} className={inputCls} /></div></div><div><p className="text-xs text-slate-600 mb-2">{t('settings.ocardHint')}</p><div className="grid grid-cols-1 sm:grid-cols-2 gap-4"><input type="email" value={form.ocard_email} onChange={set('ocard_email')} placeholder="Ocard Email" className={inputCls} /><input type="password" value={form.ocard_password} onChange={set('ocard_password')} placeholder={submitLabel === t('common.save') ? t('settings.passwordPlaceholder') : 'Ocard 密碼'} className={inputCls} /></div></div></div></div>
       <div className="flex gap-2 pt-2"><button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">{saving ? t('common.saving') : submitLabel}</button><button type="button" onClick={onCancel} className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">{t('common.cancel')}</button></div>
     </form>
   )
@@ -84,7 +199,7 @@ function StoreCard({ store, isOwner, onEdit, onToggleActive, onDelete }: { store
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-slate-600">{store.location && (<div className="flex items-center gap-1.5"><MapPin size={12} className="text-slate-400 shrink-0" /><span className="truncate">{store.location}</span></div>)}{store.phone && (<div className="flex items-center gap-1.5"><Phone size={12} className="text-slate-400 shrink-0" /><span>{store.phone}</span></div>)}{store.opened_date && (<div className="flex items-center gap-1.5"><Calendar size={12} className="text-slate-400 shrink-0" /><span>{t('settings.opened')}：{store.opened_date}</span></div>)}{store.seat_count != null && (<div className="flex items-center gap-1.5"><Armchair size={12} className="text-slate-400 shrink-0" /><span>{store.seat_count} {t('settings.seats')}</span></div>)}{store.manager_name && (<div className="flex items-center gap-1.5"><User size={12} className="text-slate-400 shrink-0" /><span>{t('settings.manager')}：{store.manager_name}</span></div>)}{store.google_place_id && (<div className="flex items-center gap-1.5"><ExternalLink size={12} className="text-slate-400 shrink-0" /><span className="truncate font-mono text-[11px]">{store.google_place_id}</span></div>)}</div>
         {isOwner && store.is_active && (<button onClick={() => setShowTargets(!showTargets)} className="mt-3 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"><Target size={13} />{showTargets ? t('settings.collapseTargets') : t('settings.revenueTargets')}</button>)}
       </div>
-      {showTargets && (<div className="border-t border-slate-200 p-5 space-y-4"><div className="flex items-center gap-1"><button onClick={() => setTargetYear(targetYear - 1)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"><ChevronLeft size={16} /></button><span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{targetYear} {t('settings.year')}</span><button onClick={() => setTargetYear(targetYear + 1)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"><ChevronRight size={16} /></button></div><div className="flex items-center gap-2 bg-slate-50 rounded-lg p-3"><span className="text-xs text-slate-600 whitespace-nowrap">{t('settings.annualTarget')}</span><span className="text-xs text-slate-400">NT$</span><input type="number" value={annualInput} onChange={(e) => setAnnualInput(e.target.value)} placeholder="例如 6000000" className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" /><button onClick={handleDistribute} className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">{t('settings.distribute')}</button></div>{targetLoading ? (<div className="text-center text-slate-400 text-sm py-4">{t('common.loading')}</div>) : (<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">{MONTH_LABELS.map((label, idx) => (<div key={idx}><label className="block text-xs font-medium text-slate-600 mb-1">{label}</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">NT$</span><input type="number" value={targets[idx] || ''} onChange={(e) => setTargets({ ...targets, [idx]: e.target.value })} placeholder="0" min="0" className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" /></div></div>))}</div>)}<div className="flex items-center justify-between pt-2 border-t border-slate-100"><p className="text-xs text-slate-600">{t('settings.annualTotal')}：<span className="font-semibold text-slate-900">NT${annualTotal.toLocaleString()}</span></p><button onClick={handleSaveTargets} disabled={targetSaving} className="px-4 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">{targetSaving ? t('common.saving') : t('settings.saveTargets')}</button></div>{targetMsg && (<div className={`text-xs px-3 py-2 rounded-lg ${targetMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{targetMsg.text}</div>)}</div>)}
+      {showTargets && (<div className="border-t border-slate-200 p-5 space-y-4"><div className="flex items-center gap-1"><button onClick={() => setTargetYear(targetYear - 1)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"><ChevronLeft size={16} /></button><span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{targetYear} {t('settings.year')}</span><button onClick={() => setTargetYear(targetYear + 1)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"><ChevronRight size={16} /></button></div><div className="flex items-center gap-2 bg-slate-50 rounded-lg p-3"><span className="text-xs text-slate-600 whitespace-nowrap">{t('settings.annualTarget')}</span><span className="text-xs text-slate-400">₫</span><input type="number" value={annualInput} onChange={(e) => setAnnualInput(e.target.value)} placeholder="例如 6000000" className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" /><button onClick={handleDistribute} className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">{t('settings.distribute')}</button></div>{targetLoading ? (<div className="text-center text-slate-400 text-sm py-4">{t('common.loading')}</div>) : (<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">{MONTH_LABELS.map((label, idx) => (<div key={idx}><label className="block text-xs font-medium text-slate-600 mb-1">{label}</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">₫</span><input type="number" value={targets[idx] || ''} onChange={(e) => setTargets({ ...targets, [idx]: e.target.value })} placeholder="0" min="0" className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" /></div></div>))}</div>)}<div className="flex items-center justify-between pt-2 border-t border-slate-100"><p className="text-xs text-slate-600">{t('settings.annualTotal')}：<span className="font-semibold text-slate-900">₫{annualTotal.toLocaleString()}</span></p><button onClick={handleSaveTargets} disabled={targetSaving} className="px-4 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">{targetSaving ? t('common.saving') : t('settings.saveTargets')}</button></div>{targetMsg && (<div className={`text-xs px-3 py-2 rounded-lg ${targetMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{targetMsg.text}</div>)}</div>)}
     </div>
   )
 }
@@ -99,9 +214,9 @@ export default function SettingsPage() {
   const fetchMembers = useCallback(() => { if (!isOwner) { setTeamLoading(false); return }; fetch('/api/team').then(r => r.json()).then(json => { if (json.success) setMembers(json.data || []) }).catch(() => {}).finally(() => setTeamLoading(false)) }, [isOwner])
   useEffect(() => { fetchStores(); fetchCurrentUser(); fetchAlertSettings() }, [fetchAlertSettings])
   useEffect(() => { if (currentUser) fetchMembers() }, [currentUser, fetchMembers])
-  const handleCreate = async (e: React.FormEvent) => { e.preventDefault(); if (!form.name.trim()) return; setSaving(true); setMessage(null); const credentials: Record<string, Record<string, string>> = {}; if (form.eat365_email && form.eat365_password) { credentials.eat365 = { email: form.eat365_email, password: form.eat365_password } }; if (form.ocard_email && form.ocard_password) { credentials.ocard = { email: form.ocard_email, password: form.ocard_password } }; try { const res = await fetch('/api/stores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: form.name.trim(), location: form.location.trim() || null, timezone: form.timezone, phone: form.phone.trim() || null, business_hours: form.business_hours.trim() || null, opened_date: form.opened_date || null, seat_count: form.seat_count ? parseInt(form.seat_count) : null, google_maps_url: form.google_maps_url.trim() || null, google_place_id: form.google_place_id.trim() || null, manager_name: form.manager_name.trim() || null, manager_email: form.manager_email.trim() || null, credentials }) }); const json = await res.json(); if (json.success) { setMessage({ text: `${t('settings.storeCreated')}：「${form.name}」`, type: 'success' }); setShowForm(false); setForm({ ...emptyForm }); fetchStores() } else { setMessage({ text: `${t('settings.createFailed')}：${json.error}`, type: 'error' }) } } catch { setMessage({ text: t('settings.createFailed'), type: 'error' }) }; setSaving(false) }
-  const startEdit = (store: StoreInfo) => { setEditStoreId(store.id); setShowForm(false); setForm({ name: store.name, location: store.location || '', timezone: store.timezone, phone: store.phone || '', business_hours: store.business_hours || '', opened_date: store.opened_date || '', seat_count: store.seat_count != null ? String(store.seat_count) : '', google_maps_url: store.google_maps_url || '', google_place_id: store.google_place_id || '', manager_name: store.manager_name || '', manager_email: store.manager_email || '', eat365_email: '', eat365_password: '', ocard_email: '', ocard_password: '' }) }
-  const handleEdit = async (e: React.FormEvent) => { e.preventDefault(); if (!editStoreId || !form.name.trim()) return; setSaving(true); setMessage(null); const credentials: Record<string, Record<string, string>> = {}; if (form.eat365_email || form.eat365_password) { credentials.eat365 = {}; if (form.eat365_email) credentials.eat365.email = form.eat365_email; if (form.eat365_password) credentials.eat365.password = form.eat365_password }; if (form.ocard_email || form.ocard_password) { credentials.ocard = {}; if (form.ocard_email) credentials.ocard.email = form.ocard_email; if (form.ocard_password) credentials.ocard.password = form.ocard_password }; try { const body: Record<string, unknown> = { name: form.name.trim(), location: form.location.trim() || null, timezone: form.timezone, phone: form.phone.trim() || null, business_hours: form.business_hours.trim() || null, opened_date: form.opened_date || null, seat_count: form.seat_count ? parseInt(form.seat_count) : null, google_maps_url: form.google_maps_url.trim() || null, google_place_id: form.google_place_id.trim() || null, manager_name: form.manager_name.trim() || null, manager_email: form.manager_email.trim() || null }; if (Object.keys(credentials).length > 0) { body.credentials = credentials }; const res = await fetch(`/api/stores/${editStoreId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const json = await res.json(); if (json.success) { setMessage({ text: `${t('settings.storeUpdated')}：「${form.name}」`, type: 'success' }); setEditStoreId(null); setForm({ ...emptyForm }); fetchStores() } else { setMessage({ text: `${t('settings.updateFailed')}：${json.error}`, type: 'error' }) } } catch { setMessage({ text: t('settings.updateFailed'), type: 'error' }) }; setSaving(false) }
+  const handleCreate = async (e: React.FormEvent) => { e.preventDefault(); if (!form.name.trim()) return; setSaving(true); setMessage(null); try { const res = await fetch('/api/stores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: form.name.trim(), location: form.location.trim() || null, timezone: form.timezone, phone: form.phone.trim() || null, business_hours: form.business_hours.trim() || null, opened_date: form.opened_date || null, seat_count: form.seat_count ? parseInt(form.seat_count) : null, google_maps_url: form.google_maps_url.trim() || null, google_place_id: form.google_place_id.trim() || null, manager_name: form.manager_name.trim() || null, manager_email: form.manager_email.trim() || null }) }); const json = await res.json(); if (json.success) { setMessage({ text: `${t('settings.storeCreated')}：「${form.name}」`, type: 'success' }); setShowForm(false); setForm({ ...emptyForm }); fetchStores() } else { setMessage({ text: `${t('settings.createFailed')}：${json.error}`, type: 'error' }) } } catch { setMessage({ text: t('settings.createFailed'), type: 'error' }) }; setSaving(false) }
+  const startEdit = (store: StoreInfo) => { setEditStoreId(store.id); setShowForm(false); setForm({ name: store.name, location: store.location || '', timezone: store.timezone, phone: store.phone || '', business_hours: store.business_hours || '', opened_date: store.opened_date || '', seat_count: store.seat_count != null ? String(store.seat_count) : '', google_maps_url: store.google_maps_url || '', google_place_id: store.google_place_id || '', manager_name: store.manager_name || '', manager_email: store.manager_email || '' }) }
+  const handleEdit = async (e: React.FormEvent) => { e.preventDefault(); if (!editStoreId || !form.name.trim()) return; setSaving(true); setMessage(null); try { const body: Record<string, unknown> = { name: form.name.trim(), location: form.location.trim() || null, timezone: form.timezone, phone: form.phone.trim() || null, business_hours: form.business_hours.trim() || null, opened_date: form.opened_date || null, seat_count: form.seat_count ? parseInt(form.seat_count) : null, google_maps_url: form.google_maps_url.trim() || null, google_place_id: form.google_place_id.trim() || null, manager_name: form.manager_name.trim() || null, manager_email: form.manager_email.trim() || null }; const res = await fetch(`/api/stores/${editStoreId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const json = await res.json(); if (json.success) { setMessage({ text: `${t('settings.storeUpdated')}：「${form.name}」`, type: 'success' }); setEditStoreId(null); setForm({ ...emptyForm }); fetchStores() } else { setMessage({ text: `${t('settings.updateFailed')}：${json.error}`, type: 'error' }) } } catch { setMessage({ text: t('settings.updateFailed'), type: 'error' }) }; setSaving(false) }
   const cancelEdit = () => { setEditStoreId(null); setForm({ ...emptyForm }) }
   const handleToggleActive = async (store: StoreInfo) => { if (store.is_active) { setConfirmStore(store); return }; await doToggle(store.id) }
   const doToggle = async (storeId: string) => { setMessage(null); try { const res = await fetch(`/api/stores/${storeId}/toggle-active`, { method: 'PUT' }); const json = await res.json(); if (json.success) { const action = json.data.is_active ? t('settings.enable') : t('settings.disable'); setMessage({ text: `${t('settings.toggled')}${action}「${json.data.name}」`, type: 'success' }); fetchStores() } else { setMessage({ text: `${t('settings.operationFailed')}：${json.error}`, type: 'error' }) } } catch { setMessage({ text: t('settings.operationFailed'), type: 'error' }) }; setConfirmStore(null) }
@@ -134,6 +249,12 @@ export default function SettingsPage() {
         </div>
       </div>
       <WeatherSettingsPanel />
+      {isOwner && <TableCheckSettingsPanel stores={stores} onSaved={fetchStores} />}
+      {isOwner && <BetterHRSettingsPanel />}
+      {isOwner && <GHLSettingsPanel />}
+      {isOwner && <InstagramSettingsPanel />}
+      {isOwner && <TikTokSettingsPanel />}
+      {isOwner && <IntelligenceSettingsPanel />}
       <AiConfigPanel isOwner={isOwner} />
       <ReportSchedulesPanel isOwner={isOwner} />
       {isOwner && (<div className="bg-white rounded-xl border border-slate-200">

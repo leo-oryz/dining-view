@@ -1,0 +1,28 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync-tablecheck",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-betterhr",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/sync-ghl",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/sync-social",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/sync-flights",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/sync-holidays",
+      "schedule": "0 0 1 1 *"
+    }
+  ]
+}

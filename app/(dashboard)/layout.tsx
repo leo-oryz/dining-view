@@ -26,6 +26,10 @@ import {
   Star,
   MoreHorizontal,
   Clock,
+  CalendarRange,
+  UserCog,
+  Camera,
+  Mail,
   type LucideIcon,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -60,6 +64,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/products', labelKey: 'nav.productRanking', icon: ShoppingBag },
       { href: '/labor', labelKey: 'nav.labor', icon: Clock },
+      { href: '/hr', labelKey: 'nav.hr', icon: UserCog },
     ],
   },
   {
@@ -69,6 +74,8 @@ const navGroups: NavGroup[] = [
       { href: '/ads', labelKey: 'nav.ads', icon: BarChart3 },
       { href: '/kol', labelKey: 'nav.kol', icon: Users },
       { href: '/campaigns', labelKey: 'nav.campaigns', icon: Megaphone },
+      { href: '/social', labelKey: 'nav.social', icon: Camera },
+      { href: '/email-marketing', labelKey: 'nav.emailMarketing', icon: Mail },
     ],
   },
   {
@@ -76,6 +83,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/members', labelKey: 'nav.memberTrends', icon: Users },
       { href: '/reviews', labelKey: 'nav.reviews', icon: Star },
+      { href: '/reservations', labelKey: 'nav.reservations', icon: CalendarRange },
     ],
   },
   {
@@ -133,6 +141,7 @@ export default function DashboardLayout({
   const [stores, setStores] = useState<Store[]>([])
   const [activeStore, setActiveStore] = useState<string | null>(null)
   const [storeDropdownOpen, setStoreDropdownOpen] = useState(false)
+  const [unreadAlerts, setUnreadAlerts] = useState(0)
 
   // Flat list for page title lookup
   const allNavItems = navGroups.flatMap((g) => g.items)
@@ -176,6 +185,28 @@ export default function DashboardLayout({
     }
     loadProfile()
   }, [router])
+
+  useEffect(() => {
+    if (!activeStore) return
+    let cancelled = false
+    async function loadUnread() {
+      try {
+        const res = await fetch('/api/alerts?unread=true')
+        const json = await res.json()
+        if (cancelled) return
+        const total = json?.success ? Number(json.data?.total ?? 0) : 0
+        setUnreadAlerts(Number.isFinite(total) ? total : 0)
+      } catch {
+        if (!cancelled) setUnreadAlerts(0)
+      }
+    }
+    loadUnread()
+    const interval = setInterval(loadUnread, 60_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [activeStore, pathname])
 
   function handleStoreSwitch(storeId: string) {
     document.cookie = `active_store_id=${storeId}; path=/; max-age=2592000; samesite=lax`
@@ -287,6 +318,7 @@ export default function DashboardLayout({
                   const isActive = pathname === item.href
                   const isAI = group.iconColor === 'text-purple-400'
                   const isOperations = group.titleKey === 'nav.operations'
+                  const isAlerts = item.href === '/alerts'
                   return (
                     <Link
                       key={item.href}
@@ -306,6 +338,11 @@ export default function DashboardLayout({
                         )}
                       />
                       <span className="flex-1">{t(item.labelKey)}</span>
+                      {isAlerts && unreadAlerts > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-semibold">
+                          {unreadAlerts > 9 ? '9+' : unreadAlerts}
+                        </span>
+                      )}
                       {item.ownerOnly && (
                         <Lock size={12} className="text-gray-400" />
                       )}

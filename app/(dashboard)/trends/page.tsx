@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { KpiCard } from '@/components/dashboard/KpiCard'
-import { TrendLineChart } from '@/components/charts/TrendLineChart'
+import { TrendLineChart, type HolidayMarker, type FlightWeek } from '@/components/charts/TrendLineChart'
 import { WeekdayHeatmap } from '@/components/charts/WeekdayHeatmap'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
 import { DollarSign, Users, ShoppingCart, Target, TrendingUp, Receipt, UtensilsCrossed, ShoppingBag, RefreshCcw } from 'lucide-react'
@@ -119,6 +119,10 @@ export default function TrendsPage() {
   const [channelData, setChannelData] = useState<ChannelData | null>(null)
   const [prevChannelData, setPrevChannelData] = useState<ChannelData | null>(null)
   const [seatCount, setSeatCount] = useState<number | null>(null)
+  const [holidays, setHolidays] = useState<HolidayMarker[]>([])
+  const [flightWeeks, setFlightWeeks] = useState<FlightWeek[]>([])
+  const [showHolidays, setShowHolidays] = useState(true)
+  const [showFlights, setShowFlights] = useState(true)
 
   const { startDate, endDate } = useMemo(() => {
     if (rangeKey === 'custom' && customStart && customEnd) {
@@ -239,6 +243,41 @@ export default function TrendsPage() {
 
     return () => abortController.abort()
   }, [startDate, endDate, prevStartDate, prevEndDate])
+
+  // Holidays + flight capacity overlay (Phase 6b — Intelligence)
+  useEffect(() => {
+    const ac = new AbortController()
+    const safeFetch = (url: string) =>
+      fetch(url, { signal: ac.signal }).then((r) => r.json()).catch(() => ({ success: false }))
+    Promise.all([
+      safeFetch('/api/holidays?upcoming=true'),
+      safeFetch('/api/flight-capacity?airport=SGN&weeks=8'),
+    ])
+      .then(([holidayJson, flightJson]) => {
+        if (ac.signal.aborted) return
+        if (holidayJson.success && Array.isArray(holidayJson.data)) {
+          setHolidays(
+            holidayJson.data.map((h: { date: string; country_code: string; name: string; type: string }) => ({
+              date: h.date,
+              country_code: h.country_code,
+              name: h.name,
+              type: h.type,
+            })),
+          )
+        }
+        if (flightJson.success && Array.isArray(flightJson.data)) {
+          setFlightWeeks(
+            flightJson.data.map((f: { week_start: string; flight_count: number; wow_change_pct: number | null }) => ({
+              week_start: f.week_start,
+              flight_count: f.flight_count ?? 0,
+              wow_change_pct: f.wow_change_pct ?? null,
+            })),
+          )
+        }
+      })
+      .catch(() => {})
+    return () => ac.abort()
+  }, [])
 
   // Compute KPIs — current period
   const totalRevenue = data.reduce((sum, d) => sum + (d.net_sales ?? 0), 0)
@@ -436,14 +475,14 @@ export default function TrendsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <KpiCard
               title={t('trends.periodRevenue')}
-              value={`NT$${totalRevenue.toLocaleString()}`}
+              value={`₫${totalRevenue.toLocaleString()}`}
               change={revenueChange}
               changeLabel={changeLabel}
               icon={<DollarSign size={20} />}
             />
             <KpiCard
               title={t('trends.dailyAvgRevenue')}
-              value={`NT$${Math.round(avgDaily).toLocaleString()}`}
+              value={`₫${Math.round(avgDaily).toLocaleString()}`}
               change={avgDailyChange}
               changeLabel={changeLabel}
               icon={<TrendingUp size={20} />}
@@ -464,7 +503,7 @@ export default function TrendsPage() {
             />
             <KpiCard
               title={t('trends.avgSpending')}
-              value={`NT$${Math.round(avgSpending).toLocaleString()}`}
+              value={`₫${Math.round(avgSpending).toLocaleString()}`}
               change={avgSpendingChange}
               changeLabel={changeLabel}
               icon={<Receipt size={20} />}
@@ -492,9 +531,9 @@ export default function TrendsPage() {
               <div className="space-y-3">
                 <div className="flex items-end justify-between">
                   <p className="text-2xl font-bold text-slate-900">
-                    NT${totalRevenue.toLocaleString()}
+                    ₫{totalRevenue.toLocaleString()}
                     <span className="text-sm font-normal text-slate-400 ml-2">
-                      / NT${Math.round(rangeTarget).toLocaleString()}
+                      / ₫{Math.round(rangeTarget).toLocaleString()}
                     </span>
                   </p>
                   <p className={`text-lg font-semibold ${achievementPct != null && achievementPct >= 100 ? 'text-green-600' : 'text-blue-600'}`}>
@@ -510,9 +549,9 @@ export default function TrendsPage() {
                   />
                 </div>
                 <p className="text-xs text-slate-400">
-                  {t('trends.dailyGoal')} NT${dailyTarget != null ? Math.round(dailyTarget).toLocaleString() : '--'}
+                  {t('trends.dailyGoal')} ₫{dailyTarget != null ? Math.round(dailyTarget).toLocaleString() : '--'}
                   {' · '}
-                  {t('trends.dailyActual')} NT${Math.round(avgDaily).toLocaleString()}
+                  {t('trends.dailyActual')} ₫{Math.round(avgDaily).toLocaleString()}
                   {dailyTarget != null && dailyTarget > 0 && (
                     <span className={avgDaily >= dailyTarget ? ' text-green-600' : ' text-red-500'}>
                       {' '}({avgDaily >= dailyTarget ? '+' : ''}{((avgDaily - dailyTarget) / dailyTarget * 100).toFixed(1)}%)
@@ -537,29 +576,93 @@ export default function TrendsPage() {
 
           {/* Trend Chart */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h2 className="text-sm font-semibold text-slate-900">{t('trends.trendChart')}</h2>
-              <div className="flex gap-1">
-                {metricOptions.map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => !opt.disabled && setMetric(opt.key)}
-                    disabled={opt.disabled}
-                    title={opt.disabled ? t('trends.turnoverNoSeats') : undefined}
-                    className={`px-2.5 py-1 text-xs rounded-md transition ${
-                      opt.disabled
-                        ? 'text-slate-300 cursor-not-allowed'
-                        : metric === opt.key
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-slate-500 hover:bg-slate-100'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showHolidays}
+                    onChange={(e) => setShowHolidays(e.target.checked)}
+                    className="accent-blue-600"
+                  />
+                  {t('trends.showHolidays')}
+                </label>
+                <label className="flex items-center gap-1 text-xs text-slate-500 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showFlights}
+                    onChange={(e) => setShowFlights(e.target.checked)}
+                    className="accent-amber-600"
+                  />
+                  {t('trends.showFlights')}
+                </label>
+                <div className="flex gap-1">
+                  {metricOptions.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => !opt.disabled && setMetric(opt.key)}
+                      disabled={opt.disabled}
+                      title={opt.disabled ? t('trends.turnoverNoSeats') : undefined}
+                      className={`px-2.5 py-1 text-xs rounded-md transition ${
+                        opt.disabled
+                          ? 'text-slate-300 cursor-not-allowed'
+                          : metric === opt.key
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-            <TrendLineChart data={mergedDailyData} dailyTarget={dailyTarget} metric={metric} weatherData={weatherData} />
+            <TrendLineChart
+              data={mergedDailyData}
+              dailyTarget={dailyTarget}
+              metric={metric}
+              weatherData={weatherData}
+              holidays={holidays}
+              flightWeeks={flightWeeks}
+              showHolidays={showHolidays}
+              showFlights={showFlights}
+            />
+            {/* Overlay legend */}
+            {(showHolidays || showFlights) && (holidays.length > 0 || flightWeeks.length > 0) && (
+              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-4 text-[11px] text-slate-500">
+                {showHolidays && holidays.length > 0 && (
+                  <>
+                    <span className="font-medium text-slate-600">{t('trends.holidayLegend')}:</span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-3 h-0.5 border-t-2 border-dashed border-red-500" />
+                      VN
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-3 h-0.5 border-t-2 border-dashed border-blue-500" />
+                      CN/KR/TW/HK
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-3 h-0.5 border-t-2 border-dashed border-emerald-500" />
+                      TH/SG/MY/PH
+                    </span>
+                  </>
+                )}
+                {showFlights && flightWeeks.length > 0 && (
+                  <>
+                    <span className="ml-2 font-medium text-slate-600">{t('trends.flightLegend')}:</span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-3 h-2 bg-slate-300 rounded-sm" />
+                      {t('trends.flightCapacity')}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-3 h-2 bg-amber-500 rounded-sm" />
+                      {t('trends.flightSpike')}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Weekday x Hour Heatmap */}
@@ -632,11 +735,11 @@ export default function TrendsPage() {
                 />
                 <KpiCard
                   title={t('trends.dineInAvgSpend')}
-                  value={`NT$${channelData.summary.dine_in.avg_spend.toLocaleString()}`}
+                  value={`₫${channelData.summary.dine_in.avg_spend.toLocaleString()}`}
                   subtitle={(() => {
                     const diff = channelData.summary.dine_in.avg_spend - channelData.summary.takeout.avg_spend
                     const sign = diff >= 0 ? '+' : ''
-                    return `${sign}NT$${diff.toLocaleString()} ${t('trends.vsOther')}`
+                    return `${sign}₫${diff.toLocaleString()} ${t('trends.vsOther')}`
                   })()}
                   change={dineInAvgSpendChange}
                   changeLabel={changeLabel}
@@ -644,7 +747,7 @@ export default function TrendsPage() {
                 />
                 <KpiCard
                   title={t('trends.takeoutAvgSpend')}
-                  value={`NT$${channelData.summary.takeout.avg_spend.toLocaleString()}`}
+                  value={`₫${channelData.summary.takeout.avg_spend.toLocaleString()}`}
                   change={takeoutAvgSpendChange}
                   changeLabel={changeLabel}
                   icon={<DollarSign size={20} />}
@@ -716,7 +819,7 @@ export default function TrendsPage() {
                     <Tooltip
                       formatter={(val) => {
                         const v = Number(val)
-                        return [`NT$${v.toLocaleString()}`]
+                        return [`₫${v.toLocaleString()}`]
                       }}
                       labelFormatter={(label) => `${label}`}
                     />
