@@ -5,15 +5,19 @@ import { createServiceClient } from '@/lib/supabase/server'
 
 const SETTING_KEY_API = 'ghl_api_key'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const profile = await getSession()
   if (!profile) return apiError('Unauthorized', 401)
   if (profile.role !== 'owner') return apiError('Forbidden', 403)
 
+  const storeId = request.nextUrl.searchParams.get('store_id')
+  if (!storeId) return apiError('store_id is required', 400)
+
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('store_settings')
-    .select('setting_key, setting_value')
+    .select('setting_value')
+    .eq('store_id', storeId)
     .eq('setting_key', SETTING_KEY_API)
     .limit(1)
 
@@ -32,27 +36,19 @@ export async function PUT(request: NextRequest) {
   if (profile.role !== 'owner') return apiError('Forbidden', 403)
 
   const body = await request.json().catch(() => ({}))
+  const storeId = typeof body.store_id === 'string' ? body.store_id : null
+  if (!storeId) return apiError('store_id is required', 400)
+
   const apiKey = typeof body.api_key === 'string' ? body.api_key.trim() : null
-
-  const supabase = createServiceClient()
-  const { data: stores, error: storesErr } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('is_active', true)
-  if (storesErr) return apiError(storesErr.message, 500)
-  if (!stores?.length) return apiError('No active stores configured', 400)
-
   if (apiKey === null) return apiSuccess({ saved: 0 })
 
-  const rows = stores.map((s) => ({
-    store_id: s.id,
-    setting_key: SETTING_KEY_API,
-    setting_value: apiKey || null,
-    is_secret: true,
-  }))
+  const supabase = createServiceClient()
   const { error } = await supabase
     .from('store_settings')
-    .upsert(rows, { onConflict: 'store_id,setting_key' })
+    .upsert(
+      [{ store_id: storeId, setting_key: SETTING_KEY_API, setting_value: apiKey || null, is_secret: true }],
+      { onConflict: 'store_id,setting_key' },
+    )
   if (error) return apiError(error.message, 500)
-  return apiSuccess({ saved: rows.length })
+  return apiSuccess({ saved: 1 })
 }

@@ -5,15 +5,12 @@ import {
   Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
   Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
   ExternalLink, User, Power, PowerOff, Trash2, Target, ChevronLeft, ChevronRight,
-  Mail, Bell, X, Send, Cloud, RefreshCw, CalendarRange,
+  Mail, Bell, X, Send, Cloud, RefreshCw, Plug,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import AiConfigPanel from '@/components/settings/AiConfigPanel'
 import ReportSchedulesPanel from '@/components/settings/ReportSchedulesPanel'
-import BetterHRSettingsPanel from '@/components/settings/BetterHRSettingsPanel'
-import GHLSettingsPanel from '@/components/settings/GHLSettingsPanel'
-import InstagramSettingsPanel from '@/components/settings/InstagramSettingsPanel'
-import TikTokSettingsPanel from '@/components/settings/TikTokSettingsPanel'
+import StoreIntegrationsPanel from '@/components/settings/StoreIntegrationsPanel'
 import IntelligenceSettingsPanel from '@/components/settings/IntelligenceSettingsPanel'
 
 interface StoreInfo { id: string; name: string; location: string | null; timezone: string; is_active: boolean; created_at: string; phone: string | null; business_hours: string | null; opened_date: string | null; google_maps_url: string | null; google_place_id: string | null; seat_count: number | null; manager_name: string | null; manager_email: string | null; tablecheck_shop_id: string | null }
@@ -49,117 +46,6 @@ function WeatherSettingsPanel() {
   )
 }
 
-function TableCheckSettingsPanel({ stores, onSaved }: { stores: StoreInfo[]; onSaved: () => void }) {
-  const [edits, setEdits] = useState<Record<string, string>>({})
-  const [savingId, setSavingId] = useState<string | null>(null)
-  const [syncing, setSyncing] = useState(false)
-  const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
-
-  const handleSave = async (storeId: string) => {
-    const value = (edits[storeId] ?? '').trim()
-    setSavingId(storeId)
-    setMsg(null)
-    try {
-      const res = await fetch(`/api/stores/${storeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tablecheck_shop_id: value || null }),
-      })
-      const json = await res.json()
-      if (json.success) {
-        setMsg({ text: 'Saved', type: 'success' })
-        setEdits((e) => { const next = { ...e }; delete next[storeId]; return next })
-        onSaved()
-      } else {
-        setMsg({ text: `Save failed: ${json.error}`, type: 'error' })
-      }
-    } catch {
-      setMsg({ text: 'Save failed', type: 'error' })
-    }
-    setSavingId(null)
-  }
-
-  const handleSyncNow = async () => {
-    setSyncing(true)
-    setMsg(null)
-    try {
-      const res = await fetch('/api/sync/tablecheck', { method: 'POST' })
-      const json = await res.json()
-      if (json.success) {
-        const summary = (json.data?.results ?? [])
-          .map((r: { store: string; synced?: number; error?: string }) =>
-            r.error ? `${r.store}: error` : `${r.store}: ${r.synced ?? 0}`
-          )
-          .join(' · ')
-        setMsg({ text: `Sync complete. ${summary || 'No stores synced.'}`, type: 'success' })
-      } else {
-        setMsg({ text: `Sync failed: ${json.error}`, type: 'error' })
-      }
-    } catch {
-      setMsg({ text: 'Sync failed', type: 'error' })
-    }
-    setSyncing(false)
-  }
-
-  return (
-    <div className="bg-white rounded-xl border border-slate-200">
-      <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <CalendarRange size={16} className="text-emerald-500" />
-          <h4 className="text-sm font-semibold text-slate-900">TableCheck Reservations</h4>
-        </div>
-        <button
-          onClick={handleSyncNow}
-          disabled={syncing}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-          {syncing ? 'Syncing…' : 'Sync Now'}
-        </button>
-      </div>
-      <div className="p-5 space-y-4">
-        <p className="text-xs text-slate-500">
-          The shop_id is the slug from your TableCheck account (e.g. <code className="px-1 bg-slate-100 rounded">nom-dining-hcmc</code>) — not a UUID. Auto-syncs every 30 minutes.
-        </p>
-        {stores.length === 0 ? (
-          <p className="text-sm text-slate-400">No stores configured.</p>
-        ) : (
-          <div className="space-y-2">
-            {stores.map((store) => {
-              const draftValue = edits[store.id] ?? (store.tablecheck_shop_id ?? '')
-              const isDirty = (edits[store.id] ?? null) !== null && draftValue !== (store.tablecheck_shop_id ?? '')
-              return (
-                <div key={store.id} className="flex items-center gap-2">
-                  <span className="text-sm text-slate-700 w-40 shrink-0 truncate">{store.name}</span>
-                  <input
-                    type="text"
-                    value={draftValue}
-                    onChange={(e) => setEdits({ ...edits, [store.id]: e.target.value })}
-                    placeholder="e.g. nom-dining-hcmc"
-                    className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <button
-                    onClick={() => handleSave(store.id)}
-                    disabled={!isDirty || savingId === store.id}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40"
-                  >
-                    {savingId === store.id ? 'Saving…' : 'Save'}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        {msg && (
-          <div className={`text-sm px-3 py-2 rounded-lg ${msg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-            {msg.text}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function StoreForm({ form, onChange, onSubmit, onCancel, saving, submitLabel }: { form: StoreFormData; onChange: (f: StoreFormData) => void; onSubmit: (e: React.FormEvent) => void; onCancel: () => void; saving: boolean; submitLabel: string }) {
   const { t } = useI18n()
   const set = (field: keyof StoreFormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onChange({ ...form, [field]: e.target.value })
@@ -176,9 +62,10 @@ function StoreForm({ form, onChange, onSubmit, onCancel, saving, submitLabel }: 
   )
 }
 
-function StoreCard({ store, isOwner, onEdit, onToggleActive, onDelete }: { store: StoreInfo; isOwner: boolean; onEdit: () => void; onToggleActive: () => void; onDelete: () => void }) {
+function StoreCard({ store, isOwner, onEdit, onToggleActive, onDelete, onIntegrationsSaved }: { store: StoreInfo; isOwner: boolean; onEdit: () => void; onToggleActive: () => void; onDelete: () => void; onIntegrationsSaved: () => void }) {
   const { t } = useI18n()
   const [showTargets, setShowTargets] = useState(false)
+  const [showIntegrations, setShowIntegrations] = useState(false)
   const [targetYear, setTargetYear] = useState(new Date().getFullYear())
   const [targets, setTargets] = useState<Record<number, string>>({})
   const [annualInput, setAnnualInput] = useState('')
@@ -198,8 +85,16 @@ function StoreCard({ store, isOwner, onEdit, onToggleActive, onDelete }: { store
           {isOwner && (<div className="flex items-center gap-1"><button onClick={onEdit} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title={t('common.edit')}><Edit2 size={14} /></button><button onClick={onToggleActive} className={`p-1.5 rounded-lg transition-colors ${store.is_active ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`} title={store.is_active ? t('settings.disable') : t('settings.enable')}>{store.is_active ? <PowerOff size={14} /> : <Power size={14} />}</button><button onClick={onDelete} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title={t('common.delete')}><Trash2 size={14} /></button></div>)}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-slate-600">{store.location && (<div className="flex items-center gap-1.5"><MapPin size={12} className="text-slate-400 shrink-0" /><span className="truncate">{store.location}</span></div>)}{store.phone && (<div className="flex items-center gap-1.5"><Phone size={12} className="text-slate-400 shrink-0" /><span>{store.phone}</span></div>)}{store.opened_date && (<div className="flex items-center gap-1.5"><Calendar size={12} className="text-slate-400 shrink-0" /><span>{t('settings.opened')}：{store.opened_date}</span></div>)}{store.seat_count != null && (<div className="flex items-center gap-1.5"><Armchair size={12} className="text-slate-400 shrink-0" /><span>{store.seat_count} {t('settings.seats')}</span></div>)}{store.manager_name && (<div className="flex items-center gap-1.5"><User size={12} className="text-slate-400 shrink-0" /><span>{t('settings.manager')}：{store.manager_name}</span></div>)}{store.google_place_id && (<div className="flex items-center gap-1.5"><ExternalLink size={12} className="text-slate-400 shrink-0" /><span className="truncate font-mono text-[11px]">{store.google_place_id}</span></div>)}</div>
-        {isOwner && store.is_active && (<button onClick={() => setShowTargets(!showTargets)} className="mt-3 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"><Target size={13} />{showTargets ? t('settings.collapseTargets') : t('settings.revenueTargets')}</button>)}
+        {isOwner && store.is_active && (
+          <div className="mt-3 flex items-center gap-4">
+            <button onClick={() => setShowTargets(!showTargets)} className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"><Target size={13} />{showTargets ? t('settings.collapseTargets') : t('settings.revenueTargets')}</button>
+            <button onClick={() => setShowIntegrations(!showIntegrations)} className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"><Plug size={13} />{showIntegrations ? 'Collapse integrations' : 'Integrations'}</button>
+          </div>
+        )}
       </div>
+      {showIntegrations && isOwner && store.is_active && (
+        <StoreIntegrationsPanel store={store} onSaved={onIntegrationsSaved} />
+      )}
       {showTargets && (<div className="border-t border-slate-200 p-5 space-y-4"><div className="flex items-center gap-1"><button onClick={() => setTargetYear(targetYear - 1)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"><ChevronLeft size={16} /></button><span className="text-sm font-semibold text-slate-900 min-w-[60px] text-center">{targetYear} {t('settings.year')}</span><button onClick={() => setTargetYear(targetYear + 1)} className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"><ChevronRight size={16} /></button></div><div className="flex items-center gap-2 bg-slate-50 rounded-lg p-3"><span className="text-xs text-slate-600 whitespace-nowrap">{t('settings.annualTarget')}</span><span className="text-xs text-slate-400">₫</span><input type="number" value={annualInput} onChange={(e) => setAnnualInput(e.target.value)} placeholder="例如 6000000" className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" /><button onClick={handleDistribute} className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">{t('settings.distribute')}</button></div>{targetLoading ? (<div className="text-center text-slate-400 text-sm py-4">{t('common.loading')}</div>) : (<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">{MONTH_LABELS.map((label, idx) => (<div key={idx}><label className="block text-xs font-medium text-slate-600 mb-1">{label}</label><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">₫</span><input type="number" value={targets[idx] || ''} onChange={(e) => setTargets({ ...targets, [idx]: e.target.value })} placeholder="0" min="0" className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-right" /></div></div>))}</div>)}<div className="flex items-center justify-between pt-2 border-t border-slate-100"><p className="text-xs text-slate-600">{t('settings.annualTotal')}：<span className="font-semibold text-slate-900">₫{annualTotal.toLocaleString()}</span></p><button onClick={handleSaveTargets} disabled={targetSaving} className="px-4 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">{targetSaving ? t('common.saving') : t('settings.saveTargets')}</button></div>{targetMsg && (<div className={`text-xs px-3 py-2 rounded-lg ${targetMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{targetMsg.text}</div>)}</div>)}
     </div>
   )
@@ -235,7 +130,7 @@ export default function SettingsPage() {
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between"><div className="flex items-center gap-2"><Store size={16} className="text-slate-500" /><h4 className="text-sm font-semibold text-slate-900">{t('settings.storeManagement')}</h4></div>{isOwner && (<button onClick={() => { setShowForm(!showForm); setEditStoreId(null); setForm({ ...emptyForm }) }} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"><Plus size={14} />{t('settings.addStore')}</button>)}</div>
         {message && (<div className={`mx-5 mt-3 text-sm px-4 py-2 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{message.text}</div>)}
         {showForm && !editStoreId && (<div className="p-5 border-b border-slate-200"><StoreForm form={form} onChange={setForm} onSubmit={handleCreate} onCancel={() => { setShowForm(false); setForm({ ...emptyForm }) }} saving={saving} submitLabel={t('settings.addStore')} /></div>)}
-        {loading ? (<div className="p-8 text-center text-slate-400 text-sm">{t('common.loading')}</div>) : stores.length === 0 ? (<div className="p-8 text-center text-slate-400 text-sm">{t('settings.noStores')}</div>) : (<div className="p-4 space-y-3">{stores.map(store => (<div key={store.id}>{editStoreId === store.id ? (<div className="p-5 rounded-xl border-2 border-blue-300 bg-blue-50/30"><h5 className="text-sm font-semibold text-slate-900 mb-4">{t('settings.editStore')} — {store.name}</h5><StoreForm form={form} onChange={setForm} onSubmit={handleEdit} onCancel={cancelEdit} saving={saving} submitLabel={t('common.save')} /></div>) : (<StoreCard store={store} isOwner={isOwner} onEdit={() => startEdit(store)} onToggleActive={() => handleToggleActive(store)} onDelete={() => setDeleteStore(store)} />)}</div>))}</div>)}
+        {loading ? (<div className="p-8 text-center text-slate-400 text-sm">{t('common.loading')}</div>) : stores.length === 0 ? (<div className="p-8 text-center text-slate-400 text-sm">{t('settings.noStores')}</div>) : (<div className="p-4 space-y-3">{stores.map(store => (<div key={store.id}>{editStoreId === store.id ? (<div className="p-5 rounded-xl border-2 border-blue-300 bg-blue-50/30"><h5 className="text-sm font-semibold text-slate-900 mb-4">{t('settings.editStore')} — {store.name}</h5><StoreForm form={form} onChange={setForm} onSubmit={handleEdit} onCancel={cancelEdit} saving={saving} submitLabel={t('common.save')} /></div>) : (<StoreCard store={store} isOwner={isOwner} onEdit={() => startEdit(store)} onToggleActive={() => handleToggleActive(store)} onDelete={() => setDeleteStore(store)} onIntegrationsSaved={fetchStores} />)}</div>))}</div>)}
       </div>
       {confirmStore && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4"><h4 className="text-sm font-semibold text-slate-900">{t('settings.confirmDeactivate')}</h4><p className="text-sm text-slate-600">{t('settings.deactivateWarning')}{t('settings.confirmDeactivateQuestion')}「{confirmStore.name}」？</p><div className="flex gap-2 pt-2"><button onClick={() => doToggle(confirmStore.id)} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors">{t('settings.confirmDeactivateBtn')}</button><button onClick={() => setConfirmStore(null)} className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">{t('common.cancel')}</button></div></div></div>)}
       {deleteStore && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4"><h4 className="text-sm font-semibold text-red-600">{t('settings.confirmDelete')}</h4><p className="text-sm text-slate-600">{t('settings.deleteWarning')}「{deleteStore.name}」？</p><div className="flex gap-2 pt-2"><button onClick={() => doDelete(deleteStore.id)} className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors">{t('settings.confirmDeleteBtn')}</button><button onClick={() => setDeleteStore(null)} className="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 transition-colors">{t('common.cancel')}</button></div></div></div>)}
@@ -250,11 +145,6 @@ export default function SettingsPage() {
         </div>
       </div>
       <WeatherSettingsPanel />
-      {isOwner && <TableCheckSettingsPanel stores={stores} onSaved={fetchStores} />}
-      {isOwner && <BetterHRSettingsPanel />}
-      {isOwner && <GHLSettingsPanel />}
-      {isOwner && <InstagramSettingsPanel />}
-      {isOwner && <TikTokSettingsPanel />}
       {isOwner && <IntelligenceSettingsPanel />}
       <AiConfigPanel isOwner={isOwner} />
       <ReportSchedulesPanel isOwner={isOwner} />
