@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { KpiCard } from '@/components/dashboard/KpiCard'
+import { ManualInputWidget } from '@/components/dashboard/ManualInputWidget'
 import { SalesLineChart } from '@/components/charts/SalesLineChart'
 import { KpiSkeleton, ChartSkeleton } from '@/components/ui/Skeleton'
 import { DollarSign, Users, ShoppingCart, TrendingUp } from 'lucide-react'
@@ -99,7 +100,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title={t('dashboard.netSales')}
-          value={latest?.net_sales != null ? `NT$${latest.net_sales.toLocaleString()}` : '--'}
+          value={latest?.net_sales != null ? `₫${latest.net_sales.toLocaleString()}` : '--'}
           change={calcChange(latest?.net_sales ?? null, previous?.net_sales ?? null)}
           changeLabel={t('dashboard.vsPrevDay')}
           icon={<DollarSign size={20} />}
@@ -120,23 +121,28 @@ export default function DashboardPage() {
         />
         <KpiCard
           title={t('dashboard.avgSpending')}
-          value={latest?.avg_spending != null ? `NT$${latest.avg_spending.toLocaleString()}` : '--'}
+          value={latest?.avg_spending != null ? `₫${latest.avg_spending.toLocaleString()}` : '--'}
           change={calcChange(latest?.avg_spending ?? null, previous?.avg_spending ?? null)}
           changeLabel={t('dashboard.vsPrevDay')}
           icon={<TrendingUp size={20} />}
         />
       </div>
 
-      {/* 30-day Trend */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h3 className="text-base font-semibold text-slate-900 mb-4">{t('dashboard.salesTrend')}</h3>
-        {loading ? (
-          <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
-            {t('dashboard.loading')}
-          </div>
-        ) : (
-          <SalesLineChart data={data} />
-        )}
+      {/* Manual daily input */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1">
+          <ManualInputWidget />
+        </div>
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
+          <h3 className="text-base font-semibold text-slate-900 mb-4">{t('dashboard.salesTrend')}</h3>
+          {loading ? (
+            <div className="flex items-center justify-center h-64 text-slate-400 text-sm">
+              {t('dashboard.loading')}
+            </div>
+          ) : (
+            <SalesLineChart data={data} />
+          )}
+        </div>
       </div>
     </div>
   )

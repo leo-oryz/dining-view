@@ -27,15 +27,6 @@ ALTER TABLE campaigns ADD CONSTRAINT campaigns_store_id_fkey FOREIGN KEY (store_
 ALTER TABLE upload_history DROP CONSTRAINT IF EXISTS upload_history_store_id_fkey;
 ALTER TABLE upload_history ADD CONSTRAINT upload_history_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE;
 
-ALTER TABLE ocard_member_snapshots DROP CONSTRAINT IF EXISTS ocard_member_snapshots_store_id_fkey;
-ALTER TABLE ocard_member_snapshots ADD CONSTRAINT ocard_member_snapshots_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE;
-
-ALTER TABLE ocard_rfm_snapshots DROP CONSTRAINT IF EXISTS ocard_rfm_snapshots_store_id_fkey;
-ALTER TABLE ocard_rfm_snapshots ADD CONSTRAINT ocard_rfm_snapshots_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE;
-
-ALTER TABLE hotel_guest_mappings DROP CONSTRAINT IF EXISTS hotel_guest_mappings_store_id_fkey;
-ALTER TABLE hotel_guest_mappings ADD CONSTRAINT hotel_guest_mappings_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE;
-
 ALTER TABLE gsc_brand_search DROP CONSTRAINT IF EXISTS gsc_brand_search_store_id_fkey;
 ALTER TABLE gsc_brand_search ADD CONSTRAINT gsc_brand_search_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE;
 
@@ -50,9 +41,6 @@ ALTER TABLE weather_daily ADD CONSTRAINT weather_daily_store_id_fkey FOREIGN KEY
 
 ALTER TABLE competitor_events DROP CONSTRAINT IF EXISTS competitor_events_store_id_fkey;
 ALTER TABLE competitor_events ADD CONSTRAINT competitor_events_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE;
-
-ALTER TABLE delivery_sales DROP CONSTRAINT IF EXISTS delivery_sales_store_id_fkey;
-ALTER TABLE delivery_sales ADD CONSTRAINT delivery_sales_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE;
 
 ALTER TABLE ad_campaigns DROP CONSTRAINT IF EXISTS ad_campaigns_store_id_fkey;
 ALTER TABLE ad_campaigns ADD CONSTRAINT ad_campaigns_store_id_fkey FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE;

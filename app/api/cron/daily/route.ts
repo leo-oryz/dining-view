@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
     results.weather = `Error: ${err instanceof Error ? err.message : 'Unknown'}`
   }
 
-  // 5. LINE OA stats sync (follower count + broadcast delivery)
+  // 5. LINE OA stats sync (follower count + broadcast dispatch)
   try {
     const lineRes = await fetch(`${getBaseUrl(request)}/api/line/sync`, {
       method: 'POST',

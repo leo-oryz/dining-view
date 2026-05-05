@@ -42,7 +42,7 @@ export function ProductRanking({ data }: ProductRankingProps) {
               <td className="py-2.5 px-2 text-slate-500 hidden sm:table-cell">{item.category || '-'}</td>
               <td className="py-2.5 px-2 text-right text-slate-700">{item.quantity_sold?.toLocaleString() ?? '-'}</td>
               <td className="py-2.5 px-2 text-right text-slate-700">
-                {item.revenue != null ? `NT$${item.revenue.toLocaleString()}` : '-'}
+                {item.revenue != null ? `₫${item.revenue.toLocaleString()}` : '-'}
               </td>
               <td className="py-2.5 px-2 text-right hidden md:table-cell">
                 {item.gross_margin != null ? `${(item.gross_margin * 100).toFixed(0)}%` : '-'}

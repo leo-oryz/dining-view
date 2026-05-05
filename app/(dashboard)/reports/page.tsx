@@ -33,7 +33,7 @@ export default function ReportsPage() {
       const disposition = res.headers.get('Content-Disposition')
       const filenameMatch = disposition?.match(/filename="(.+)"/)
       a.href = url
-      a.download = filenameMatch?.[1] || `fnb-pulse-investor-${new Date().toISOString().substring(0, 7)}.pdf`
+      a.download = filenameMatch?.[1] || `diningview-investor-${new Date().toISOString().substring(0, 7)}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

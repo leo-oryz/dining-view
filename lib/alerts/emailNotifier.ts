@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { createServiceClient } from '@/lib/supabase/server'
+import { APP_TIMEZONE } from '@/lib/constants/timezone'
 
 interface AlertItem {
   severity: string
@@ -12,7 +13,7 @@ export async function sendAlertEmail(
   storeIds?: string[]
 ): Promise<{ success: boolean; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@fnbpulse.com'
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@diningview.app'
 
   if (!apiKey) {
     return { success: false, error: 'RESEND_API_KEY not configured' }
@@ -44,7 +45,7 @@ export async function sendAlertEmail(
     return { success: false, error: 'No alert email recipients configured' }
   }
 
-  const today = new Date().toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })
+  const today = new Date().toLocaleDateString('vi-VN', { timeZone: APP_TIMEZONE })
 
   const alertRows = anomalies.map(a => {
     const icon = a.severity === 'critical' ? '🔴' : '🟡'
@@ -61,7 +62,7 @@ export async function sendAlertEmail(
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b;">
-  <h1 style="font-size: 20px; margin-bottom: 4px;">FnB Pulse 異常警報</h1>
+  <h1 style="font-size: 20px; margin-bottom: 4px;">DiningView 異常警報</h1>
   <p style="color: #64748b; font-size: 14px; margin-top: 0;">${today}</p>
 
   <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
@@ -81,14 +82,14 @@ export async function sendAlertEmail(
   </table>
 
   <div style="margin-top: 24px; text-align: center;">
-    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://fnbpulse.com'}/alerts"
+    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://diningview.com'}/alerts"
        style="display: inline-block; background: #dc2626; color: white; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 14px;">
       查看完整警報
     </a>
   </div>
 
   <p style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 24px;">
-    FnB Pulse — 餐飲智慧平台
+    DiningView — 餐飲智慧平台
   </p>
 </body>
 </html>`
@@ -97,7 +98,7 @@ export async function sendAlertEmail(
     await resend.emails.send({
       from: fromEmail,
       to: emails,
-      subject: `[FnB Pulse 警報] 偵測到 ${anomalies.length} 項異常 — ${today}`,
+      subject: `[DiningView 警報] 偵測到 ${anomalies.length} 項異常 — ${today}`,
       html,
     })
     return { success: true }

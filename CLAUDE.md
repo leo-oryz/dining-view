@@ -1,7 +1,7 @@
-# FnB Pulse — Restaurant Intelligence Platform
+# DiningView — Restaurant Intelligence Platform
 
 ## Project Overview
-FnB Pulse is an F&B group intelligence platform. Starting with BE& 西門, it replaces Excel-based daily sales tracking with an automated web dashboard supporting multi-store architecture.
+DiningView is a restaurant intelligence platform for **NOM Dining** (Ho Chi Minh City, Vietnam). Forked from FNB Pulse (Taiwan), localized to VND, `Asia/Ho_Chi_Minh`, VAT 10% + 5% service charge.
 
 ## Tech Stack
 - **Framework**: Next.js 14 (App Router)

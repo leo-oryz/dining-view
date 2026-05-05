@@ -11,21 +11,12 @@ interface UploadResult {
 }
 
 const FILE_TYPE_MAP: Record<string, { endpoint: string; label: string; accept: string }> = {
-  'eat365-summary': { endpoint: '/api/upload/eat365-summary', label: 'eat365 日銷售總表', accept: '.xlsx' },
-  'eat365-hourly': { endpoint: '/api/upload/eat365-hourly', label: 'eat365 時段銷售', accept: '.xls' },
-  'eat365-items': { endpoint: '/api/upload/eat365-items', label: 'eat365 商品銷售', accept: '.xls' },
-  'eat365-transactions': { endpoint: '/api/upload/eat365-transactions', label: 'eat365 交易明細', accept: '.csv' },
-  'ocard-dashboard': { endpoint: '/api/upload/ocard-dashboard', label: 'Ocard 儀表板', accept: '.xlsx' },
-  'ocard-members': { endpoint: '/api/upload/ocard-members', label: 'Ocard 商品銷售', accept: '.csv' },
-  'ocard-recruit': { endpoint: '/api/upload/ocard-recruit', label: 'Ocard 會員招募分析', accept: '.csv' },
-  'ocard-consumption': { endpoint: '/api/upload/ocard-consumption', label: 'Ocard 顧客消費分析', accept: '.csv' },
-  'ocard-rfm': { endpoint: '/api/upload/ocard-rfm', label: 'Ocard RFM 分析', accept: '.csv' },
-  'nueip-schedule': { endpoint: '/api/labor/upload', label: 'NUEIP 人力班表', accept: '.xlsx' },
-  'payroll': { endpoint: '/api/upload/payroll', label: '月薪資表', accept: '.xls,.xlsx' },
+  'nueip-schedule': { endpoint: '/api/labor/upload', label: 'NUEIP Schedule', accept: '.xlsx' },
+  'payroll': { endpoint: '/api/upload/payroll', label: 'Monthly Payroll', accept: '.xls,.xlsx' },
 }
 
 export function CsvDropzone() {
-  const [selectedType, setSelectedType] = useState('eat365-summary')
+  const [selectedType, setSelectedType] = useState('nueip-schedule')
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<UploadResult | null>(null)
@@ -67,37 +58,22 @@ export function CsvDropzone() {
 
   return (
     <div className="space-y-4">
-      {/* File type selector */}
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">
-          報表類型
+          Report Type
         </label>
         <select
           value={selectedType}
           onChange={(e) => { setSelectedType(e.target.value); setResult(null) }}
           className="w-full sm:w-auto px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <optgroup label="eat365">
-            <option value="eat365-summary">日銷售總表 (.xlsx)</option>
-            <option value="eat365-hourly">時段銷售報表 (.xls)</option>
-            <option value="eat365-items">商品銷售報表 (.xls)</option>
-            <option value="eat365-transactions">交易明細報表 (.csv)</option>
-          </optgroup>
-          <optgroup label="人力">
-            <option value="nueip-schedule">NUEIP 班表 (.xlsx)</option>
-            <option value="payroll">月薪資表 (.xls)</option>
-          </optgroup>
-          <optgroup label="Ocard">
-            <option value="ocard-dashboard">儀表板明細 (.xlsx)</option>
-            <option value="ocard-members">商品銷售/會員 (.csv)</option>
-            <option value="ocard-recruit">會員招募分析 (.csv)</option>
-            <option value="ocard-consumption">顧客消費分析 (.csv)</option>
-            <option value="ocard-rfm">RFM 分析 (.csv)</option>
+          <optgroup label="Labor">
+            <option value="nueip-schedule">NUEIP Schedule (.xlsx)</option>
+            <option value="payroll">Monthly Payroll (.xls)</option>
           </optgroup>
         </select>
       </div>
 
-      {/* Dropzone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
@@ -120,13 +96,13 @@ export function CsvDropzone() {
         {uploading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 size={32} className="text-blue-500 animate-spin" />
-            <p className="text-sm text-slate-500">上傳中...</p>
+            <p className="text-sm text-slate-500">Uploading...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
             <Upload size={32} className="text-slate-400" />
             <p className="text-sm text-slate-600">
-              拖放檔案至此，或<span className="text-blue-600 font-medium">點擊選擇</span>
+              Drag a file here or <span className="text-blue-600 font-medium">click to select</span>
             </p>
             <p className="text-xs text-slate-400">
               {FILE_TYPE_MAP[selectedType].label} ({FILE_TYPE_MAP[selectedType].accept})
@@ -135,7 +111,6 @@ export function CsvDropzone() {
         )}
       </div>
 
-      {/* Result */}
       {result && (
         <div
           className={clsx(
@@ -153,17 +128,17 @@ export function CsvDropzone() {
               {result.success ? (
                 <>
                   <p className="text-sm font-medium text-emerald-800">
-                    上傳成功 — {result.data?.imported} 筆資料已匯入
+                    Imported {result.data?.imported} records
                   </p>
                   {result.data?.errors && result.data.errors.length > 0 && (
                     <div className="mt-2 text-xs text-amber-700">
-                      <p className="font-medium">{result.data.errors.length} 個警告:</p>
+                      <p className="font-medium">{result.data.errors.length} warnings:</p>
                       <ul className="mt-1 space-y-0.5">
                         {result.data.errors.slice(0, 5).map((err, i) => (
                           <li key={i}>Row {err.row}: {err.message}</li>
                         ))}
                         {result.data.errors.length > 5 && (
-                          <li>... 還有 {result.data.errors.length - 5} 個</li>
+                          <li>... {result.data.errors.length - 5} more</li>
                         )}
                       </ul>
                     </div>

@@ -1,5 +1,5 @@
 -- Migration: Clean up header/total rows from product_sales and product_costs
--- These rows were accidentally imported from eat365 Sales By Item reports
+-- These rows were accidentally imported from POS reports
 
 -- 1. Remove header and total rows from product_sales
 DELETE FROM product_sales

@@ -7,8 +7,7 @@ CREATE TABLE IF NOT EXISTS anomaly_alerts (
   alert_type TEXT NOT NULL CHECK (alert_type IN (
     'revenue_drop',
     'cost_spike',
-    'member_churn',
-    'delivery_drop'
+    'member_churn'
   )),
   severity TEXT NOT NULL DEFAULT 'warning' CHECK (severity IN ('info', 'warning', 'critical')),
   metric_value NUMERIC,

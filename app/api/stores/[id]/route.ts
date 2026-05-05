@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth/getSession'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError } from '@/lib/api-utils'
 
-const STORE_SELECT_FIELDS = 'id, name, location, timezone, is_active, created_at, phone, business_hours, opened_date, google_maps_url, google_place_id, seat_count, manager_name, manager_email'
+const STORE_SELECT_FIELDS = 'id, name, location, timezone, is_active, created_at, phone, business_hours, opened_date, google_maps_url, google_place_id, seat_count, manager_name, manager_email, tablecheck_shop_id'
 
 export async function PUT(
   request: NextRequest,
@@ -24,6 +24,7 @@ export async function PUT(
       'name', 'location', 'timezone', 'phone', 'business_hours',
       'opened_date', 'google_maps_url', 'google_place_id',
       'seat_count', 'manager_name', 'manager_email',
+      'tablecheck_shop_id',
     ]
 
     for (const field of allowedFields) {

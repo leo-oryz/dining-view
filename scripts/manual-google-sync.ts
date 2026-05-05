@@ -254,8 +254,8 @@ async function main() {
       .eq('date', date)
       .single()
 
-    const ocardNewMembers = salesData?.new_members || 0
-    const conversionRate = ga4Clicks > 0 ? ocardNewMembers / ga4Clicks : 0
+    const newMembers = salesData?.new_members || 0
+    const conversionRate = ga4Clicks > 0 ? newMembers / ga4Clicks : 0
 
     await supabase
       .from('member_conversion_daily')
@@ -263,7 +263,7 @@ async function main() {
         store_id: storeId,
         date,
         ga4_clicks: ga4Clicks,
-        ocard_new_members: ocardNewMembers,
+        new_members: newMembers,
         conversion_rate: conversionRate,
       }, { onConflict: 'store_id,date' })
   }

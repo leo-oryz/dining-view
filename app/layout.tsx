@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "FnB Pulse",
+  title: "DiningView",
   description: "Restaurant Intelligence Platform for F&B Groups",
 };
 

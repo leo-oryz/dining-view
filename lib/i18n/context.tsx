@@ -4,21 +4,23 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { type Locale, defaultLocale } from './locales'
 import zhTW from './translations/zh-TW'
 import en from './translations/en'
+import vi from './translations/vi'
 
 export type TranslationKey = keyof typeof zhTW
 
 const translations: Record<Locale, Record<string, string>> = {
-  'zh-TW': zhTW,
+  vi,
   en,
+  'zh-TW': zhTW,
 }
 
-const COOKIE_NAME = 'fnb-locale'
+const COOKIE_NAME = 'diningview-locale'
 
 function getStoredLocale(): Locale {
   if (typeof document === 'undefined') return defaultLocale
   const match = document.cookie.match(new RegExp(`${COOKIE_NAME}=([^;]+)`))
   const val = match?.[1]
-  if (val === 'en' || val === 'zh-TW') return val
+  if (val === 'vi' || val === 'en' || val === 'zh-TW') return val
   return defaultLocale
 }
 

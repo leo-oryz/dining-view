@@ -50,7 +50,7 @@ export default function AdPerformanceChart({ data }: { data: CorrelationRow[] })
         <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12, fill: '#94a3b8' }} />
         <Tooltip
           labelFormatter={(val) => format(new Date(val as string), 'yyyy/M/d')}
-          formatter={(val, name) => [`NT$ ${Number(val).toLocaleString()}`, name]}
+          formatter={(val, name) => [`₫ ${Number(val).toLocaleString()}`, name]}
         />
         <Legend />
         <Bar yAxisId="left" dataKey="廣告花費" fill="#818cf8" barSize={20} />

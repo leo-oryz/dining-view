@@ -72,8 +72,8 @@ export async function sendAiReport(
   schedule: ReportScheduleInput
 ): Promise<{ recipientCount: number; reportsGenerated: number; periodLabel: string; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@fnbpulse.com'
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fnb-pulse.zeabur.app'
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@diningview.com'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://diningview.zeabur.app'
 
   if (!apiKey) {
     return { recipientCount: 0, reportsGenerated: 0, periodLabel: '', error: 'RESEND_API_KEY not configured' }
@@ -189,7 +189,7 @@ export async function sendAiReport(
   }
 
   const totalReports = allReports.reduce((s, g) => s + g.reports.length, 0)
-  const subject = `FnB Pulse AI ${schedule.period_type === 'last_month' ? '月報' : '週報'} — ${period.start} ~ ${period.end}`
+  const subject = `DiningView AI ${schedule.period_type === 'last_month' ? '月報' : '週報'} — ${period.start} ~ ${period.end}`
 
   const storeBlocks = allReports.map((group) => {
     const reportCards = group.reports.map((r) => {
@@ -222,7 +222,7 @@ export async function sendAiReport(
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b;">
   <div style="text-align: center; margin-bottom: 24px;">
-    <h1 style="font-size: 22px; margin-bottom: 4px; color: #6d28d9;">🧠 FnB Pulse AI ${periodTitle}</h1>
+    <h1 style="font-size: 22px; margin-bottom: 4px; color: #6d28d9;">🧠 DiningView AI ${periodTitle}</h1>
     <p style="color: #64748b; font-size: 14px; margin-top: 0;">${period.start} ~ ${period.end}</p>
   </div>
 
@@ -236,7 +236,7 @@ export async function sendAiReport(
   ${storeBlocks}
 
   <p style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 32px;">
-    FnB Pulse — 餐飲智慧平台<br>
+    DiningView — 餐飲智慧平台<br>
     報告由 AI 自動產生，僅供參考<br>
     排程：${schedule.name}
   </p>

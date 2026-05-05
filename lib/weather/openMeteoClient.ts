@@ -26,15 +26,19 @@ function wmoCodeToDescription(code: number): string {
   return map[code] ?? '多雲'
 }
 
+// Ho Chi Minh City (NOM Dining) — overridable via OPENWEATHER_LAT / OPENWEATHER_LON.
+const DEFAULT_LAT = Number(process.env.OPENWEATHER_LAT ?? 10.8231)
+const DEFAULT_LON = Number(process.env.OPENWEATHER_LON ?? 106.6297)
+
 /**
  * Fetch historical daily weather from Open-Meteo (free, no API key).
- * Uses Taipei/Ximending coordinates by default.
+ * Uses HCM City coordinates by default.
  */
 export async function fetchHistoricalWeather(
   startDate: string,
   endDate: string,
-  lat = 25.042,
-  lon = 121.508
+  lat = DEFAULT_LAT,
+  lon = DEFAULT_LON
 ): Promise<HistoricalWeatherDay[]> {
   // Open-Meteo archive API for past dates, forecast API for recent/today
   const today = new Date().toISOString().slice(0, 10)
@@ -52,7 +56,7 @@ export async function fetchHistoricalWeather(
     return d.toISOString().slice(0, 10)
   })() : null
 
-  const params = `latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean,weather_code&timezone=Asia%2FTaipei`
+  const params = `latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_mean,weather_code&timezone=Asia%2FHo_Chi_Minh`
 
   // Fetch archive data
   if (startDate <= archiveEnd) {

@@ -181,7 +181,7 @@ export default function SharedReportPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-400 mt-6">
-          由 FnB Pulse AI 分析產生
+          由 DiningView AI 分析產生
         </p>
       </main>
     </div>

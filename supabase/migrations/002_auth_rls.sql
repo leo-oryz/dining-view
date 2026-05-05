@@ -17,8 +17,6 @@ ALTER TABLE member_conversion_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weather_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE upload_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ocard_member_snapshots ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ocard_rfm_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_costs ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
@@ -116,22 +114,6 @@ CREATE POLICY "users_select_upload_history" ON upload_history FOR SELECT USING (
   get_user_role() = 'owner' OR store_id IS NULL OR store_id = get_user_store_id()
 );
 CREATE POLICY "service_all_upload_history" ON upload_history FOR ALL USING (
-  auth.role() = 'service_role'
-);
-
--- ocard_member_snapshots
-CREATE POLICY "users_select_ocard_members" ON ocard_member_snapshots FOR SELECT USING (
-  get_user_role() = 'owner' OR store_id = get_user_store_id()
-);
-CREATE POLICY "service_all_ocard_members" ON ocard_member_snapshots FOR ALL USING (
-  auth.role() = 'service_role'
-);
-
--- ocard_rfm_snapshots
-CREATE POLICY "users_select_ocard_rfm" ON ocard_rfm_snapshots FOR SELECT USING (
-  get_user_role() = 'owner' OR store_id = get_user_store_id()
-);
-CREATE POLICY "service_all_ocard_rfm" ON ocard_rfm_snapshots FOR ALL USING (
   auth.role() = 'service_role'
 );
 

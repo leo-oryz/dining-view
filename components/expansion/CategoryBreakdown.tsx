@@ -39,7 +39,7 @@ export function CategoryBreakdown({ data, height }: CategoryBreakdownProps) {
         <XAxis type="number" tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <YAxis dataKey="category" type="category" tick={{ fontSize: 11 }} stroke="#94a3b8" width={80} />
         <Tooltip
-          formatter={(value) => [`NT$${Number(value).toLocaleString()}`, '營收']}
+          formatter={(value) => [`₫${Number(value).toLocaleString()}`, '營收']}
         />
         <Bar dataKey="total_revenue" fill="#f59e0b" radius={[0, 4, 4, 0]} />
       </BarChart>

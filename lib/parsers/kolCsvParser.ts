@@ -153,7 +153,7 @@ export function parseKolCsv(csvText: string): { data: KolCsvRow[]; errors: Parse
   const iInvoice2 = col('請款流程02')
   const iPayment = col('付款狀態')
   const iContentType = col('素材類別')
-  const iFee = col('已付金額（台幣）')
+  const iFee = col('已付金額（VND）')
   const iContentUrl = col('素材連結')
   const iViews = col('觀看率')
   const iReach = col('觸及的帳號數量')

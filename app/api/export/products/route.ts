@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     }
 
     const buffer = await workbook.xlsx.writeBuffer()
-    const filename = `fnb-pulse-products-${from}-${to}.xlsx`
+    const filename = `diningview-products-${from}-${to}.xlsx`
     return excelResponse(Buffer.from(buffer), filename)
   } catch {
     return apiError('Internal server error', 500)

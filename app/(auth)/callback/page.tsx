@@ -53,7 +53,7 @@ export default function AuthCallbackPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="w-full max-w-sm mx-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">FnB Pulse</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">DiningView</h1>
           {error ? (
             <p className="text-red-500 text-sm">{error}</p>
           ) : (

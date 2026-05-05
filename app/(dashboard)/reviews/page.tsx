@@ -400,7 +400,7 @@ export default function ReviewsPage() {
               <Tooltip formatter={(value, name) => {
                 const v = Number(value)
                 if (name === t('reviews.avgRating')) return v.toFixed(2)
-                return `NT$${v.toLocaleString()}`
+                return `₫${v.toLocaleString()}`
               }} />
               <Legend />
               <Line

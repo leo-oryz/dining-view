@@ -20,11 +20,17 @@ interface HourlyData {
 interface HourlyHeatmapProps {
   data: HourlyData[]
   height?: number
+  startHour?: number
+  endHour?: number
 }
 
-export function HourlyHeatmap({ data, height }: HourlyHeatmapProps) {
+const DEFAULT_START_HOUR = 18
+const DEFAULT_END_HOUR = 23
+
+export function HourlyHeatmap({ data, height, startHour = DEFAULT_START_HOUR, endHour = DEFAULT_END_HOUR }: HourlyHeatmapProps) {
   const chartData = data
     .slice()
+    .filter((d) => d.hour >= startHour && d.hour <= endHour)
     .sort((a, b) => a.hour - b.hour)
     .map((d) => ({
       ...d,
@@ -49,7 +55,7 @@ export function HourlyHeatmap({ data, height }: HourlyHeatmapProps) {
         <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <Tooltip
           formatter={(value) => {
-            return [`NT$${Number(value).toLocaleString()}`, '淨銷售額']
+            return [`₫${Number(value).toLocaleString()}`, '淨銷售額']
           }}
         />
         <Bar dataKey="net_sales" fill="#3b82f6" radius={[4, 4, 0, 0]} />

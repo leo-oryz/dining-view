@@ -72,7 +72,7 @@ export default function HeatmapPage() {
                   <tr key={row.hour} className="border-b border-slate-100">
                     <td className="py-2 px-2">{String(row.hour).padStart(2, '0')}:00</td>
                     <td className="py-2 px-2 text-right">
-                      {row.net_sales != null ? `NT$${row.net_sales.toLocaleString()}` : '-'}
+                      {row.net_sales != null ? `₫${row.net_sales.toLocaleString()}` : '-'}
                     </td>
                     <td className="py-2 px-2 text-right">{row.transaction_count ?? '-'}</td>
                     <td className="py-2 px-2 text-right">{row.guest_count ?? '-'}</td>

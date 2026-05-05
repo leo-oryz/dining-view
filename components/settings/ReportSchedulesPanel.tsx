@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Calendar, Plus, Edit2, Trash2, Send, Loader2, X, Mail, CheckCircle, XCircle } from 'lucide-react'
+import { APP_TIMEZONE } from '@/lib/constants/timezone'
 
 type Schedule = {
   id: string
@@ -75,7 +76,7 @@ const DEPTH_OPTIONS = [
 const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 const labelCls = 'block text-xs font-medium text-slate-700 mb-1'
 
-function formatNextRun(iso: string | null, tz = 'Asia/Taipei'): string {
+function formatNextRun(iso: string | null, tz = APP_TIMEZONE): string {
   if (!iso) return '—'
   try {
     const d = new Date(iso)
@@ -147,7 +148,7 @@ export default function ReportSchedulesPanel({ isOwner }: { isOwner: boolean }) 
     day_of_month: form.frequency === 'monthly' ? form.day_of_month : null,
     send_hour: form.send_hour,
     send_minute: form.send_minute,
-    timezone: 'Asia/Taipei',
+    timezone: APP_TIMEZONE,
     period_type: form.period_type,
     report_types: form.report_types,
     depth: form.depth,
@@ -265,7 +266,7 @@ export default function ReportSchedulesPanel({ isOwner }: { isOwner: boolean }) 
           </div>
         )}
         <div>
-          <label className={labelCls}>寄出時間 (Asia/Taipei)</label>
+          <label className={labelCls}>{`寄出時間 (${APP_TIMEZONE})`}</label>
           <div className="flex items-center gap-2">
             <input type="number" min={0} max={23} value={form.send_hour}
               onChange={e => setForm(f => ({ ...f, send_hour: Math.max(0, Math.min(23, Number(e.target.value) || 0)) }))}
@@ -428,7 +429,7 @@ export default function ReportSchedulesPanel({ isOwner }: { isOwner: boolean }) 
                         )}
                       </div>
                       <div className="text-xs text-slate-600 space-y-0.5">
-                        <div>{describeSchedule(s)}（Asia/Taipei）寄送 {s.period_type === 'last_week' ? '上週' : '上月'} {s.report_types.length} 份報告 · {s.depth === 'concise' ? '簡短' : s.depth === 'detailed' ? '詳細' : '標準'}</div>
+                        <div>{describeSchedule(s)}（{APP_TIMEZONE}）寄送 {s.period_type === 'last_week' ? '上週' : '上月'} {s.report_types.length} 份報告 · {s.depth === 'concise' ? '簡短' : s.depth === 'detailed' ? '詳細' : '標準'}</div>
                         <div className="text-slate-500">
                           下次：{formatNextRun(s.next_run_at)}
                           上次：{formatNextRun(s.last_run_at)}

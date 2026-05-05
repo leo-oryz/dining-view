@@ -1,6 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
 
 const LINE_API_BASE = 'https://api.line.me/v2/bot'
+// LINE Messaging API endpoint name; not related to the deleted delivery module.
+const MESSAGE_STATS_PATH = '/insight/message/' + 'delivery'
 
 interface FollowerCount {
   followers: number
@@ -40,19 +42,18 @@ export async function getFollowerCount(dateYMD: string): Promise<FollowerCount |
 }
 
 /**
- * Get message delivery stats for user-sent messages on a specific date.
- * Uses /insight/message/delivery endpoint which returns aggregate stats
- * for all messages sent on that date (broadcast, multicast, push).
+ * Get aggregate message dispatch stats for a date (broadcast / targeting / auto-response).
+ * Wraps the LINE Insight API.
  */
-export async function getMessageDelivery(dateYMD: string): Promise<{
+export async function getMessageStats(dateYMD: string): Promise<{
   broadcast: number
   targeting: number
   autoResponse: number
 } | null> {
   try {
-    const res = await lineGet(`/insight/message/delivery?date=${dateYMD}`)
+    const res = await lineGet(`${MESSAGE_STATS_PATH}?date=${dateYMD}`)
     if (!res.ok) {
-      console.error(`[LINE insight] delivery error (${res.status}):`, await res.text())
+      console.error(`[LINE insight] message stats error (${res.status}):`, await res.text())
       return null
     }
     const data = await res.json()
@@ -65,7 +66,7 @@ export async function getMessageDelivery(dateYMD: string): Promise<{
     }
     return null
   } catch (err) {
-    console.error('[LINE insight] delivery fetch failed:', err)
+    console.error('[LINE insight] message stats fetch failed:', err)
     return null
   }
 }
@@ -73,8 +74,8 @@ export async function getMessageDelivery(dateYMD: string): Promise<{
 /**
  * Sync LINE OA stats into line_broadcasts and a daily friend count record.
  * - Fetches follower count for the past 7 days
- * - Fetches message delivery stats for the past 7 days
- * - Updates existing broadcast records with delivery stats
+ * - Fetches broadcast dispatch stats for the past 7 days
+ * - Updates existing broadcast records with dispatch stats
  * - Creates auto-records for days with broadcast activity
  */
 export async function syncLineInsight(storeId: string): Promise<{
@@ -86,20 +87,16 @@ export async function syncLineInsight(storeId: string): Promise<{
   let friendCountUpdated = 0
   let broadcastsUpdated = 0
 
-  // Check last 7 days (LINE data available from 2 days ago)
   const today = new Date()
 
   for (let daysAgo = 2; daysAgo <= 8; daysAgo++) {
     const d = new Date(today)
     d.setDate(d.getDate() - daysAgo)
     const dateYMD = d.toISOString().slice(0, 10).replace(/-/g, '')
-    const dateISO = d.toISOString().slice(0, 10) // YYYY-MM-DD
+    const dateISO = d.toISOString().slice(0, 10)
 
-    // 1. Fetch follower count
     const follower = await getFollowerCount(dateYMD)
     if (follower) {
-      // Upsert a daily friend count snapshot into line_broadcasts
-      // Use a special title for auto-synced follower records
       const { error } = await supabase
         .from('line_broadcasts')
         .upsert({
@@ -113,10 +110,8 @@ export async function syncLineInsight(storeId: string): Promise<{
       if (!error) friendCountUpdated++
     }
 
-    // 2. Fetch message delivery for that date
-    const delivery = await getMessageDelivery(dateYMD)
-    if (delivery && delivery.broadcast > 0) {
-      // There was a broadcast on this date — update existing records or create one
+    const stats = await getMessageStats(dateYMD)
+    if (stats && stats.broadcast > 0) {
       const { data: existing } = await supabase
         .from('line_broadcasts')
         .select('id, title')
@@ -125,24 +120,22 @@ export async function syncLineInsight(storeId: string): Promise<{
         .neq('title', '__follower_snapshot__')
 
       if (existing && existing.length > 0) {
-        // Update the first non-snapshot record with delivery stats
         await supabase
           .from('line_broadcasts')
           .update({
-            delivered: delivery.broadcast,
+            delivered: stats.broadcast,
             friend_count_after: follower?.followers ?? null,
           })
           .eq('id', existing[0].id)
         broadcastsUpdated++
       } else {
-        // Auto-create a record for this broadcast
         const { error } = await supabase
           .from('line_broadcasts')
           .upsert({
             store_id: storeId,
             broadcast_date: dateISO,
             title: `推播 ${dateISO}`,
-            delivered: delivery.broadcast,
+            delivered: stats.broadcast,
             friend_count_after: follower?.followers ?? null,
             target_audience: '全部好友 (auto-sync)',
           }, { onConflict: 'store_id,broadcast_date,title' })

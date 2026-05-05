@@ -28,7 +28,7 @@ type Ga4Row = {
 type ConversionRow = {
   date: string
   ga4_clicks: number
-  ocard_new_members: number
+  new_members: number
   conversion_rate: number
 }
 
@@ -194,7 +194,7 @@ export default function DigitalPage() {
     .map((row) => ({
       date: row.date.slice(5),
       clicks: row.ga4_clicks,
-      newMembers: row.ocard_new_members,
+      newMembers: row.new_members,
       rate: (row.conversion_rate * 100),
     }))
 

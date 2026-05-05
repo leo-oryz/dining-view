@@ -23,9 +23,9 @@ interface Props {
 }
 
 const metrics: { key: keyof StoreKpis; label: string; format: (v: number) => string }[] = [
-  { key: 'revenue_total', label: '營業額', format: v => `NT$${Math.round(v).toLocaleString()}` },
+  { key: 'revenue_total', label: '營業額', format: v => `₫${Math.round(v).toLocaleString()}` },
   { key: 'guest_count', label: '來客數', format: v => Math.round(v).toLocaleString() },
-  { key: 'avg_spend_per_guest', label: '客單價', format: v => `NT$${v.toFixed(0)}` },
+  { key: 'avg_spend_per_guest', label: '客單價', format: v => `₫${v.toFixed(0)}` },
   { key: 'table_turnover_rate', label: '翻桌率', format: v => v.toFixed(2) },
   { key: 'member_new', label: '新會員', format: v => Math.round(v).toLocaleString() },
   { key: 'returning_customer_ratio', label: '回頭客比例', format: v => `${(v * 100).toFixed(1)}%` },

@@ -8,7 +8,6 @@ ALTER TABLE anomaly_alerts
     'revenue_drop',
     'cost_spike',
     'member_churn',
-    'delivery_drop',
     'rating_drop',
     'product_anomaly'
   ));

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { fetchDailyWeather } from '@/lib/weather/cwaClient'
+import { fetchDailyWeather } from '@/lib/weather/openWeatherClient'
 
 export async function POST() {
   try {
@@ -11,13 +11,13 @@ export async function POST() {
     const weather = await fetchDailyWeather(today)
 
     if (!weather) {
-      const hasKey = !!process.env.CWA_API_KEY
+      const hasKey = !!process.env.OPENWEATHER_API_KEY
       return NextResponse.json({
         success: false,
         data: null,
         error: hasKey
-          ? 'CWA API 回傳無資料，請檢查 server log'
-          : 'CWA_API_KEY 未設定，請至 Zeabur 或 .env.local 設定後重啟',
+          ? 'OpenWeatherMap returned no data — check server log'
+          : 'OPENWEATHER_API_KEY not set — configure it and restart',
         timestamp: new Date().toISOString(),
       })
     }

@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       React.createElement(InvestorReportDocument, { data: reportData }) as any // eslint-disable-line @typescript-eslint/no-explicit-any
     )
 
-    const filename = `fnb-pulse-investor-${reportMonth}.pdf`
+    const filename = `diningview-investor-${reportMonth}.pdf`
 
     return new Response(new Uint8Array(pdfBuffer), {
       status: 200,

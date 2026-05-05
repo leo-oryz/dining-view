@@ -101,7 +101,7 @@ export default function AdCampaignForm({ onCreated }: Props) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">花費 (NT$)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">花費 (₫)</label>
           <input
             type="number"
             value={form.spend}

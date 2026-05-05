@@ -52,7 +52,7 @@ const categoryLabels = {
   individual_pay: '個別薪資',
 }
 
-const fmtNT = (v: number) => `NT$${Math.round(v).toLocaleString()}`
+const fmtNT = (v: number) => `₫${Math.round(v).toLocaleString()}`
 const fmtPct = (v: number) => `${v.toFixed(1)}%`
 
 export default function LaborCostReport({ data }: { data: LaborData }) {
@@ -101,7 +101,7 @@ export default function LaborCostReport({ data }: { data: LaborData }) {
             每元薪資產生營收
           </div>
           <div className="text-2xl font-bold text-slate-900">
-            NT${data.headline_metrics.revenue_per_salary.toFixed(2)}
+            ₫{data.headline_metrics.revenue_per_salary.toFixed(2)}
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlertEmail } from './emailNotifier'
 import { detectProductAnomalies } from '@/lib/products/anomalyDetector'
 
-type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'delivery_drop' | 'rating_drop' | 'product_anomaly' | 'labor_efficiency_drop'
+type AlertType = 'revenue_drop' | 'cost_spike' | 'member_churn' | 'rating_drop' | 'product_anomaly' | 'labor_efficiency_drop'
 
 interface DetectedAnomaly {
   store_id: string
@@ -80,7 +80,7 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
         severity: revYesterday < revAvg * 0.6 ? 'critical' : 'warning',
         metric_value: revYesterday,
         threshold_value: revAvg * 0.8,
-        message: `${store.name}：營收下降 ${pct}%（昨日 NT$${revYesterday.toLocaleString()} vs 7日均值 NT$${Math.round(revAvg).toLocaleString()}）`,
+        message: `${store.name}：營收下降 ${pct}%（昨日 ₫${revYesterday.toLocaleString()} vs 7日均值 ₫${Math.round(revAvg).toLocaleString()}）`,
       })
     }
 
@@ -98,39 +98,6 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
         threshold_value: memberAvg * 0.7,
         message: `${store.name}：會員來客下降 ${pct}%（昨日 ${memberYesterday} vs 7日均值 ${Math.round(memberAvg)}）`,
       })
-    }
-
-    // 3. Delivery drop: delivery revenue drop > 40%
-    const { data: deliveryYesterday } = await supabase
-      .from('delivery_sales')
-      .select('revenue')
-      .eq('store_id', store.id)
-      .eq('date', yesterday)
-
-    const { data: deliveryWeek } = await supabase
-      .from('delivery_sales')
-      .select('revenue')
-      .eq('store_id', store.id)
-      .gte('date', windowStartStr)
-      .lte('date', windowEndStr)
-
-    const delivRevYesterday = (deliveryYesterday || []).reduce((s, r) => s + (Number(r.revenue) || 0), 0)
-    const delivRevWeek = (deliveryWeek || [])
-    if (delivRevWeek.length > 0) {
-      const totalDelivRev = delivRevWeek.reduce((s, r) => s + (Number(r.revenue) || 0), 0)
-      const delivAvg = totalDelivRev / 7
-      if (delivAvg > 0 && delivRevYesterday < delivAvg * 0.6) {
-        const pct = ((delivAvg - delivRevYesterday) / delivAvg * 100).toFixed(1)
-        anomalies.push({
-          store_id: store.id,
-          store_name: store.name,
-          alert_type: 'delivery_drop',
-          severity: 'warning',
-          metric_value: delivRevYesterday,
-          threshold_value: delivAvg * 0.6,
-          message: `${store.name}：外送營收下降 ${pct}%（昨日 NT$${delivRevYesterday.toLocaleString()} vs 7日均值 NT$${Math.round(delivAvg).toLocaleString()}）`,
-        })
-      }
     }
 
     // 4. Cost spike: avg gross margin drop (from product_sales)
@@ -242,7 +209,7 @@ export async function detectAnomalies(): Promise<DetectedAnomaly[]> {
           severity: laborVal < laborAvg * 0.5 ? 'critical' : 'warning',
           metric_value: laborVal,
           threshold_value: laborAvg * 0.70,
-          message: `${store.name}：工時產出下降 ${pct}%（昨日 NT$${Math.round(laborVal)} vs 7日均值 NT$${Math.round(laborAvg)}）`,
+          message: `${store.name}：工時產出下降 ${pct}%（昨日 ₫${Math.round(laborVal)} vs 7日均值 ₫${Math.round(laborAvg)}）`,
         })
       }
     }

@@ -194,7 +194,7 @@ export default function ExpansionPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <div className="text-sm text-slate-500">{t('expansion.seatRevenue')}</div>
           <div className="text-2xl font-bold text-slate-900 mt-1">
-            NT${revenuePerSeat.toLocaleString()}
+            ₫{revenuePerSeat.toLocaleString()}
           </div>
           <div className="text-xs text-slate-400 mt-1">{t('expansion.seatBasis')}</div>
         </div>

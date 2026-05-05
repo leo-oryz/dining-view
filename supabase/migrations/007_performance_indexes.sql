@@ -9,8 +9,5 @@ CREATE INDEX IF NOT EXISTS idx_hourly_sales_store_hour ON hourly_sales(store_id,
 -- Export: order_items by date range with order_number for grouping
 CREATE INDEX IF NOT EXISTS idx_order_items_date_order ON order_items(store_id, date, order_number);
 
--- Member snapshots: demographic queries (age/gender breakdowns)
-CREATE INDEX IF NOT EXISTS idx_ocard_members_date_range ON ocard_member_snapshots(store_id, snapshot_date DESC);
-
 -- Weekly digest: recent alerts lookup
 CREATE INDEX IF NOT EXISTS idx_anomaly_alerts_store_created ON anomaly_alerts(store_id, created_at DESC);

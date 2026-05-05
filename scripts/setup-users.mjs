@@ -18,9 +18,9 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false }
 })
 
-const OWNER_EMAIL = 'owner@fnbpulse.com'
+const OWNER_EMAIL = 'owner@diningview.com'
 const OWNER_PASSWORD = 'FnbPulse2026!'
-const MANAGER_EMAIL = 'manager@fnbpulse.com'
+const MANAGER_EMAIL = 'manager@diningview.com'
 const MANAGER_PASSWORD = 'FnbPulse2026!'
 const STORE_ID = '00000000-0000-0000-0000-000000000001'
 
@@ -43,7 +43,7 @@ async function createAuthUser(email, password) {
 }
 
 async function main() {
-  console.log('=== FnB Pulse: Setting up users ===\n')
+  console.log('=== DiningView: Setting up users ===\n')
 
   // 1. Create Owner auth user
   console.log('1. Creating owner auth user...')

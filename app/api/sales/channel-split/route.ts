@@ -9,7 +9,6 @@ type OrderRow = {
   item_amount: number
   item_quantity: number | null
   guest_count: number | null
-  source: string
 }
 
 const CHUNK_DAYS = 7
@@ -44,35 +43,26 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-// Fetches order-header rows in small date chunks, in parallel. Chunking keeps
-// each query narrow enough that Postgres can satisfy it via the (store_id, date)
-// index without hitting the statement timeout that deep OFFSET pagination
-// triggered on YTD-sized ranges; parallelism then collapses wall-clock time to
-// roughly the cost of one chunk regardless of range width.
 async function fetchChunk(
   supabase: ReturnType<typeof createServiceClient>,
   storeId: string,
   cs: string,
-  ce: string,
-  source: string,
-  keepDate?: (date: string) => boolean
+  ce: string
 ): Promise<{ rows: OrderRow[]; error: string | null }> {
   const rows: OrderRow[] = []
   let from = 0
   while (true) {
     const { data, error } = await supabase
       .from('order_items')
-      .select('date,order_type,time,item_amount,item_quantity,guest_count,source')
+      .select('date,order_type,time,item_amount,item_quantity,guest_count')
       .eq('store_id', storeId)
       .eq('item_name', '__order__')
-      .eq('source', source)
       .gte('date', cs)
       .lte('date', ce)
       .range(from, from + PAGE - 1)
     if (error) return { rows: [], error: error.message }
 
-    const batch = keepDate ? (data || []).filter((r) => keepDate(r.date)) : data || []
-    rows.push(...batch)
+    rows.push(...(data || []))
 
     if (!data || data.length < PAGE) break
     from += PAGE
@@ -84,9 +74,7 @@ async function fetchByChunks(
   supabase: ReturnType<typeof createServiceClient>,
   storeId: string,
   startDate: string,
-  endDate: string,
-  source: string,
-  keepDate?: (date: string) => boolean
+  endDate: string
 ): Promise<{ rows: OrderRow[]; error: string | null }> {
   const chunks: { cs: string; ce: string }[] = []
   const endD = new Date(endDate + 'T00:00:00Z')
@@ -99,7 +87,7 @@ async function fetchByChunks(
   }
 
   const results = await mapWithConcurrency(chunks, MAX_CONCURRENCY, (c) =>
-    fetchChunk(supabase, storeId, c.cs, c.ce, source, keepDate)
+    fetchChunk(supabase, storeId, c.cs, c.ce)
   )
   const rows: OrderRow[] = []
   for (const r of results) {
@@ -122,39 +110,8 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServiceClient()
 
-    // Strategy: fetch daily-closing first (preferred source, fewer rows per date).
-    // Then only fetch eat365 transaction rows for dates NOT covered by daily-closing.
-    const { rows: dcRows, error: dcErr } = await fetchByChunks(
-      supabase, storeId, startDate, endDate, 'eat365-daily-closing'
-    )
-    if (dcErr) return apiError(dcErr, 500)
-
-    const dcDates = new Set(dcRows.map((r) => r.date))
-
-    // Compute dates in range NOT covered by daily-closing. If empty, skip the
-    // eat365 backfill fetch entirely — otherwise we'd waste tens of thousands
-    // of rows of network/DB work just to filter them all out client-side.
-    const missingDates: string[] = []
-    const rangeEnd = new Date(endDate + 'T00:00:00Z')
-    let c = new Date(startDate + 'T00:00:00Z')
-    while (c <= rangeEnd) {
-      const d = isoDate(c)
-      if (!dcDates.has(d)) missingDates.push(d)
-      c = addDays(c, 1)
-    }
-
-    let etRows: OrderRow[] = []
-    if (missingDates.length > 0) {
-      const missingSet = new Set(missingDates)
-      const result = await fetchByChunks(
-        supabase, storeId, missingDates[0], missingDates[missingDates.length - 1],
-        'eat365', (date) => missingSet.has(date)
-      )
-      if (result.error) return apiError(result.error, 500)
-      etRows = result.rows
-    }
-
-    const allRows = [...dcRows, ...etRows]
+    const { rows: allRows, error } = await fetchByChunks(supabase, storeId, startDate, endDate)
+    if (error) return apiError(error, 500)
 
     if (allRows.length === 0) {
       return apiSuccess({
@@ -167,7 +124,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Aggregate
     let dineInOrders = 0, dineInRevenue = 0, dineInGuests = 0
     let takeoutOrders = 0, takeoutRevenue = 0
 
@@ -177,11 +133,7 @@ export async function GET(request: NextRequest) {
     for (const row of allRows) {
       const amount = Number(row.item_amount) || 0
       const guests = Number(row.guest_count) || 0
-      // For daily-closing synthetic rows, item_quantity holds the real order count
-      // for that 30-min slot. Real transaction rows have one row per order.
-      const orderCount = row.source === 'eat365-daily-closing'
-        ? Math.max(1, Number(row.item_quantity) || 1)
-        : 1
+      const orderCount = Math.max(1, Number(row.item_quantity) || 1)
       const isDineIn = row.order_type === 'Dine-in'
 
       if (isDineIn) {

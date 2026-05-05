@@ -24,7 +24,7 @@ interface SalesLineChartProps {
   valuePrefix?: string
 }
 
-export function SalesLineChart({ data, height, valueLabel = '淨銷售額', valuePrefix = 'NT$' }: SalesLineChartProps) {
+export function SalesLineChart({ data, height, valueLabel = '淨銷售額', valuePrefix = '₫' }: SalesLineChartProps) {
   const chartData = data
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))

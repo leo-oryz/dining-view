@@ -1,0 +1,96 @@
+import type { GHLCampaign, GHLCampaignStats, GHLListResponse } from './types'
+
+// ⚠️ Verify base URL once a Location API key is provisioned.
+// LeadConnector (GoHighLevel) public API uses services.leadconnectorhq.com.
+const GHL_BASE = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
+const GHL_VERSION = process.env.GHL_API_VERSION ?? '2021-07-28'
+
+export interface GHLConfig {
+  apiKey?: string
+}
+
+function getConfig(override?: GHLConfig): GHLConfig {
+  return {
+    apiKey: override?.apiKey ?? process.env.GHL_LOCATION_API_KEY,
+  }
+}
+
+function isConfigured(cfg: GHLConfig): boolean {
+  return !!(cfg.apiKey && cfg.apiKey.trim())
+}
+
+async function ghlFetch<T>(
+  path: string,
+  params: Record<string, string | number | undefined>,
+  cfg: GHLConfig,
+): Promise<T> {
+  if (!isConfigured(cfg)) {
+    console.warn('[GHL] Location API key not set — returning empty result.')
+    return {} as T
+  }
+  const url = new URL(`${GHL_BASE}${path}`)
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') {
+      url.searchParams.set(k, String(v))
+    }
+  }
+  const res = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${cfg.apiKey}`,
+      Version: GHL_VERSION,
+      Accept: 'application/json',
+    },
+    next: { revalidate: 0 },
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) {
+    throw new Error(`GHL API error: ${res.status} ${await res.text()}`)
+  }
+  return (await res.json()) as T
+}
+
+function pickList<T>(resp: GHLListResponse<T>): T[] {
+  return resp.campaigns ?? resp.data ?? resp.results ?? []
+}
+
+// ⚠️ verify endpoint path — GHL has used `/campaigns/` and `/marketing/campaigns/`
+export async function fetchCampaigns(override?: GHLConfig): Promise<GHLCampaign[]> {
+  const cfg = getConfig(override)
+  if (!isConfigured(cfg)) return []
+  const out: GHLCampaign[] = []
+  let page: string | number | undefined = 1
+  let safety = 0
+  while (true) {
+    const resp: GHLListResponse<GHLCampaign> = await ghlFetch<GHLListResponse<GHLCampaign>>(
+      '/campaigns/',
+      { page },
+      cfg,
+    )
+    out.push(...pickList(resp))
+    const next: string | number | null | undefined = resp.meta?.nextPage ?? resp.nextPage ?? null
+    if (!next) break
+    page = next
+    if (++safety > 50) break
+  }
+  return out
+}
+
+// ⚠️ verify endpoint — GHL stats endpoint is currently `/campaigns/{id}/stats`
+export async function fetchCampaignStats(
+  campaignId: string,
+  override?: GHLConfig,
+): Promise<GHLCampaignStats | null> {
+  const cfg = getConfig(override)
+  if (!isConfigured(cfg)) return null
+  try {
+    const resp = await ghlFetch<GHLCampaignStats>(`/campaigns/${campaignId}/stats`, {}, cfg)
+    return { ...resp, campaignId }
+  } catch (err) {
+    console.warn(`[GHL] stats fetch failed for ${campaignId}:`, err)
+    return null
+  }
+}
+
+export function isGHLConfigured(override?: GHLConfig): boolean {
+  return isConfigured(getConfig(override))
+}

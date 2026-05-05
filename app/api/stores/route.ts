@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { apiSuccess, apiError } from '@/lib/api-utils'
+import { APP_TIMEZONE } from '@/lib/constants/timezone'
 
-const STORE_SELECT_FIELDS = 'id, name, location, timezone, is_active, created_at, phone, business_hours, opened_date, google_maps_url, google_place_id, seat_count, manager_name, manager_email'
+const STORE_SELECT_FIELDS = 'id, name, location, timezone, is_active, created_at, phone, business_hours, opened_date, google_maps_url, google_place_id, seat_count, manager_name, manager_email, tablecheck_shop_id'
 
 export async function GET() {
   try {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     const row = {
       name: body.name,
       location: body.location || null,
-      timezone: body.timezone || 'Asia/Taipei',
+      timezone: body.timezone || APP_TIMEZONE,
       is_active: true,
       credentials: body.credentials || {},
       phone: body.phone || null,

@@ -1,3 +1,5 @@
+import { APP_TIMEZONE } from '@/lib/constants/timezone'
+
 const VALID_REPORT_TYPES = ['attribution', 'star_products', 'retire_candidates'] as const
 const VALID_ROLES = ['owner', 'manager', 'marketing', 'investor'] as const
 const VALID_DEPTHS = ['concise', 'standard', 'detailed'] as const
@@ -47,7 +49,7 @@ export function validateAndCoerce(body: Record<string, unknown>): { schedule: Va
   const send_minute = Number(body.send_minute ?? 0)
   if (!Number.isInteger(send_minute) || send_minute < 0 || send_minute > 59) return { error: 'send_minute must be 0-59' }
 
-  const timezone = String(body.timezone || 'Asia/Taipei')
+  const timezone = String(body.timezone || APP_TIMEZONE)
 
   const period_type = body.period_type as string
   if (!VALID_PERIODS.includes(period_type as typeof VALID_PERIODS[number])) {

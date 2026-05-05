@@ -1,6 +1,6 @@
 // Pre-flight data completeness check for the weekly AI report pipeline.
-// Scope: only the eat365/Ocard sources required by the 3 weekly reports
-// (attribution, star_products, retire_candidates). NUEIP labor data is
+// Scope: the POS / member sources required by the 3 weekly reports
+// (attribution, star_products, retire_candidates). Labor data is
 // intentionally out of scope — it is uploaded manually and used in a
 // separate, on-demand labor_cost report.
 //

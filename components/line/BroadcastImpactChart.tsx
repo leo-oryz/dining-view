@@ -43,7 +43,7 @@ export default function BroadcastImpactChart({ data }: { data: ImpactRow[] }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} />
         <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} />
-        <Tooltip formatter={(val) => `NT$ ${Number(val).toLocaleString()}`} />
+        <Tooltip formatter={(val) => `₫ ${Number(val).toLocaleString()}`} />
         <ReferenceLine y={0} stroke="#94a3b8" />
         <Bar dataKey="基準營收" fill="#cbd5e1" />
         <Bar dataKey="D+1" fill="#22c55e" />

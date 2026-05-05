@@ -14,7 +14,7 @@ CREATE TABLE report_schedules (
   day_of_month      INT  CHECK (day_of_month BETWEEN 1 AND 28),  -- cap at 28 to avoid Feb edge cases
   send_hour         INT  NOT NULL DEFAULT 9 CHECK (send_hour BETWEEN 0 AND 23),
   send_minute       INT  NOT NULL DEFAULT 0 CHECK (send_minute BETWEEN 0 AND 59),
-  timezone          TEXT NOT NULL DEFAULT 'Asia/Taipei',
+  timezone          TEXT NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
 
   -- What to send
   -- period_type: which date range the report covers, derived at fire time.
@@ -48,8 +48,6 @@ CREATE TABLE report_schedules (
 
 CREATE INDEX idx_report_schedules_due ON report_schedules(is_active, next_run_at);
 
--- Seed: mirror the previous hard-coded behavior so nothing changes for the
--- owner when this ships. Old GitHub Actions cron (Mon 04:00 UTC) = Asia/Taipei
--- Mon 12:00. next_run_at left NULL — backfilled on first save via API.
+-- Seed: default weekly report. next_run_at left NULL — backfilled on first save via API.
 INSERT INTO report_schedules (name, frequency, day_of_week, send_hour, send_minute, period_type)
 VALUES ('每週週報', 'weekly', 1, 12, 0, 'last_week');

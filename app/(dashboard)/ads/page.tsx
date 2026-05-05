@@ -241,7 +241,7 @@ export default function AdsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <p className="text-xs text-slate-500 mb-1">{t('ads.totalSpend')}</p>
-          <p className="text-lg font-semibold text-slate-900">NT$ {totalSpend.toLocaleString()}</p>
+          <p className="text-lg font-semibold text-slate-900">₫ {totalSpend.toLocaleString()}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <p className="text-xs text-slate-500 mb-1">{t('ads.totalClicks')}</p>
@@ -299,7 +299,7 @@ export default function AdsPage() {
                     </td>
                     <td className="py-3 px-4 font-medium text-slate-900">{c.campaign_name}</td>
                     <td className="py-3 px-4 text-right text-slate-500 hidden sm:table-cell">
-                      {c.spend != null ? `NT$ ${c.spend.toLocaleString()}` : '-'}
+                      {c.spend != null ? `₫ ${c.spend.toLocaleString()}` : '-'}
                     </td>
                     <td className="py-3 px-4 text-right text-slate-500 hidden sm:table-cell">
                       {c.clicks?.toLocaleString() ?? '-'}
@@ -308,7 +308,7 @@ export default function AdsPage() {
                       {c.ctr != null ? `${(c.ctr * 100).toFixed(2)}%` : '-'}
                     </td>
                     <td className="py-3 px-4 text-right text-slate-500 hidden md:table-cell">
-                      {c.cpc != null ? `NT$ ${c.cpc.toFixed(1)}` : '-'}
+                      {c.cpc != null ? `₫ ${c.cpc.toFixed(1)}` : '-'}
                     </td>
                   </tr>
                 ))}

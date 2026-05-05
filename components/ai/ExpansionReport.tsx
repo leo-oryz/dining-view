@@ -49,13 +49,13 @@ export function ExpansionReport({ data }: ExpansionReportProps) {
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="text-xs text-green-700">日均營收基準</div>
           <div className="text-lg font-bold text-green-900 mt-1">
-            NT${data.revenue_benchmark.daily_avg?.toLocaleString() || '--'}
+            ₫{data.revenue_benchmark.daily_avg?.toLocaleString() || '--'}
           </div>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="text-xs text-green-700">每席位日均營收</div>
           <div className="text-lg font-bold text-green-900 mt-1">
-            NT${data.revenue_benchmark.per_seat_daily?.toLocaleString() || '--'}
+            ₫{data.revenue_benchmark.per_seat_daily?.toLocaleString() || '--'}
           </div>
         </div>
       </div>

@@ -1,9 +1,10 @@
 import { sendAlertEmail } from '@/lib/alerts/emailNotifier'
 import { apiSuccess, apiError } from '@/lib/api-utils'
+import { APP_TIMEZONE } from '@/lib/constants/timezone'
 
 export async function POST() {
   try {
-    const now = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
+    const now = new Date().toLocaleString('vi-VN', { timeZone: APP_TIMEZONE })
 
     const result = await sendAlertEmail([
       {

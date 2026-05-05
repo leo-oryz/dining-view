@@ -8,7 +8,7 @@ cases.push({
   expected: '2026-05-12T01:00:00.000Z',
   got: computeNextRunAt({
     frequency: 'weekly', day_of_week: 2, day_of_month: null,
-    send_hour: 9, send_minute: 0, timezone: 'Asia/Taipei',
+    send_hour: 9, send_minute: 0, timezone: 'Asia/Ho_Chi_Minh',
   }, fri),
 })
 
@@ -18,7 +18,7 @@ cases.push({
   expected: '2026-05-12T01:00:00.000Z',
   got: computeNextRunAt({
     frequency: 'weekly', day_of_week: 2, day_of_month: null,
-    send_hour: 9, send_minute: 0, timezone: 'Asia/Taipei',
+    send_hour: 9, send_minute: 0, timezone: 'Asia/Ho_Chi_Minh',
   }, tueMorn),
 })
 
@@ -28,7 +28,7 @@ cases.push({
   expected: '2026-05-19T01:00:00.000Z',
   got: computeNextRunAt({
     frequency: 'weekly', day_of_week: 2, day_of_month: null,
-    send_hour: 9, send_minute: 0, timezone: 'Asia/Taipei',
+    send_hour: 9, send_minute: 0, timezone: 'Asia/Ho_Chi_Minh',
   }, tueAfter),
 })
 
@@ -38,7 +38,7 @@ cases.push({
   expected: '2026-05-03T01:00:00.000Z',
   got: computeNextRunAt({
     frequency: 'monthly', day_of_week: null, day_of_month: 3,
-    send_hour: 9, send_minute: 0, timezone: 'Asia/Taipei',
+    send_hour: 9, send_minute: 0, timezone: 'Asia/Ho_Chi_Minh',
   }, may1),
 })
 
@@ -48,7 +48,7 @@ cases.push({
   expected: '2026-06-03T01:00:00.000Z',
   got: computeNextRunAt({
     frequency: 'monthly', day_of_week: null, day_of_month: 3,
-    send_hour: 9, send_minute: 0, timezone: 'Asia/Taipei',
+    send_hour: 9, send_minute: 0, timezone: 'Asia/Ho_Chi_Minh',
   }, may4),
 })
 

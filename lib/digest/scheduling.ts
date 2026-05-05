@@ -8,13 +8,15 @@ export type ScheduleTimeFields = {
   day_of_month: number | null  // 1-28
   send_hour: number
   send_minute: number
-  timezone: string             // IANA, e.g. 'Asia/Taipei'
+  timezone: string             // IANA, e.g. 'Asia/Ho_Chi_Minh'
 }
+
+import { APP_TIMEZONE } from '@/lib/constants/timezone'
 
 // Returns the next instant >= fromUtc at which the schedule should fire,
 // expressed as a UTC Date.
 export function computeNextRunAt(s: ScheduleTimeFields, fromUtc: Date = new Date()): Date {
-  const tz = s.timezone || 'Asia/Taipei'
+  const tz = s.timezone || APP_TIMEZONE
   const wall = wallClockComponents(fromUtc, tz)
 
   if (s.frequency === 'weekly') {

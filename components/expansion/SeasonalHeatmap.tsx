@@ -43,7 +43,7 @@ export function SeasonalHeatmap({ data, height }: SeasonalHeatmapProps) {
         <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <Tooltip
-          formatter={(value) => [`NT$${Number(value).toLocaleString()}`, '月營收']}
+          formatter={(value) => [`₫${Number(value).toLocaleString()}`, '月營收']}
         />
         <Bar dataKey="total_revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
       </BarChart>

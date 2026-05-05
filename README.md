@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DiningView
 
-## Getting Started
+Restaurant intelligence dashboard for **NOM Dining**, a fine dining group in Ho Chi Minh City, Vietnam.
 
-First, run the development server:
+Forked from FNB Pulse (Taiwan-based), localized for Vietnam: VND currency, `Asia/Ho_Chi_Minh` timezone, VAT 10% + 5% service charge tax structure.
+
+## Stack
+- Next.js 14 (App Router) + TypeScript
+- Supabase (PostgreSQL, RLS)
+- Tailwind CSS + Recharts
+- Resend (email), Anthropic (AI analysis)
+
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in secrets
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Common commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev           # Start dev server
+npm run build         # Production build
+npx supabase db push  # Push migrations to Supabase
+```
 
-## Learn More
+## Deployment
 
-To learn more about Next.js, take a look at the following resources:
+Pushing to `main` triggers Zeabur auto-deploy via the Dockerfiles in this repo:
+- `Dockerfile` — Next.js web app
+- `Dockerfile.scheduler` — cron jobs for data sync
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project layout
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/(dashboard)/` — dashboard pages (KPI, trends, products, members, etc.)
+- `app/api/` — API routes (read endpoints + cron jobs)
+- `components/` — UI building blocks
+- `lib/constants/` — `APP_TIMEZONE`, `APP_CURRENCY`, tax constants
+- `lib/i18n/translations/` — `vi` (default) / `en` / `zh-TW`
+- `supabase/migrations/` — SQL migrations (run with `npx supabase db push`)

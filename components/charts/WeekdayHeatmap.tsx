@@ -72,7 +72,7 @@ export function WeekdayHeatmap({ data }: WeekdayHeatmapProps) {
                       style={{
                         backgroundColor: `rgba(59, 130, 246, ${getOpacity(val)})`,
                       }}
-                      title={`週${label} ${h}:00 — 平均 NT$${Math.round(val).toLocaleString()}`}
+                      title={`週${label} ${h}:00 — 平均 ₫${Math.round(val).toLocaleString()}`}
                     />
                   </td>
                 )

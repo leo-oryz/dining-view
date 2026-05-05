@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-sm mx-4">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">FnB Pulse</h1>
+            <h1 className="text-2xl font-bold text-slate-900">DiningView</h1>
             <p className="text-sm text-slate-500 mt-1">{t('forgot.title')}</p>
           </div>
 

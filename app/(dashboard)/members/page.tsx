@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { KpiCard } from '@/components/dashboard/KpiCard'
 import { SalesLineChart } from '@/components/charts/SalesLineChart'
-import { Users, UserPlus, UserCheck, Hotel, RefreshCw } from 'lucide-react'
+import { Users, UserPlus, UserCheck } from 'lucide-react'
 import { format, subDays, subMonths, startOfMonth, endOfMonth, startOfYear } from 'date-fns'
 import { type WeatherDaily, isTyphoon, buildWeatherMap } from '@/lib/weather/weatherUtils'
 import RFMTrendChart from '@/components/members/RFMTrendChart'
@@ -39,21 +39,6 @@ interface DemographicData {
   channels: { direct: number; app: number; coupon: number; other: number }
 }
 
-interface HotelConversion {
-  total_guests: number
-  matched_guests: number
-  conversion_rate: number
-  avg_guest_spend: number
-  recent_mappings: Array<{
-    id: string
-    guest_name: string
-    check_in: string
-    check_out: string
-    ocard_member_id: string | null
-    match_confidence: number
-  }>
-}
-
 type RangeKey = '7d' | '30d' | '90d' | 'this_month' | 'last_month' | 'ytd' | 'custom'
 
 export default function MembersPage() {
@@ -73,17 +58,12 @@ export default function MembersPage() {
   const [rfmData, setRfmData] = useState<RFMSnapshot[]>([])
   const [weatherMap, setWeatherMap] = useState<Map<string, WeatherDaily>>(new Map())
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'rfm' | 'demographics' | 'hotel'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'rfm' | 'demographics'>('overview')
   const [rangeKey, setRangeKey] = useState<RangeKey>('30d')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
   const [demoData, setDemoData] = useState<DemographicData | null>(null)
   const [demoLoading, setDemoLoading] = useState(false)
-  const [hotelData, setHotelData] = useState<HotelConversion | null>(null)
-  const [hotelLoading, setHotelLoading] = useState(false)
-  const [hotelConfigured, setHotelConfigured] = useState(false)
-  const [hotelSyncing, setHotelSyncing] = useState(false)
-  const [hotelSyncResult, setHotelSyncResult] = useState<string | null>(null)
 
   const { startDate, endDate } = useMemo(() => {
     if (rangeKey === 'custom' && customStart && customEnd) {
@@ -104,7 +84,6 @@ export default function MembersPage() {
     return { startDate: format(subDays(today, days), 'yyyy-MM-dd'), endDate: format(today, 'yyyy-MM-dd') }
   }, [rangeKey, customStart, customEnd])
 
-  // Fetch overview data (reactive to date range)
   useEffect(() => {
     setLoading(true)
     Promise.all([
@@ -116,30 +95,23 @@ export default function MembersPage() {
     }).catch(() => {}).finally(() => setLoading(false))
   }, [startDate, endDate])
 
-  // Fetch RFM + hotel data once on mount
   useEffect(() => {
-    Promise.all([
-      fetch('/api/members/rfm').then(r => r.json()),
-      fetch('/api/hotel/conversion').then(r => r.json()).catch(() => ({ success: false })),
-    ]).then(([rfmJson, hotelJson]) => {
-      if (rfmJson.success) setRfmData(rfmJson.data || [])
-      if (hotelJson.success) {
-        setHotelConfigured(true)
-        setHotelData(hotelJson.data)
-      }
-    }).catch(() => {})
+    fetch('/api/members/rfm')
+      .then(r => r.json())
+      .then(rfmJson => {
+        if (rfmJson.success) setRfmData(rfmJson.data || [])
+      })
+      .catch(() => {})
   }, [])
 
   const latestRfm = rfmData.length > 0 ? rfmData[rfmData.length - 1] : null
 
-  // Calculate dormant percentage from latest snapshot
   const dormantPct = latestRfm && latestRfm.total_customers
     ? ((Number(latestRfm.dormant_count) || 0) / Number(latestRfm.total_customers)) * 100
     : 0
 
   return (
     <div className="space-y-6">
-      {/* Tab switcher */}
       <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
         <button
           onClick={() => setActiveTab('overview')}
@@ -181,33 +153,10 @@ export default function MembersPage() {
         >
           {t('members.demographicTab')}
         </button>
-        {hotelConfigured && (
-          <button
-            onClick={() => {
-              setActiveTab('hotel')
-              if (!hotelData) {
-                setHotelLoading(true)
-                fetch('/api/hotel/conversion')
-                  .then(r => r.json())
-                  .then(json => { if (json.success) setHotelData(json.data) })
-                  .catch(() => {})
-                  .finally(() => setHotelLoading(false))
-              }
-            }}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === 'hotel'
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            {t('members.guestConversionTab')}
-          </button>
-        )}
       </div>
 
       {activeTab === 'overview' && (
         <>
-          {/* Date range picker */}
           <div className="flex flex-wrap items-center gap-2">
             {rangeOptions.map((opt) => (
               <button
@@ -276,7 +225,6 @@ export default function MembersPage() {
                   valueLabel={t('members.periodGuests')}
                   valuePrefix=""
                 />
-                {/* Typhoon day annotations */}
                 {(() => {
                   const typhoonDays = data.filter(d => {
                     const w = weatherMap.get(d.date)
@@ -301,10 +249,8 @@ export default function MembersPage() {
 
       {activeTab === 'rfm' && (
         <>
-          {/* Dormant alert */}
           <DormantAlert dormantPct={dormantPct} />
 
-          {/* RFM KPI cards */}
           {latestRfm && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <KpiCard
@@ -326,7 +272,6 @@ export default function MembersPage() {
             </div>
           )}
 
-          {/* RFM Trend Chart */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <h4 className="text-sm font-semibold text-slate-900 mb-4">{t('members.rfmTrend')}</h4>
             {loading ? (
@@ -336,7 +281,6 @@ export default function MembersPage() {
             )}
           </div>
 
-          {/* RFM Distribution Charts */}
           {latestRfm && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -373,122 +317,6 @@ export default function MembersPage() {
 
       {activeTab === 'demographics' && (
         <DemographicsPanel data={demoData} loading={demoLoading} />
-      )}
-
-      {activeTab === 'hotel' && (
-        <>
-          {/* Sync button */}
-          <div className="flex justify-end">
-            <button
-              onClick={async () => {
-                setHotelSyncing(true)
-                setHotelSyncResult(null)
-                try {
-                  const res = await fetch('/api/hotel/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-                  const json = await res.json()
-                  if (json.success) {
-                    setHotelSyncResult(`${t('members.syncDone')}：${json.data.synced} ${t('members.guestCount')}，${json.data.matched} ${t('members.matchCount')} (${json.data.match_rate})`)
-                    // Refresh data
-                    const convRes = await fetch('/api/hotel/conversion')
-                    const convJson = await convRes.json()
-                    if (convJson.success) setHotelData(convJson.data)
-                  } else {
-                    setHotelSyncResult(`${t('members.syncFailed')}：${json.error}`)
-                  }
-                } catch {
-                  setHotelSyncResult(t('members.syncFailed'))
-                }
-                setHotelSyncing(false)
-              }}
-              disabled={hotelSyncing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={hotelSyncing ? 'animate-spin' : ''} />
-              {hotelSyncing ? t('common.syncing') : 'Sync Cloudbeds'}
-            </button>
-          </div>
-
-          {hotelSyncResult && (
-            <div className={`text-sm px-4 py-2 rounded-lg ${hotelSyncResult.includes(t('members.syncDone')) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-              {hotelSyncResult}
-            </div>
-          )}
-
-          {/* Hotel KPIs */}
-          {hotelLoading ? (
-            <div className="flex items-center justify-center h-32 text-slate-400 text-sm">{t('common.loading')}</div>
-          ) : hotelData ? (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <KpiCard
-                  title={t('members.totalGuests')}
-                  value={hotelData.total_guests.toLocaleString()}
-                  icon={<Hotel size={20} />}
-                />
-                <KpiCard
-                  title={t('members.matchedMembers')}
-                  value={hotelData.matched_guests.toLocaleString()}
-                  icon={<UserCheck size={20} />}
-                />
-                <KpiCard
-                  title={t('members.conversionRate')}
-                  value={`${hotelData.conversion_rate}%`}
-                />
-                <KpiCard
-                  title={t('members.avgGuestSpend')}
-                  value={`NT$ ${hotelData.avg_guest_spend.toLocaleString()}`}
-                />
-              </div>
-
-              {/* Recent mappings table */}
-              <div className="bg-white rounded-xl border border-slate-200">
-                <div className="px-5 py-3 border-b border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-900">{t('members.recentMatches')}</h4>
-                </div>
-                {hotelData.recent_mappings.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 text-sm">{t('members.noGuestData')}</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-200">
-                          <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('members.guestName')}</th>
-                          <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('members.checkIn')}</th>
-                          <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('members.checkOut')}</th>
-                          <th className="text-left py-3 px-4 text-slate-500 font-medium">{t('members.matchStatus')}</th>
-                          <th className="text-right py-3 px-4 text-slate-500 font-medium">{t('members.confidence')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {hotelData.recent_mappings.map(m => (
-                          <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50">
-                            <td className="py-3 px-4 font-medium text-slate-900">{m.guest_name}</td>
-                            <td className="py-3 px-4 text-slate-500">{m.check_in}</td>
-                            <td className="py-3 px-4 text-slate-500">{m.check_out}</td>
-                            <td className="py-3 px-4">
-                              {m.ocard_member_id ? (
-                                <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">{t('members.matched')}</span>
-                              ) : (
-                                <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-xs font-medium">{t('members.unmatched')}</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-4 text-right text-slate-500">
-                              {m.match_confidence > 0 ? `${(m.match_confidence * 100).toFixed(0)}%` : '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-8 text-center">
-              <p className="text-sm text-amber-800">Please click &ldquo;Sync Cloudbeds&rdquo; to sync guest data.</p>
-            </div>
-          )}
-        </>
       )}
     </div>
   )

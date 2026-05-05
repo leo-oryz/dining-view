@@ -1,10 +1,10 @@
+import { APP_TIMEZONE } from './lib/constants/timezone'
+
 export async function register() {
-  // Only run cron on the server (not edge runtime)
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const cron = await import('node-cron')
 
-    // Daily sync at 06:00 Asia/Taipei
-    // Meta ads data has ~24h delay, so syncing at 6am covers yesterday's data
+    // Daily sync at 06:00 local time
     cron.default.schedule('0 6 * * *', async () => {
       const port = process.env.PORT || '3000'
       const baseUrl = `http://localhost:${port}`
@@ -27,9 +27,9 @@ export async function register() {
         console.error('[cron-scheduler] Daily sync failed:', err)
       }
     }, {
-      timezone: 'Asia/Taipei',
+      timezone: APP_TIMEZONE,
     })
 
-    console.log('[cron-scheduler] Daily sync scheduled at 06:00 Asia/Taipei')
+    console.log(`[cron-scheduler] Daily sync scheduled at 06:00 ${APP_TIMEZONE}`)
   }
 }

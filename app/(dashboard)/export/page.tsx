@@ -40,7 +40,7 @@ export default function ExportPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `fnb-pulse-${type}-${fromDate}-${toDate}.xlsx`
+      a.download = `diningview-${type}-${fromDate}-${toDate}.xlsx`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

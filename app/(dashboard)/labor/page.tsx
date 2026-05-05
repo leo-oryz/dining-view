@@ -114,7 +114,7 @@ interface PayrollCost {
 }
 
 // ─── Helpers ───
-const fmtNT = (v: number) => `NT$${Math.round(v).toLocaleString()}`
+const fmtNT = (v: number) => `₫${Math.round(v).toLocaleString()}`
 const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`
 
 const TARGET_RPH = 1600
@@ -457,7 +457,7 @@ export default function LaborPage() {
             </div>
             {payrollCost?.aggregate?.revenue_per_salary != null && (
               <div className="text-xs text-slate-500 mt-2">
-                每 NT$1 薪資產生 <span className="font-semibold text-slate-900">NT${payrollCost.aggregate.revenue_per_salary}</span> 營收
+                每 ₫1 薪資產生 <span className="font-semibold text-slate-900">₫{payrollCost.aggregate.revenue_per_salary}</span> 營收
               </div>
             )}
             {payrollMonths.length > 0 && (

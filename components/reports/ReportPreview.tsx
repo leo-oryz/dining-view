@@ -39,7 +39,7 @@ export default function ReportPreview({ data }: Props) {
             {data.monthly_revenue.map(r => (
               <div key={r.month} className="flex justify-between text-sm">
                 <span className="text-slate-500">{r.month}</span>
-                <span className="font-medium text-slate-900">NT${Math.round(r.revenue).toLocaleString()}</span>
+                <span className="font-medium text-slate-900">₫{Math.round(r.revenue).toLocaleString()}</span>
               </div>
             ))}
           </div>
@@ -56,7 +56,7 @@ export default function ReportPreview({ data }: Props) {
             {data.top_products.map((p, i) => (
               <div key={i} className="flex justify-between text-sm">
                 <span className="text-slate-600">{i + 1}. {p.product_name}</span>
-                <span className="font-medium text-slate-900">NT${Math.round(p.total_revenue).toLocaleString()}</span>
+                <span className="font-medium text-slate-900">₫{Math.round(p.total_revenue).toLocaleString()}</span>
               </div>
             ))}
           </div>
@@ -71,7 +71,7 @@ export default function ReportPreview({ data }: Props) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-slate-500">平均客單價</span>
-            <p className="font-semibold text-slate-900">NT${data.kpis.avg_spend.toFixed(0)}</p>
+            <p className="font-semibold text-slate-900">₫{data.kpis.avg_spend.toFixed(0)}</p>
           </div>
           <div>
             <span className="text-slate-500">翻桌率</span>

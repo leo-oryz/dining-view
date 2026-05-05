@@ -47,7 +47,7 @@ export function TimeSlotHeatmap({ data, height }: TimeSlotHeatmapProps) {
         <XAxis dataKey="hourLabel" tick={{ fontSize: 11 }} stroke="#94a3b8" />
         <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <Tooltip
-          formatter={(value) => [`NT$${Number(value).toLocaleString()}`, '平均營收']}
+          formatter={(value) => [`₫${Number(value).toLocaleString()}`, '平均營收']}
         />
         <Bar dataKey="avg_sales" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
       </BarChart>

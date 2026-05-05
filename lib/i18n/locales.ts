@@ -1,9 +1,10 @@
-export type Locale = 'zh-TW' | 'en'
+export type Locale = 'vi' | 'en' | 'zh-TW'
 
-export const locales: Locale[] = ['zh-TW', 'en']
-export const defaultLocale: Locale = 'zh-TW'
+export const locales: Locale[] = ['vi', 'en', 'zh-TW']
+export const defaultLocale: Locale = 'vi'
 
 export const localeLabels: Record<Locale, string> = {
-  'zh-TW': '中文',
+  vi: 'VI',
   en: 'EN',
+  'zh-TW': '中文',
 }

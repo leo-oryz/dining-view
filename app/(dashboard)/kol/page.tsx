@@ -462,7 +462,7 @@ export default function KolPage() {
         <KpiCard icon={Users} title={t('kol.monthlyKol')} value={monthCollabs.length.toString()} />
         <KpiCard icon={Eye} title={t('kol.monthlyReach')} value={monthViews.toLocaleString()} />
         <KpiCard icon={Heart} title={t('kol.avgEngagement')} value={`${avgEngRate.toFixed(2)}%`} />
-        <KpiCard icon={DollarSign} title={t('kol.monthlyCost')} value={`NT$${monthFees.toLocaleString()}`} />
+        <KpiCard icon={DollarSign} title={t('kol.monthlyCost')} value={`₫${monthFees.toLocaleString()}`} />
       </div>
 
       {/* ─── Section 2: New Collaboration Form ─── */}
@@ -519,7 +519,7 @@ export default function KolPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.collabCost')} (NTD)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('kol.collabCost')} (VND)</label>
               <input
                 type="number"
                 value={formData.collaboration_fee}
@@ -705,7 +705,7 @@ export default function KolPage() {
                       )}
                       <div className="flex gap-3 mt-1 text-xs text-gray-500">
                         {collab.collaboration_fee != null && (
-                          <span>{t('kol.cost')}: NT${collab.collaboration_fee.toLocaleString()} ({FEE_TYPE_LABELS[collab.fee_type || ''] || collab.fee_type})</span>
+                          <span>{t('kol.cost')}: ₫{collab.collaboration_fee.toLocaleString()} ({FEE_TYPE_LABELS[collab.fee_type || ''] || collab.fee_type})</span>
                         )}
                         <span>{t('kol.posts')}: {posts.length} {t('kol.postsCount')}</span>
                       </div>
@@ -888,7 +888,7 @@ export default function KolPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {row.collaboration_fee
-                        ? `NT$${row.collaboration_fee.toLocaleString()}`
+                        ? `₫${row.collaboration_fee.toLocaleString()}`
                         : '—'}
                       {row.fee_type && (
                         <div className="text-xs text-gray-400">{FEE_TYPE_LABELS[row.fee_type] || row.fee_type}</div>

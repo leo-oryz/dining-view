@@ -9,10 +9,10 @@ function hashCallbackHtml() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FnB Pulse</title>
+<title>DiningView</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"><\/script>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}.card{background:#fff;border-radius:1rem;box-shadow:0 4px 24px rgba(0,0,0,.08);padding:2rem;max-width:22rem;width:100%;text-align:center}h1{font-size:1.5rem;font-weight:700;color:#0f172a;margin-bottom:.5rem}.msg{font-size:.875rem;color:#64748b}.err{font-size:.875rem;color:#ef4444}</style>
-</head><body><div class="card"><h1>FnB Pulse</h1><p id="s" class="msg">驗證中，請稍候...</p></div>
+</head><body><div class="card"><h1>DiningView</h1><p id="s" class="msg">驗證中，請稍候...</p></div>
 <script>
 (async function(){
   var el=document.getElementById('s');

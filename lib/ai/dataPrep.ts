@@ -105,7 +105,6 @@ export async function prepareAnalysisContext(
     campaignsRes,
     weatherRes,
     adsRes,
-    membersRes,
     reviewsRes,
     kolRes,
   ] = await Promise.all([
@@ -144,13 +143,6 @@ export async function prepareAnalysisContext(
       .gte('date', periodStart)
       .lte('date', periodEnd)
       .order('date'),
-    supabase
-      .from('ocard_member_snapshots')
-      .select('snapshot_date, total_members, new_members')
-      .eq('store_id', storeId)
-      .gte('snapshot_date', periodStart)
-      .lte('snapshot_date', periodEnd)
-      .order('snapshot_date'),
     supabase
       .from('google_review_snapshots')
       .select('snapshot_date, avg_rating, new_reviews_count, negative_count, ai_negative_summary, ai_sentiment_trend, keywords')
@@ -202,10 +194,10 @@ export async function prepareAnalysisContext(
 
     const lowestSlot = hourlyData?.[0]
     const lowestStr = lowestSlot
-      ? `最低效時段：${lowestSlot.time_slot_start.slice(0, 5)}（每人 NT$${Math.round(Number(lowestSlot.revenue_per_staff))}）`
+      ? `最低效時段：${lowestSlot.time_slot_start.slice(0, 5)}（每人 ₫${Math.round(Number(lowestSlot.revenue_per_staff))}）`
       : ''
 
-    laborSummary = `人力效益：工時產出 NT$${avgRPH}（目標 NT$1,600），人力成本率 ${costRatioStr}（目標 30%），${lowestStr}`
+    laborSummary = `人力效益：工時產出 ₫${avgRPH}（目標 ₫1,600），人力成本率 ${costRatioStr}（目標 30%），${lowestStr}`
   }
 
   return {
@@ -217,7 +209,7 @@ export async function prepareAnalysisContext(
     campaigns: campaignsRes.data || [],
     weather: weatherRes.data || [],
     adCampaigns: adsRes.data || [],
-    memberSnapshots: membersRes.data || [],
+    memberSnapshots: [],
     reviewSnapshots: reviewsRes.data || [],
     productAnomalies,
     laborSummary,

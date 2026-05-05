@@ -142,7 +142,7 @@ export async function compileDigest(): Promise<DigestData> {
 
 export async function sendDigest(): Promise<{ recipientCount: number; error?: string }> {
   const apiKey = process.env.RESEND_API_KEY
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@fnbpulse.com'
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@diningview.com'
 
   if (!apiKey) {
     return { recipientCount: 0, error: 'RESEND_API_KEY not configured' }
@@ -163,7 +163,7 @@ export async function sendDigest(): Promise<{ recipientCount: number; error?: st
   }
 
   const digest = await compileDigest()
-  const subject = `FnB Pulse 週報 — ${digest.weekStart} ~ ${digest.weekEnd}`
+  const subject = `DiningView 週報 — ${digest.weekStart} ~ ${digest.weekEnd}`
 
   const deltaStr = digest.revenueDelta != null
     ? `${digest.revenueDelta > 0 ? '+' : ''}${digest.revenueDelta.toFixed(1)}%`
@@ -175,12 +175,12 @@ export async function sendDigest(): Promise<{ recipientCount: number; error?: st
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b;">
-  <h1 style="font-size: 20px; margin-bottom: 4px;">FnB Pulse 週報</h1>
+  <h1 style="font-size: 20px; margin-bottom: 4px;">DiningView 週報</h1>
   <p style="color: #64748b; font-size: 14px; margin-top: 0;">${digest.weekStart} ~ ${digest.weekEnd}</p>
 
   <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
     <div style="font-size: 14px; color: #64748b;">上週總營收</div>
-    <div style="font-size: 28px; font-weight: bold; margin: 4px 0;">NT$${digest.totalRevenue.toLocaleString()}</div>
+    <div style="font-size: 28px; font-weight: bold; margin: 4px 0;">₫${digest.totalRevenue.toLocaleString()}</div>
     <div style="font-size: 14px; color: ${deltaColor};">vs 前一週: ${deltaStr}</div>
   </div>
 
@@ -219,19 +219,19 @@ export async function sendDigest(): Promise<{ recipientCount: number; error?: st
     <tr style="border-bottom: 1px solid #e2e8f0;">
       <td style="padding: 8px 4px; color: #64748b;">${i + 1}</td>
       <td style="padding: 8px 4px;">${p.name}</td>
-      <td style="padding: 8px 4px; text-align: right;">NT$${p.revenue.toLocaleString()}</td>
+      <td style="padding: 8px 4px; text-align: right;">₫${p.revenue.toLocaleString()}</td>
     </tr>`).join('')}
   </table>
 
   <div style="margin-top: 24px; text-align: center;">
-    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://fnbpulse.com'}/dashboard"
+    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://diningview.com'}/dashboard"
        style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 10px 24px; border-radius: 8px; font-size: 14px;">
       查看完整儀表板
     </a>
   </div>
 
   <p style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 24px;">
-    FnB Pulse — 餐飲智慧平台
+    DiningView — 餐飲智慧平台
   </p>
 </body>
 </html>`
