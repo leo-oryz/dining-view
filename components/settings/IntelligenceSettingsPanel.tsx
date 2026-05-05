@@ -151,7 +151,12 @@ export default function IntelligenceSettingsPanel() {
   }
 
   const updateRule = async (alertType: string, patch: { is_active?: boolean; threshold?: number | null }) => {
-    setRules((prev) => prev.map((r) => (r.alert_type === alertType ? { ...r, ...patch } : r)))
+    setRules((prev) => {
+      if (prev.some((r) => r.alert_type === alertType)) {
+        return prev.map((r) => (r.alert_type === alertType ? { ...r, ...patch } : r))
+      }
+      return [...prev, { alert_type: alertType, is_active: true, threshold: null, ...patch }]
+    })
     try {
       await fetch('/api/alerts/rules', {
         method: 'PATCH',
