@@ -586,7 +586,7 @@ const zhTW = {
   'settings.earliestDate': '最早日期',
   'settings.latestDate': '最新日期',
   'settings.noWeatherData': '尚無天氣數據，請點擊「立即同步」',
-  'settings.weatherSource': '數據來源：中央氣象署（CWA），每日自動同步一次。',
+  'settings.weatherSource': '數據來源：OpenWeatherMap（即時）＋ Open-Meteo（歷史回填），以胡志明市座標為準，每日自動同步一次。',
   'settings.syncSuccess': '同步成功',
   'settings.syncFailed': '同步失敗',
   'settings.basicInfo': '基本資訊',

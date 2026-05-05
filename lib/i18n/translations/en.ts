@@ -586,7 +586,7 @@ const en = {
   'settings.earliestDate': 'Earliest date',
   'settings.latestDate': 'Latest date',
   'settings.noWeatherData': 'No weather data. Click "Sync Now" to fetch.',
-  'settings.weatherSource': 'Source: Central Weather Administration (CWA). Auto-syncs daily.',
+  'settings.weatherSource': 'Source: OpenWeatherMap (live) + Open-Meteo (historical backfill), keyed to Ho Chi Minh City coordinates. Auto-syncs daily.',
   'settings.syncSuccess': 'Sync successful',
   'settings.syncFailed': 'Sync failed',
   'settings.basicInfo': 'Basic Information',

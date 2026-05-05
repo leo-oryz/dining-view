@@ -7,7 +7,7 @@ export async function POST() {
     const supabase = createServiceClient()
     const today = new Date().toISOString().slice(0, 10)
 
-    // CWA observation API returns current/today's data
+    // OpenWeatherMap returns the current observation for the configured coords (HCM City by default)
     const weather = await fetchDailyWeather(today)
 
     if (!weather) {

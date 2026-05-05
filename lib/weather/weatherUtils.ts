@@ -31,18 +31,32 @@ export const WEATHER_LABELS: Record<WeatherType, string> = {
 }
 
 /**
- * Map CWA description + precipitation to a weather type.
- * CWA descriptions are Chinese strings like "晴", "陰", "多雲", "雨", "陰有雨" etc.
+ * Map weather description + precipitation to a weather type.
+ *
+ * Descriptions come from Open-Meteo (mapped from WMO codes to Chinese in openMeteoClient)
+ * or OpenWeatherMap (English). Typhoon detection targets Vietnamese tropical storms (bão):
+ * WMO doesn't have a typhoon-specific code, so we treat severe thunderstorms (95/96/99)
+ * combined with extreme precipitation, or daily rain ≥ 80mm, as typhoon-equivalent.
  */
 export function getWeatherType(day: WeatherDaily): WeatherType {
   const desc = (day.description ?? '').toLowerCase()
   const precip = day.precipitation ?? 0
+  const code = day.weather_code ?? ''
 
-  // Typhoon check first — description may contain 颱
-  if (desc.includes('颱')) return 'typhoon'
+  // Typhoon / tropical storm (bão): explicit description, or severe thunderstorm + heavy rain,
+  // or extreme daily precipitation (>= 80mm/day is a strong signal in southern Vietnam).
+  if (
+    desc.includes('颱') ||
+    desc.includes('bão') ||
+    desc.includes('typhoon') ||
+    precip >= 80 ||
+    ((code === '95' || code === '96' || code === '99') && precip >= 30)
+  ) {
+    return 'typhoon'
+  }
 
   // Heavy rain: by precipitation threshold or description
-  if (precip > 50 || desc.includes('大雨') || desc.includes('豪雨')) return 'heavy_rain'
+  if (precip > 50 || desc.includes('大雨') || desc.includes('豪雨') || desc.includes('heavy rain')) return 'heavy_rain'
 
   // Rain
   if (desc.includes('雨') || precip > 1) return 'rainy'
