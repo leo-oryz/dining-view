@@ -170,7 +170,7 @@ async function main() {
   let totalNew = 0
   let failures = 0
   for (const store of stores) {
-    const placeId = store.google_place_id || process.env.GOOGLE_PLACE_ID
+    const placeId = store.google_place_id
     if (!placeId) {
       console.log(`[reviews-sync] ${store.name}: skip (no google_place_id)`)
       continue

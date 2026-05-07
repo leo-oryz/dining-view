@@ -3,6 +3,7 @@ import type { TableCheckListResponse, TableCheckReservation } from './types'
 const TABLECHECK_BASE = 'https://api.tablecheck.com/api/booking/v1'
 
 export async function fetchReservations(params: {
+  apiKey: string
   shopId: string
   startAtMin: string // ISO8601 with TZ offset
   startAtMax: string
@@ -20,7 +21,7 @@ export async function fetchReservations(params: {
 
   const res = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${process.env.TABLECHECK_API_KEY}`,
+      Authorization: `Bearer ${params.apiKey}`,
       'Content-Type': 'application/json',
     },
     next: { revalidate: 0 },
@@ -41,6 +42,7 @@ export async function fetchReservations(params: {
 }
 
 export async function fetchAllReservations(params: {
+  apiKey: string
   shopId: string
   startAtMin: string
   startAtMax: string

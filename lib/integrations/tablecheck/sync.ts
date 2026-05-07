@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { fetchAllReservations } from './client'
 import { transformReservation } from './transformer'
+import { tryGetStoreCredentials } from '@/lib/integrations/credentials'
 
 // Asia/Ho_Chi_Minh is a fixed +07:00 offset (no DST), so we hardcode it
 // instead of pulling in date-fns-tz.
@@ -49,7 +50,17 @@ export async function syncAllStores(options?: {
   for (const store of stores) {
     const shopId = store.tablecheck_shop_id as string
     try {
+      const creds = await tryGetStoreCredentials(supabase, store.id, 'tablecheck')
+      if (!creds) {
+        results.push({
+          store: store.name,
+          store_id: store.id,
+          error: 'no tablecheck.api_key credential',
+        })
+        continue
+      }
       const raw = await fetchAllReservations({
+        apiKey: creds.api_key,
         shopId,
         startAtMin,
         startAtMax,

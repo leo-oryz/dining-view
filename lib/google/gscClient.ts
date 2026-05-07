@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import type { CredentialsSchema } from '@/lib/integrations/credentials'
 
 function getAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
@@ -29,11 +30,11 @@ export type GscRow = {
  * GSC has 2-3 day lag — always fetch date <= TODAY - 3.
  */
 export async function fetchBrandSearch(
+  creds: CredentialsSchema['gsc'],
   startDate: string,
   endDate: string,
 ): Promise<GscRow[]> {
-  const siteUrl = process.env.GSC_SITE_URL
-  if (!siteUrl) throw new Error('GSC_SITE_URL not configured')
+  const { site_url } = creds
 
   const auth = getAuth()
   const searchconsole = google.searchconsole({ version: 'v1', auth })
@@ -44,7 +45,7 @@ export async function fetchBrandSearch(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const res = await searchconsole.searchanalytics.query({
-        siteUrl,
+        siteUrl: site_url,
         requestBody: {
           startDate,
           endDate,

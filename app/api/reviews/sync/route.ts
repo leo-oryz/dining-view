@@ -18,9 +18,9 @@ export async function POST(request: Request) {
       .eq('id', storeId)
       .single()
 
-    const placeId = store?.google_place_id || process.env.GOOGLE_PLACE_ID
+    const placeId = store?.google_place_id
     if (!placeId) {
-      return apiError('GOOGLE_PLACE_ID not configured for this store', 400)
+      return apiError('google_place_id not configured for this store', 400)
     }
 
     // Fetch reviews from Apify

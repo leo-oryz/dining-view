@@ -52,20 +52,26 @@ async function main() {
   console.log('=== Manual Google Sync ===')
   console.log(`Time: ${new Date().toISOString()}`)
 
-  // Get store
+  // Get store + credentials
   const { data: stores } = await supabase
     .from('stores')
-    .select('id')
+    .select('id, credentials')
     .eq('is_active', true)
 
   if (!stores?.length) {
     console.error('No active stores found')
     process.exit(1)
   }
-  const storeId = stores[0].id
-  console.log(`Store: ${storeId}`)
-
   const today = new Date()
+
+  for (const store of stores) {
+  const storeId = store.id
+  const creds = (store.credentials || {}) as Record<string, Record<string, string>>
+  const gscSiteUrl = creds.gsc?.site_url
+  const ga4PropertyId = creds.ga4?.property_id
+  console.log(`\n========== Store: ${storeId} ==========`)
+  console.log(`GSC site_url: ${gscSiteUrl ?? '(missing)'}`)
+  console.log(`GA4 property_id: ${ga4PropertyId ?? '(missing)'}`)
 
   // --- GSC Sync ---
   console.log('\n--- GSC Sync ---')
@@ -78,10 +84,12 @@ async function main() {
   const gscEd = toDateStr(gscEnd)
   console.log(`Fetching GSC: ${gscSd} to ${gscEd}`)
 
-  try {
+  if (!gscSiteUrl) {
+    console.log('GSC skipped: store has no gsc.site_url credential')
+  } else try {
     const searchconsole = google.searchconsole({ version: 'v1', auth: getGscAuth() })
     const res = await searchconsole.searchanalytics.query({
-      siteUrl: process.env.GSC_SITE_URL!,
+      siteUrl: gscSiteUrl,
       requestBody: {
         startDate: gscSd,
         endDate: gscEd,
@@ -139,10 +147,12 @@ async function main() {
   const ga4Ed = toDateStr(ga4End)
   console.log(`Fetching GA4: ${ga4Sd} to ${ga4Ed}`)
 
-  try {
+  if (!ga4PropertyId) {
+    console.log('GA4 skipped: store has no ga4.property_id credential')
+  } else try {
     const analyticsData = google.analyticsdata({ version: 'v1beta', auth: getGa4Auth() })
     const res = await analyticsData.properties.runReport({
-      property: `properties/${process.env.GA4_PROPERTY_ID}`,
+      property: `properties/${ga4PropertyId}`,
       requestBody: {
         dateRanges: [{ startDate: ga4Sd, endDate: ga4Ed }],
         dimensions: [
@@ -269,6 +279,7 @@ async function main() {
   }
 
   console.log(`Conversion recalculated for dates: ${uniqueDates[0]} to ${uniqueDates[uniqueDates.length - 1]}`)
+  }
 
   console.log('\n=== Sync Complete ===')
 }

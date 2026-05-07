@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { fetchTikTokCampaigns } from '@/lib/ads/tiktokClient'
+import { getStoreCredentials, MissingCredentialsError } from '@/lib/integrations/credentials'
 import { apiSuccess, apiError, DEFAULT_STORE_ID } from '@/lib/api-utils'
 import { format, subDays } from 'date-fns'
 
@@ -12,13 +13,13 @@ export async function POST(request: NextRequest) {
     // Default: fetch previous day (data delay)
     const targetDate = body.date || format(subDays(new Date(), 1), 'yyyy-MM-dd')
 
-    const campaigns = await fetchTikTokCampaigns(targetDate)
+    const supabase = createServiceClient()
+    const creds = await getStoreCredentials(supabase, storeId, 'tiktok_ads')
+    const campaigns = await fetchTikTokCampaigns(creds, targetDate)
 
     if (campaigns.length === 0) {
       return apiSuccess({ synced: 0, date: targetDate, message: 'No campaign data for this date' })
     }
-
-    const supabase = createServiceClient()
 
     const rows = campaigns.map(c => ({
       store_id: storeId,
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest) {
 
     return apiSuccess({ synced: campaigns.length, date: targetDate })
   } catch (e) {
+    if (e instanceof MissingCredentialsError) {
+      return apiError(e.message, 400)
+    }
     const msg = e instanceof Error ? e.message : 'Internal server error'
     if (msg.includes('auth error')) {
       return apiError(msg, 401)

@@ -40,21 +40,21 @@ async function fetchWithRetry(url: string, headers: Record<string, string>, retr
   throw new Error('TikTok API: max retries exceeded')
 }
 
-export async function fetchTikTokCampaigns(date: string): Promise<TikTokCampaignRow[]> {
-  const accessToken = process.env.TIKTOK_ADS_ACCESS_TOKEN
-  const advertiserId = process.env.TIKTOK_ADS_ADVERTISER_ID
+import type { CredentialsSchema } from '@/lib/integrations/credentials'
 
-  if (!accessToken || !advertiserId) {
-    throw new Error('Missing TIKTOK_ADS_ACCESS_TOKEN or TIKTOK_ADS_ADVERTISER_ID env vars')
-  }
+export async function fetchTikTokCampaigns(
+  creds: CredentialsSchema['tiktok_ads'],
+  date: string,
+): Promise<TikTokCampaignRow[]> {
+  const { access_token, advertiser_id } = creds
 
   const headers = {
-    'Access-Token': accessToken,
+    'Access-Token': access_token,
     'Content-Type': 'application/json',
   }
 
   // Fetch campaign list
-  const campaignUrl = `${TIKTOK_BASE_URL}/campaign/get/?advertiser_id=${advertiserId}&page_size=100`
+  const campaignUrl = `${TIKTOK_BASE_URL}/campaign/get/?advertiser_id=${advertiser_id}&page_size=100`
   const campaignRes = await fetchWithRetry(campaignUrl, headers)
   const campaignJson = await campaignRes.json()
 
@@ -78,7 +78,7 @@ export async function fetchTikTokCampaigns(date: string): Promise<TikTokCampaign
   ])
   const filtering = JSON.stringify({ campaign_ids: campaignIds })
 
-  const reportUrl = `${TIKTOK_BASE_URL}/report/integrated/get/?advertiser_id=${advertiserId}&report_type=BASIC&dimensions=["campaign_id"]&data_level=AUCTION_CAMPAIGN&start_date=${date}&end_date=${date}&metrics=${encodeURIComponent(metricsFields)}&filtering=${encodeURIComponent(filtering)}&page_size=100`
+  const reportUrl = `${TIKTOK_BASE_URL}/report/integrated/get/?advertiser_id=${advertiser_id}&report_type=BASIC&dimensions=["campaign_id"]&data_level=AUCTION_CAMPAIGN&start_date=${date}&end_date=${date}&metrics=${encodeURIComponent(metricsFields)}&filtering=${encodeURIComponent(filtering)}&page_size=100`
 
   const reportRes = await fetchWithRetry(reportUrl, headers)
   const reportJson = await reportRes.json()

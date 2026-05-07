@@ -1,19 +1,17 @@
+import type { CredentialsSchema } from '@/lib/integrations/credentials'
+
 const LINE_BROADCAST_API = 'https://api.line.me/v2/bot/message/broadcast'
 
-export async function sendBroadcast(message: string): Promise<{ success: boolean; error?: string }> {
-  const channelToken = process.env.LINE_CHANNEL_ACCESS_TOKEN
-
-  if (!channelToken) {
-    console.warn('[broadcastSender] Missing LINE_CHANNEL_ACCESS_TOKEN')
-    return { success: false, error: 'LINE credentials not configured' }
-  }
-
+export async function sendBroadcast(
+  creds: CredentialsSchema['line'],
+  message: string,
+): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(LINE_BROADCAST_API, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${channelToken}`,
+        'Authorization': `Bearer ${creds.channel_access_token}`,
       },
       body: JSON.stringify({
         messages: [

@@ -55,16 +55,16 @@ async function fetchWithRetry(url: string, retries = 3, delayMs = 1000): Promise
   throw new Error('Meta API: max retries exceeded')
 }
 
-export async function fetchMetaCampaigns(date: string): Promise<MetaCampaignRow[]> {
-  const accessToken = process.env.META_ADS_ACCESS_TOKEN
-  const accountId = process.env.META_ADS_ACCOUNT_ID
+import type { CredentialsSchema } from '@/lib/integrations/credentials'
 
-  if (!accessToken || !accountId) {
-    throw new Error('Missing META_ADS_ACCESS_TOKEN or META_ADS_ACCOUNT_ID env vars')
-  }
+export async function fetchMetaCampaigns(
+  creds: CredentialsSchema['meta_ads'],
+  date: string,
+): Promise<MetaCampaignRow[]> {
+  const { access_token, account_id } = creds
 
   const fields = 'campaign_id,campaign_name,spend,impressions,reach,clicks,ctr,actions,cost_per_action_type,purchase_roas'
-  const url = `${META_BASE_URL}/${accountId}/insights?fields=${fields}&time_range={"since":"${date}","until":"${date}"}&level=campaign&access_token=${accessToken}`
+  const url = `${META_BASE_URL}/${account_id}/insights?fields=${fields}&time_range={"since":"${date}","until":"${date}"}&level=campaign&access_token=${access_token}`
 
   const res = await fetchWithRetry(url)
   const json = await res.json()

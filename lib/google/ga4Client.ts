@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import type { CredentialsSchema } from '@/lib/integrations/credentials'
 
 function getAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
@@ -32,12 +33,12 @@ export type Ga4Row = {
  * GA4 has 1-day lag — always fetch date <= TODAY - 1.
  */
 export async function fetchEvents(
+  creds: CredentialsSchema['ga4'],
   startDate: string,
   endDate: string,
   eventNames?: string[]
 ): Promise<Ga4Row[]> {
-  const propertyId = process.env.GA4_PROPERTY_ID
-  if (!propertyId) throw new Error('GA4_PROPERTY_ID not configured')
+  const { property_id } = creds
 
   const auth = getAuth()
   const analyticsData = google.analyticsdata({ version: 'v1beta', auth })
@@ -56,7 +57,7 @@ export async function fetchEvents(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const res = await analyticsData.properties.runReport({
-        property: `properties/${propertyId}`,
+        property: `properties/${property_id}`,
         requestBody: {
           dateRanges: [{ startDate, endDate }],
           dimensions: [

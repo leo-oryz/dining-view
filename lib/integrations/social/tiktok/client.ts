@@ -13,7 +13,7 @@ export interface TTConfig {
 
 function getConfig(override?: TTConfig): TTConfig {
   return {
-    accessToken: override?.accessToken ?? process.env.TIKTOK_ACCESS_TOKEN,
+    accessToken: override?.accessToken,
   }
 }
 

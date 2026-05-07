@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { fetchMetaCampaigns } from '@/lib/ads/metaClient'
+import { getStoreCredentials, MissingCredentialsError } from '@/lib/integrations/credentials'
 import { apiSuccess, apiError, DEFAULT_STORE_ID } from '@/lib/api-utils'
 import { format, subDays, eachDayOfInterval, parseISO } from 'date-fns'
 
@@ -24,10 +25,11 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServiceClient()
+    const creds = await getStoreCredentials(supabase, storeId, 'meta_ads')
     let totalSynced = 0
 
     for (const day of days) {
-      const campaigns = await fetchMetaCampaigns(day)
+      const campaigns = await fetchMetaCampaigns(creds, day)
       if (campaigns.length === 0) continue
 
       const rows = campaigns.map(c => ({
@@ -52,6 +54,9 @@ export async function POST(request: NextRequest) {
       days: days.length,
     })
   } catch (e) {
+    if (e instanceof MissingCredentialsError) {
+      return apiError(e.message, 400)
+    }
     const msg = e instanceof Error ? e.message : 'Internal server error'
     if (msg.includes('auth error')) {
       return apiError(msg, 401)
