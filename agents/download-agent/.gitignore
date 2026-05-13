@@ -1,0 +1,9 @@
+node_modules/
+downloads/
+debug_*.png
+debug_*.txt
+debug_*.html
+*.log
+.env
+.env.local
+ipos-session.json

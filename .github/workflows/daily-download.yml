@@ -3,14 +3,14 @@ name: Daily Download Agent
 on:
   workflow_dispatch:
     inputs:
-      target_date:
-        description: 'Target date YYYY-MM-DD (blank = yesterday)'
+      ipos_days:
+        description: 'Days to backfill from iPOS (default 30)'
+        required: false
+        default: '30'
+      ipos_store_id:
+        description: 'Optional store_id to scrape only (blank = all iPOS-configured stores)'
         required: false
         default: ''
-      dry_run:
-        description: 'Skip upload to Supabase (download + parse only)'
-        type: boolean
-        default: false
   schedule:
     - cron: '3 3 * * *'  # 03:03 UTC = 10:03 Vietnam time
 
@@ -21,17 +21,13 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
-      EAT365_LOGIN_EMAIL: ${{ secrets.EAT365_LOGIN_EMAIL }}
-      EAT365_LOGIN_PASSWORD: ${{ secrets.EAT365_LOGIN_PASSWORD }}
-      OCARD_LOGIN_EMAIL: ${{ secrets.OCARD_LOGIN_EMAIL }}
-      OCARD_LOGIN_PASSWORD: ${{ secrets.OCARD_LOGIN_PASSWORD }}
-      GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
-      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
-      GMAIL_USER_EMAIL: ${{ secrets.GMAIL_USER_EMAIL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       AGENT_UPLOAD_BASE_URL: ${{ secrets.AGENT_UPLOAD_BASE_URL }}
-      DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+      IPOS_DAYS: ${{ inputs.ipos_days || '30' }}
+      IPOS_STORE_ID: ${{ inputs.ipos_store_id }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,33 +42,13 @@ jobs:
         working-directory: agents/download-agent
         run: npm ci
 
-      - name: Install Chrome + Playwright browsers + xvfb
+      - name: Install Chromium for Playwright
         working-directory: agents/download-agent
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb
-          npx playwright install --with-deps chromium
-          npx playwright install chrome
+        run: npx playwright install --with-deps chromium
 
-      - name: Restore eat365 session cache
-        id: session-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: agents/download-agent/eat365-session.json
-          key: eat365-session-v1
-          restore-keys: |
-            eat365-session-
-
-      - name: Run agent (xvfb for headful eat365 login)
+      - name: Scrape iPOS (per-store credentials read from Supabase)
         working-directory: agents/download-agent
-        run: xvfb-run -a npx tsx index.ts ${{ inputs.target_date }}
-
-      - name: Save eat365 session cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: agents/download-agent/eat365-session.json
-          key: eat365-session-v1-${{ github.run_id }}
+        run: npx tsx index.ts
 
       # Weather sync: in-process node-cron in instrumentation.ts is unreliable on
       # Zeabur (only fires while the Next.js process is alive). Drive it from CI
@@ -150,7 +126,5 @@ jobs:
           name: debug-artifacts-${{ github.run_id }}
           path: |
             agents/download-agent/downloads/
-            agents/download-agent/debug_*.png
-            agents/download-agent/debug_*.txt
           retention-days: 3
           if-no-files-found: ignore

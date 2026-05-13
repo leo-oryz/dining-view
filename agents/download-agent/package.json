@@ -1,0 +1,26 @@
+{
+  "name": "diningview-download-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright-driven iPOS report downloader. Logs into fabi.ipos.vn per store, exports the 4 daily reports, parses with the shared lib/parsers/ipos pipeline, and upserts to Supabase. Lives outside the Next.js build to keep chromium out of the production bundle.",
+  "scripts": {
+    "scrape": "tsx index.ts",
+    "scrape:headed": "PLAYWRIGHT_HEADED=1 tsx index.ts",
+    "scrape:discovery": "PLAYWRIGHT_HEADED=1 IPOS_DISCOVERY=1 tsx index.ts",
+    "discover:login": "PLAYWRIGHT_HEADED=1 IPOS_DISCOVERY=1 tsx scripts/discover-login.ts",
+    "discover:login:headless": "IPOS_DISCOVERY=1 tsx scripts/discover-login.ts",
+    "list-stores": "tsx scripts/list-ipos-stores.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.49.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}

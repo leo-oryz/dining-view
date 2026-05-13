@@ -22,24 +22,35 @@ set_secret() {
   local key="$1"
   local value="$2"
   if [ -z "$value" ]; then
-    echo "⚠️  Skipping $key (empty value)"
+    echo "⚠️  Skipping $key (empty value in .env.local)"
     return
   fi
   printf '%s' "$value" | gh secret set "$key"
   echo "✅ $key set"
 }
 
-EAT365_LOGIN_EMAIL="$(read_env_var EAT365_LOGIN_EMAIL)"
-EAT365_LOGIN_PASSWORD="$(read_env_var EAT365_LOGIN_PASSWORD)"
+# Core: read by the iPOS Playwright agent + all sync scripts to talk to Supabase.
+NEXT_PUBLIC_SUPABASE_URL="$(read_env_var NEXT_PUBLIC_SUPABASE_URL)"
+SUPABASE_SERVICE_ROLE_KEY="$(read_env_var SUPABASE_SERVICE_ROLE_KEY)"
+
+# Optional: needed by anomaly-detect curl step + non-iPOS sync jobs.
+AGENT_UPLOAD_BASE_URL="$(read_env_var AGENT_UPLOAD_BASE_URL)"
 GOOGLE_SERVICE_ACCOUNT_EMAIL="$(read_env_var GOOGLE_SERVICE_ACCOUNT_EMAIL)"
 GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="$(read_env_var GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY)"
+GA4_PROPERTY_ID="$(read_env_var GA4_PROPERTY_ID)"
+GSC_SITE_URL="$(read_env_var GSC_SITE_URL)"
+APIFY_API_TOKEN="$(read_env_var APIFY_API_TOKEN)"
+APIFY_ACTOR_ID="$(read_env_var APIFY_ACTOR_ID)"
 
-set_secret EAT365_LOGIN_EMAIL              "$EAT365_LOGIN_EMAIL"
-set_secret EAT365_LOGIN_PASSWORD           "$EAT365_LOGIN_PASSWORD"
-set_secret GOOGLE_SERVICE_ACCOUNT_EMAIL    "$GOOGLE_SERVICE_ACCOUNT_EMAIL"
+set_secret NEXT_PUBLIC_SUPABASE_URL           "$NEXT_PUBLIC_SUPABASE_URL"
+set_secret SUPABASE_SERVICE_ROLE_KEY          "$SUPABASE_SERVICE_ROLE_KEY"
+set_secret AGENT_UPLOAD_BASE_URL              "$AGENT_UPLOAD_BASE_URL"
+set_secret GOOGLE_SERVICE_ACCOUNT_EMAIL       "$GOOGLE_SERVICE_ACCOUNT_EMAIL"
 set_secret GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY "$GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY"
-set_secret GMAIL_USER_EMAIL                "leo@staymeander.com"
-set_secret AGENT_UPLOAD_BASE_URL           "https://fnb-pluse.zeabur.app"
+set_secret GA4_PROPERTY_ID                    "$GA4_PROPERTY_ID"
+set_secret GSC_SITE_URL                       "$GSC_SITE_URL"
+set_secret APIFY_API_TOKEN                    "$APIFY_API_TOKEN"
+set_secret APIFY_ACTOR_ID                     "$APIFY_ACTOR_ID"
 
 echo ""
 echo "Done. Verify with: gh secret list"
