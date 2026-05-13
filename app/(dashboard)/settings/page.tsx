@@ -5,7 +5,7 @@ import {
   Settings, Plus, Store, CheckCircle, XCircle, Users, UserPlus,
   Shield, Edit2, Ban, RotateCcw, MapPin, Phone, Calendar, Armchair,
   ExternalLink, User, Power, PowerOff, Trash2, Target, ChevronLeft, ChevronRight,
-  Mail, Bell, X, Send, Cloud, RefreshCw, Plug,
+  Mail, Bell, X, Send, Cloud, RefreshCw, Plug, KeyRound, CheckCircle2, AlertCircle,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import AiConfigPanel from '@/components/settings/AiConfigPanel'
@@ -29,16 +29,123 @@ function WeatherSettingsPanel() {
   const [syncResult, setSyncResult] = useState<string | null>(null)
   const [info, setInfo] = useState<{ count: number; minDate: string; maxDate: string } | null>(null)
   const [infoLoading, setInfoLoading] = useState(true)
-  useEffect(() => { fetch('/api/weather/range?from=2000-01-01&to=2099-12-31').then(r => r.json()).then(json => { if (json.success && json.data?.length > 0) { const rows = json.data as { date: string }[]; setInfo({ count: rows.length, minDate: rows[0].date, maxDate: rows[rows.length - 1].date }) } }).catch(() => {}).finally(() => setInfoLoading(false)) }, [])
-  const handleSync = async () => { setSyncing(true); setSyncResult(null); try { const res = await fetch('/api/weather/sync', { method: 'POST' }); const json = await res.json(); if (json.success) { setSyncResult(`${t('settings.syncSuccess')}：${json.data.date}`); const infoRes = await fetch('/api/weather/range?from=2000-01-01&to=2099-12-31'); const infoJson = await infoRes.json(); if (infoJson.success && infoJson.data?.length > 0) { const rows = infoJson.data as { date: string }[]; setInfo({ count: rows.length, minDate: rows[0].date, maxDate: rows[rows.length - 1].date }) } } else { setSyncResult(`${t('settings.syncFailed')}：${json.error}`) } } catch { setSyncResult(t('settings.syncFailed')) }; setSyncing(false) }
+  const [keyInfo, setKeyInfo] = useState<{ has_key: boolean; last4: string | null; env_fallback: boolean } | null>(null)
+  const [keyInput, setKeyInput] = useState('')
+  const [savingKey, setSavingKey] = useState(false)
+  const [keyMsg, setKeyMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+
+  const loadKeyInfo = useCallback(() => {
+    fetch('/api/settings/weather')
+      .then(r => r.json())
+      .then(json => { if (json.success) setKeyInfo(json.data) })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/weather/range?from=2000-01-01&to=2099-12-31')
+      .then(r => r.json())
+      .then(json => {
+        if (json.success && json.data?.length > 0) {
+          const rows = json.data as { date: string }[]
+          setInfo({ count: rows.length, minDate: rows[0].date, maxDate: rows[rows.length - 1].date })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setInfoLoading(false))
+    loadKeyInfo()
+  }, [loadKeyInfo])
+
+  const handleSaveKey = async () => {
+    if (!keyInput.trim()) return
+    setSavingKey(true)
+    setKeyMsg(null)
+    try {
+      const res = await fetch('/api/settings/weather', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ openweather_api_key: keyInput.trim() }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setKeyMsg({ text: t('settings.keySaved'), type: 'success' })
+        setKeyInput('')
+        loadKeyInfo()
+      } else {
+        setKeyMsg({ text: `${t('settings.syncFailed')}：${json.error}`, type: 'error' })
+      }
+    } catch {
+      setKeyMsg({ text: t('settings.syncFailed'), type: 'error' })
+    }
+    setSavingKey(false)
+  }
+
+  const handleSync = async () => {
+    setSyncing(true); setSyncResult(null)
+    try {
+      const res = await fetch('/api/weather/sync', { method: 'POST' })
+      const json = await res.json()
+      if (json.success) {
+        setSyncResult(`${t('settings.syncSuccess')}：${json.data.date}`)
+        const infoRes = await fetch('/api/weather/range?from=2000-01-01&to=2099-12-31')
+        const infoJson = await infoRes.json()
+        if (infoJson.success && infoJson.data?.length > 0) {
+          const rows = infoJson.data as { date: string }[]
+          setInfo({ count: rows.length, minDate: rows[0].date, maxDate: rows[rows.length - 1].date })
+        }
+      } else {
+        setSyncResult(`${t('settings.syncFailed')}：${json.error}`)
+      }
+    } catch { setSyncResult(t('settings.syncFailed')) }
+    setSyncing(false)
+  }
+
+  const connected = !!keyInfo?.has_key || !!keyInfo?.env_fallback
+
   return (
     <div className="bg-white rounded-xl border border-slate-200">
       <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-2"><Cloud size={16} className="text-blue-500" /><h4 className="text-sm font-semibold text-slate-900">{t('settings.weatherData')}</h4></div>
         <button onClick={handleSync} disabled={syncing} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"><RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />{syncing ? t('common.syncing') : t('settings.syncNow')}</button>
       </div>
-      <div className="p-5 space-y-3">
-        {infoLoading ? (<p className="text-sm text-slate-400">{t('common.loading')}</p>) : info ? (<div className="grid grid-cols-3 gap-4"><div><p className="text-xs text-slate-500">{t('settings.hasData')}</p><p className="text-sm font-semibold text-slate-900">{info.count} {t('common.records')}</p></div><div><p className="text-xs text-slate-500">{t('settings.earliestDate')}</p><p className="text-sm font-semibold text-slate-900">{info.minDate}</p></div><div><p className="text-xs text-slate-500">{t('settings.latestDate')}</p><p className="text-sm font-semibold text-slate-900">{info.maxDate}</p></div></div>) : (<p className="text-sm text-slate-400">{t('settings.noWeatherData')}</p>)}
+      <div className="p-5 space-y-4">
+        <div className="space-y-2">
+          <label className="block text-xs font-medium text-slate-700">
+            <span className="inline-flex items-center gap-1.5"><KeyRound size={12} className="text-slate-400" />{t('settings.openWeatherKey')}</span>
+            {keyInfo?.has_key && keyInfo.last4 && (
+              <span className="ml-2 text-slate-400">(••••{keyInfo.last4})</span>
+            )}
+            {connected ? (
+              <span className="ml-2 inline-flex items-center gap-1 text-green-600 text-xs"><CheckCircle2 size={11} />{t('settings.keyConnected')}</span>
+            ) : (
+              <span className="ml-2 inline-flex items-center gap-1 text-amber-600 text-xs"><AlertCircle size={11} />{t('settings.keyNotConfigured')}</span>
+            )}
+            {!keyInfo?.has_key && keyInfo?.env_fallback && (
+              <span className="ml-2 text-xs text-slate-400">— {t('settings.keyEnvFallback')}</span>
+            )}
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              placeholder={keyInfo?.has_key ? t('settings.openWeatherKeyKeepCurrent') : t('settings.openWeatherKeyPlaceholder')}
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={handleSaveKey}
+              disabled={savingKey || !keyInput.trim()}
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {savingKey ? t('common.saving') : t('settings.saveKey')}
+            </button>
+          </div>
+          {keyMsg && (
+            <div className={`text-xs px-3 py-2 rounded-lg ${keyMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{keyMsg.text}</div>
+          )}
+        </div>
+
+        {infoLoading ? (<p className="text-sm text-slate-400">{t('common.loading')}</p>) : info ? (<div className="grid grid-cols-3 gap-4 pt-2 border-t border-slate-100"><div><p className="text-xs text-slate-500">{t('settings.hasData')}</p><p className="text-sm font-semibold text-slate-900">{info.count} {t('common.records')}</p></div><div><p className="text-xs text-slate-500">{t('settings.earliestDate')}</p><p className="text-sm font-semibold text-slate-900">{info.minDate}</p></div><div><p className="text-xs text-slate-500">{t('settings.latestDate')}</p><p className="text-sm font-semibold text-slate-900">{info.maxDate}</p></div></div>) : (<p className="text-sm text-slate-400 pt-2 border-t border-slate-100">{t('settings.noWeatherData')}</p>)}
         <p className="text-xs text-slate-400">{t('settings.weatherSource')}</p>
         {syncResult && (<div className={`text-sm px-3 py-2 rounded-lg ${syncResult.includes(t('settings.syncSuccess')) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{syncResult}</div>)}
       </div>

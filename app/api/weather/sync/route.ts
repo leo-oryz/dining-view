@@ -1,28 +1,26 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { fetchDailyWeather } from '@/lib/weather/openWeatherClient'
+import { fetchDailyWeather, resolveOpenWeatherApiKey } from '@/lib/weather/openWeatherClient'
 
 export async function POST() {
   try {
     const supabase = createServiceClient()
     const today = new Date().toISOString().slice(0, 10)
 
-    // OpenWeatherMap returns the current observation for the configured coords (HCM City by default)
-    const weather = await fetchDailyWeather(today)
+    const apiKey = await resolveOpenWeatherApiKey(supabase)
+    const weather = await fetchDailyWeather(today, apiKey)
 
     if (!weather) {
-      const hasKey = !!process.env.OPENWEATHER_API_KEY
       return NextResponse.json({
         success: false,
         data: null,
-        error: hasKey
+        error: apiKey
           ? 'OpenWeatherMap returned no data — check server log'
-          : 'OPENWEATHER_API_KEY not set — configure it and restart',
+          : 'OpenWeatherMap API key not configured — set it in Settings → Weather',
         timestamp: new Date().toISOString(),
       })
     }
 
-    // Get all stores and insert weather for each
     const { data: stores } = await supabase
       .from('stores')
       .select('id')

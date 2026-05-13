@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 type WeatherData = {
   date: string
   temp_high: number | null
@@ -18,21 +20,39 @@ const DEFAULT_LAT = Number(process.env.OPENWEATHER_LAT ?? 10.8231)
 const DEFAULT_LON = Number(process.env.OPENWEATHER_LON ?? 106.6297)
 
 /**
+ * Resolve the OpenWeatherMap API key. Checks the `openweather_api_key` setting
+ * in `store_settings` first, then falls back to OPENWEATHER_API_KEY env var.
+ */
+export async function resolveOpenWeatherApiKey(
+  supabase: SupabaseClient,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('store_settings')
+    .select('setting_value')
+    .eq('setting_key', 'openweather_api_key')
+    .not('setting_value', 'is', null)
+    .limit(1)
+
+  const dbKey = (data?.[0]?.setting_value as string | null | undefined) ?? null
+  return dbKey || process.env.OPENWEATHER_API_KEY || null
+}
+
+/**
  * Fetch the current day's weather snapshot from OpenWeatherMap (HCM City by default).
  * Returns null if the API key is missing or the call fails — callers must handle null.
  */
-export async function fetchDailyWeather(date: string): Promise<WeatherData | null> {
-  const apiKey = process.env.OPENWEATHER_API_KEY
+export async function fetchDailyWeather(
+  date: string,
+  apiKey: string | null,
+): Promise<WeatherData | null> {
   if (!apiKey) {
-    console.warn('[Weather] OPENWEATHER_API_KEY not set, skipping')
+    console.warn('[Weather] OpenWeatherMap API key not configured, skipping')
     return null
   }
 
-  const lat = DEFAULT_LAT
-  const lon = DEFAULT_LON
   const url =
     `https://api.openweathermap.org/data/2.5/weather` +
-    `?lat=${lat}&lon=${lon}&units=metric&appid=${encodeURIComponent(apiKey)}`
+    `?lat=${DEFAULT_LAT}&lon=${DEFAULT_LON}&units=metric&appid=${encodeURIComponent(apiKey)}`
 
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
