@@ -1,18 +1,38 @@
 import type { GHLCampaign, GHLCampaignStats, GHLListResponse } from './types'
 
-// ⚠️ Verify base URL once a Location API key is provisioned.
-// LeadConnector (GoHighLevel) public API uses services.leadconnectorhq.com.
+// LeadConnector (GoHighLevel) v2 API.
+// All campaign endpoints require `locationId` as a query parameter.
 const GHL_BASE = process.env.GHL_BASE_URL ?? 'https://services.leadconnectorhq.com'
 const GHL_VERSION = process.env.GHL_API_VERSION ?? '2021-07-28'
 
 export interface GHLConfig {
   apiKey?: string
+  locationId?: string
+}
+
+// Location API Keys are JWTs whose payload contains `location_id`.
+// Decode without verifying — we only need the claim, not auth (server verifies the signature).
+function decodeLocationIdFromJwt(key: string): string | undefined {
+  const parts = key.split('.')
+  if (parts.length !== 3) return undefined
+  try {
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8'))
+    const loc = payload.location_id ?? payload.locationId
+    return typeof loc === 'string' && loc.length > 0 ? loc : undefined
+  } catch {
+    return undefined
+  }
 }
 
 function getConfig(override?: GHLConfig): GHLConfig {
-  return {
-    apiKey: override?.apiKey ?? process.env.GHL_LOCATION_API_KEY,
-  }
+  const apiKey = override?.apiKey ?? process.env.GHL_LOCATION_API_KEY
+  const locationId =
+    override?.locationId ??
+    process.env.GHL_LOCATION_ID ??
+    (apiKey ? decodeLocationIdFromJwt(apiKey) : undefined)
+  return { apiKey, locationId }
 }
 
 function isConfigured(cfg: GHLConfig): boolean {
@@ -29,7 +49,11 @@ async function ghlFetch<T>(
     return {} as T
   }
   const url = new URL(`${GHL_BASE}${path}`)
-  for (const [k, v] of Object.entries(params)) {
+  const merged: Record<string, string | number | undefined> = {
+    ...(cfg.locationId ? { locationId: cfg.locationId } : {}),
+    ...params,
+  }
+  for (const [k, v] of Object.entries(merged)) {
     if (v !== undefined && v !== null && v !== '') {
       url.searchParams.set(k, String(v))
     }
@@ -53,7 +77,6 @@ function pickList<T>(resp: GHLListResponse<T>): T[] {
   return resp.campaigns ?? resp.data ?? resp.results ?? []
 }
 
-// ⚠️ verify endpoint path — GHL has used `/campaigns/` and `/marketing/campaigns/`
 export async function fetchCampaigns(override?: GHLConfig): Promise<GHLCampaign[]> {
   const cfg = getConfig(override)
   if (!isConfigured(cfg)) return []
@@ -75,7 +98,6 @@ export async function fetchCampaigns(override?: GHLConfig): Promise<GHLCampaign[
   return out
 }
 
-// ⚠️ verify endpoint — GHL stats endpoint is currently `/campaigns/{id}/stats`
 export async function fetchCampaignStats(
   campaignId: string,
   override?: GHLConfig,
@@ -93,4 +115,9 @@ export async function fetchCampaignStats(
 
 export function isGHLConfigured(override?: GHLConfig): boolean {
   return isConfigured(getConfig(override))
+}
+
+export function resolveLocationId(apiKey?: string): string | undefined {
+  if (!apiKey) return undefined
+  return decodeLocationIdFromJwt(apiKey)
 }
