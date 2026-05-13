@@ -9,6 +9,7 @@ import { transformCampaign } from './transformer'
 import { runAttribution } from './attribution'
 
 const SETTING_KEY_API = 'ghl_api_key'
+const SETTING_KEY_LOCATION = 'ghl_location_id'
 
 async function loadStoreConfig(
   supabase: ReturnType<typeof createServiceClient>,
@@ -18,10 +19,14 @@ async function loadStoreConfig(
     .from('store_settings')
     .select('setting_key, setting_value')
     .eq('store_id', storeId)
-    .eq('setting_key', SETTING_KEY_API)
-    .maybeSingle()
-  if (data?.setting_value) return { apiKey: data.setting_value as string }
-  return {}
+    .in('setting_key', [SETTING_KEY_API, SETTING_KEY_LOCATION])
+  const byKey = new Map((data ?? []).map((r) => [r.setting_key as string, r.setting_value as string | null]))
+  const apiKey = byKey.get(SETTING_KEY_API) ?? undefined
+  const locationId = byKey.get(SETTING_KEY_LOCATION) ?? undefined
+  const cfg: GHLConfig = {}
+  if (apiKey) cfg.apiKey = apiKey
+  if (locationId) cfg.locationId = locationId
+  return cfg
 }
 
 export interface GHLSyncResult {

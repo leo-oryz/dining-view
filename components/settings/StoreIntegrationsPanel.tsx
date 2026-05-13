@@ -42,8 +42,15 @@ function MessageBox({ msg }: { msg: Msg }) {
 
 function GHLBlock({ storeId }: { storeId: string }) {
   const [loading, setLoading] = useState(true)
-  const [info, setInfo] = useState<{ has_api_key: boolean; api_key_last4: string | null; env_fallback: boolean } | null>(null)
+  const [info, setInfo] = useState<{
+    has_api_key: boolean
+    api_key_last4: string | null
+    location_id: string | null
+    derived_location_id: string | null
+    env_fallback: boolean
+  } | null>(null)
   const [apiKey, setApiKey] = useState('')
+  const [locationId, setLocationId] = useState('')
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [msg, setMsg] = useState<Msg>(null)
@@ -52,22 +59,33 @@ function GHLBlock({ storeId }: { storeId: string }) {
     setLoading(true)
     fetch(`/api/settings/ghl?store_id=${storeId}`)
       .then((r) => r.json())
-      .then((json) => json.success && setInfo(json.data))
+      .then((json) => {
+        if (json.success) {
+          setInfo(json.data)
+          setLocationId(json.data.location_id ?? '')
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [storeId])
 
   async function refresh() {
     const res = await fetch(`/api/settings/ghl?store_id=${storeId}`).then((r) => r.json())
-    if (res.success) setInfo(res.data)
+    if (res.success) {
+      setInfo(res.data)
+      setLocationId(res.data.location_id ?? '')
+    }
   }
 
   async function handleSave() {
     setSaving(true); setMsg(null)
     try {
+      const payload: Record<string, string> = { store_id: storeId }
+      if (apiKey) payload.api_key = apiKey
+      payload.location_id = locationId
       const res = await fetch('/api/settings/ghl', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_id: storeId, api_key: apiKey }),
+        body: JSON.stringify(payload),
       })
       const json = await res.json()
       if (json.success) { setMsg({ text: 'Saved', type: 'success' }); setApiKey(''); await refresh() }
@@ -81,7 +99,11 @@ function GHLBlock({ storeId }: { storeId: string }) {
     try {
       const res = await fetch('/api/integrations/ghl/test', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_id: storeId, api_key: apiKey || undefined }),
+        body: JSON.stringify({
+          store_id: storeId,
+          api_key: apiKey || undefined,
+          location_id: locationId || undefined,
+        }),
       })
       const json = await res.json()
       if (json.success && json.data?.success) setMsg({ text: json.data.detail, type: 'success' })
@@ -93,6 +115,7 @@ function GHLBlock({ storeId }: { storeId: string }) {
   }
 
   const hasCredentials = info?.has_api_key || info?.env_fallback
+  const effectiveLocation = locationId || info?.derived_location_id || ''
 
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50/40">
@@ -120,6 +143,24 @@ function GHLBlock({ storeId }: { storeId: string }) {
                 placeholder={info?.has_api_key ? 'Leave blank to keep current' : 'GHL Location API key'}
                 className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Location ID
+                {info?.derived_location_id && !info?.location_id && (
+                  <span className="ml-2 text-xs text-slate-400">(auto-detected from key)</span>
+                )}
+              </label>
+              <input
+                type="text"
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+                placeholder={info?.derived_location_id ?? 'e.g. abc123XYZ (from GHL → Settings → Business Info)'}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+              />
+              {effectiveLocation && (
+                <p className="text-xs text-slate-400 mt-1">Will use: <code className="bg-slate-100 px-1 rounded">{effectiveLocation}</code></p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
