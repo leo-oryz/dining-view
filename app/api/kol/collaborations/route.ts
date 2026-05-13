@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('kol_collaborations')
       .insert({
-        store_id: store_id || '36d016c4-7584-4c0f-a3e8-9562089d57f8',
+        store_id: store_id || '00000000-0000-0000-0000-000000000001',
         kol_name,
         kol_handle: kol_handle || null,
         collaboration_date,
