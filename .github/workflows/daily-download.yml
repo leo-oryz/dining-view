@@ -38,6 +38,14 @@ jobs:
           cache: npm
           cache-dependency-path: agents/download-agent/package-lock.json
 
+      # Root deps must be installed BEFORE the iPOS scrape — the scraper imports
+      # parseIposUpload from ../../lib/parsers/ipos, which transitively requires
+      # `xlsx` from the parent project's node_modules (the agent's own xlsx is at
+      # agents/download-agent/node_modules and isn't visible to a file under
+      # lib/parsers/). Same install also serves the later sync_*.ts steps.
+      - name: Install root deps (xlsx for parsers, supabase-js, etc.)
+        run: npm ci
+
       - name: Install agent deps
         working-directory: agents/download-agent
         run: npm ci
@@ -49,18 +57,6 @@ jobs:
       - name: Scrape iPOS (per-store credentials read from Supabase)
         working-directory: agents/download-agent
         run: npx tsx index.ts
-
-      # Weather sync: in-process node-cron in instrumentation.ts is unreliable on
-      # Zeabur (only fires while the Next.js process is alive). Drive it from CI
-      # instead. The script talks directly to Supabase via service role +
-      # Open-Meteo — no Next.js API hop, so it works even if the deploy is
-      # asleep or AGENT_UPLOAD_BASE_URL is unset. Idempotent (upsert on
-      # store_id,date) over a 30-day window so missed days self-heal — even
-      # ones from a couple weeks ago. (Was 7; widened after a 4/24-4/26 gap
-      # only became visible >7 days later in the trend chart.)
-      - name: Install root deps (for weather sync)
-        if: always()
-        run: npm ci
 
       - name: Sync weather (last 30 days, idempotent)
         if: always()
