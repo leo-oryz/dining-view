@@ -34,7 +34,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22 ships with native WebSocket, which @supabase/supabase-js
+          # >=2.105 now requires when the realtime client constructs. Node 20
+          # crashes immediately on `createClient()` with the WS-missing error.
+          node-version: 22
           cache: npm
           cache-dependency-path: agents/download-agent/package-lock.json
 
