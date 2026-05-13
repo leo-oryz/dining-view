@@ -39,7 +39,11 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const [{ data: dailyRows, error: dailyErr }, { data: postRows, error: postErr }] = await Promise.all([
+  const [
+    { data: dailyRows, error: dailyErr },
+    { data: postRows, error: postErr },
+    { data: accountRow },
+  ] = await Promise.all([
     supabase
       .from('social_daily_metrics')
       .select('date, followers, reach, impressions, profile_visits, website_clicks')
@@ -54,6 +58,12 @@ export async function GET(request: NextRequest) {
       .eq('platform', platformParam)
       .order('reach', { ascending: false })
       .limit(30),
+    supabase
+      .from('social_accounts')
+      .select('last_synced_at, account_handle')
+      .eq('store_id', storeId)
+      .eq('platform', platformParam)
+      .maybeSingle(),
   ])
   if (dailyErr) return apiError(dailyErr.message, 500)
   if (postErr) return apiError(postErr.message, 500)
@@ -110,5 +120,7 @@ export async function GET(request: NextRequest) {
     },
     daily: recent,
     top_posts: posts,
+    last_synced_at: (accountRow?.last_synced_at as string | null) ?? null,
+    account_handle: (accountRow?.account_handle as string | null) ?? null,
   })
 }

@@ -13,7 +13,7 @@ interface StoreInfo {
   tablecheck_shop_id: string | null
 }
 
-type Msg = { text: string; type: 'success' | 'error' } | null
+type Msg = { text: string; type: 'success' | 'error'; details?: string[] } | null
 
 function StatusBadge({ ok, pendingLabel }: { ok: boolean; pendingLabel?: string }) {
   if (ok) {
@@ -35,7 +35,14 @@ function MessageBox({ msg }: { msg: Msg }) {
   if (!msg) return null
   return (
     <div className={`text-sm px-3 py-2 rounded-lg ${msg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-      {msg.text}
+      <div>{msg.text}</div>
+      {msg.details && msg.details.length > 0 && (
+        <ul className="mt-1 list-disc list-inside text-xs space-y-0.5 font-mono">
+          {msg.details.map((d, i) => (
+            <li key={i} className="break-all">{d}</li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -805,6 +812,26 @@ function TableCheckBlock({ store, onSaved }: { store: StoreInfo; onSaved: () => 
 interface SyncSummary {
   text: string
   type: 'success' | 'error'
+  details?: string[]
+}
+
+interface PlatformSyncResult {
+  store?: string
+  platform?: string
+  daily?: number
+  posts?: number
+  skipped?: boolean
+  error?: string
+}
+
+function describeSocialResults(results: PlatformSyncResult[] | undefined): string[] {
+  if (!results?.length) return []
+  return results.map((r) => {
+    const prefix = r.platform ?? '?'
+    if (r.error) return `${prefix}: ${r.error}`
+    if (r.skipped) return `${prefix}: skipped (not configured)`
+    return `${prefix}: ${r.daily ?? 0} day rows, ${r.posts ?? 0} posts`
+  })
 }
 
 export default function StoreIntegrationsPanel({ store, onSaved }: { store: StoreInfo; onSaved: () => void }) {
@@ -816,9 +843,14 @@ export default function StoreIntegrationsPanel({ store, onSaved }: { store: Stor
     try {
       const res = await fetch(url, { method: 'POST' })
       const json = await res.json()
+      const details = label === 'Social' ? describeSocialResults(json.data?.results) : undefined
+      const anyError = details?.some((d) => / error| fail| 400| 401| 403| 500/i.test(d))
       setSyncMsg({
-        text: json.success ? `${label}: synced` : `${label} failed: ${json.error}`,
-        type: json.success ? 'success' : 'error',
+        text: json.success
+          ? `${label}: sync ran${details?.length ? ` (${details.length} platforms)` : ''}`
+          : `${label} failed: ${json.error}`,
+        type: json.success && !anyError ? 'success' : 'error',
+        details,
       })
     } catch { setSyncMsg({ text: `${label} failed`, type: 'error' }) }
     setSyncing(null)

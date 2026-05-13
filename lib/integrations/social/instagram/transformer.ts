@@ -2,6 +2,7 @@ import type {
   IGUserProfile,
   IGInsightsResponse,
   IGMedia,
+  IGTotals,
 } from './types'
 import { toHcmDateString } from '../shared'
 
@@ -49,52 +50,61 @@ function pickPostType(media: IGMedia): string | null {
   return 'post'
 }
 
+function emptyRow(storeId: string, date: string, followers: number | null): SocialDailyRow {
+  return {
+    store_id: storeId,
+    platform: 'instagram',
+    date,
+    followers,
+    reach: null,
+    impressions: null,
+    profile_visits: null,
+    website_clicks: null,
+    updated_at: new Date().toISOString(),
+  }
+}
+
 export function transformIGDaily(
   profile: IGUserProfile | null,
-  insights: IGInsightsResponse | null,
+  reachInsights: IGInsightsResponse | null,
+  totals: IGTotals | null,
   storeId: string,
 ): SocialDailyRow[] {
   const byDate = new Map<string, SocialDailyRow>()
   const followers = profile?.followers_count ?? null
 
-  for (const dp of insights?.data ?? []) {
+  // Build per-day rows from the reach time-series.
+  for (const dp of reachInsights?.data ?? []) {
+    if (dp.name !== 'reach') continue
     for (const v of dp.values ?? []) {
       if (!v.end_time) continue
       const date = toHcmDateString(v.end_time)
       if (!date) continue
-      const existing = byDate.get(date) ?? {
-        store_id: storeId,
-        platform: 'instagram',
-        date,
-        followers,
-        reach: null,
-        impressions: null,
-        profile_visits: null,
-        website_clicks: null,
-        updated_at: new Date().toISOString(),
-      }
-      const value = typeof v.value === 'number' ? v.value : null
-      if (dp.name === 'reach') existing.reach = value
-      else if (dp.name === 'impressions') existing.impressions = value
-      else if (dp.name === 'profile_views') existing.profile_visits = value
-      else if (dp.name === 'website_clicks') existing.website_clicks = value
-      byDate.set(date, existing)
+      const row = byDate.get(date) ?? emptyRow(storeId, date, followers)
+      row.reach = typeof v.value === 'number' ? v.value : null
+      byDate.set(date, row)
     }
   }
 
-  if (byDate.size === 0 && followers != null) {
-    const today = toHcmDateString(Date.now())
-    byDate.set(today, {
-      store_id: storeId,
-      platform: 'instagram',
-      date: today,
-      followers,
-      reach: null,
-      impressions: null,
-      profile_visits: null,
-      website_clicks: null,
-      updated_at: new Date().toISOString(),
-    })
+  // Ensure today's row exists so we have somewhere to attach followers + period totals.
+  const today = toHcmDateString(Date.now())
+  if (!byDate.has(today) && (followers != null || (totals && Object.keys(totals).length > 0))) {
+    byDate.set(today, emptyRow(storeId, today, followers))
+  }
+
+  // Stamp period-level totals onto the latest available row. Post-v22 these are
+  // total_value across the requested window — not true daily numbers — so we only
+  // attach them to one row to avoid double-counting in dashboard sums.
+  if (totals && byDate.size > 0) {
+    const latestDate = Array.from(byDate.keys()).sort().pop()!
+    const row = byDate.get(latestDate)!
+    if (totals.views != null) row.impressions = totals.views
+    if (totals.profile_links_taps != null) row.profile_visits = totals.profile_links_taps
+  }
+
+  // Make sure every row has the current followers count (snapshot, not historical).
+  for (const row of byDate.values()) {
+    if (row.followers == null) row.followers = followers
   }
 
   return Array.from(byDate.values())
@@ -111,10 +121,10 @@ export function transformIGMedia(media: IGMedia[], storeId: string): SocialPostR
     likes: m.like_count ?? 0,
     comments: m.comments_count ?? 0,
     shares: m.shares ?? 0,
-    saves: m.saved ?? 0,
+    saves: m.saves ?? 0,
     reach: m.reach ?? 0,
-    impressions: m.impressions ?? 0,
-    views: m.video_views ?? 0,
+    impressions: m.views ?? 0,
+    views: m.views ?? 0,
     updated_at: new Date().toISOString(),
   }))
 }

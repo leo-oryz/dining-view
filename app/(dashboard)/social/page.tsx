@@ -12,6 +12,7 @@ import {
   Activity,
   Plus,
   ThumbsUp,
+  RefreshCw,
 } from 'lucide-react'
 import {
   LineChart,
@@ -63,6 +64,8 @@ interface SocialSummary {
   }
   daily?: DailyPoint[]
   top_posts?: PostRow[]
+  last_synced_at?: string | null
+  account_handle?: string | null
   manual_entries?: {
     date: string
     followers: number | null
@@ -72,6 +75,27 @@ interface SocialSummary {
     top_post_views: number | null
     notes: string | null
   }[]
+}
+
+interface PlatformSyncResult {
+  platform?: string
+  daily?: number
+  posts?: number
+  skipped?: boolean
+  error?: string
+}
+
+function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return 'never'
+  const ms = Date.now() - new Date(iso).getTime()
+  if (!Number.isFinite(ms) || ms < 0) return 'just now'
+  const m = Math.floor(ms / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  return `${d}d ago`
 }
 
 const PLATFORMS: { key: Platform; label: string; icon: typeof Camera; tone: string }[] = [
@@ -106,6 +130,38 @@ export default function SocialDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [showXhsForm, setShowXhsForm] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<{ text: string; type: 'success' | 'error'; details?: string[] } | null>(null)
+
+  async function handleSync() {
+    setSyncing(true)
+    setSyncMsg(null)
+    try {
+      const res = await fetch('/api/sync/social', { method: 'POST' })
+      const json = await res.json()
+      if (!json.success) {
+        setSyncMsg({ text: json.error || 'Sync failed', type: 'error' })
+      } else {
+        const results = (json.data?.results ?? []) as PlatformSyncResult[]
+        const details = results.map((r) => {
+          if (r.error) return `${r.platform}: ${r.error}`
+          if (r.skipped) return `${r.platform}: skipped (not configured)`
+          return `${r.platform}: ${r.daily ?? 0} day rows, ${r.posts ?? 0} posts`
+        })
+        const hasErr = results.some((r) => r.error)
+        setSyncMsg({
+          text: hasErr ? 'Sync ran with errors' : 'Sync complete',
+          type: hasErr ? 'error' : 'success',
+          details,
+        })
+        setRefreshKey((k) => k + 1)
+      }
+    } catch (err) {
+      setSyncMsg({ text: err instanceof Error ? err.message : 'Sync failed', type: 'error' })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -125,30 +181,62 @@ export default function SocialDashboardPage() {
   }, [active, refreshKey])
 
   const current = PLATFORMS.find((p) => p.key === active)!
+  const isManualPlatform = active === 'xiaohongshu'
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {PLATFORMS.map((p) => {
-          const Icon = p.icon
-          const isActive = p.key === active
-          return (
+      <div className="flex flex-wrap items-center gap-2 pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto flex-1 min-w-0">
+          {PLATFORMS.map((p) => {
+            const Icon = p.icon
+            const isActive = p.key === active
+            return (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setActive(p.key)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                  isActive
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Icon size={16} className={isActive ? 'text-white' : p.tone} />
+                {p.label}
+              </button>
+            )
+          })}
+        </div>
+        {!isManualPlatform && (
+          <div className="flex items-center gap-3 ml-auto">
+            <span className="text-xs text-slate-500">
+              Last synced: <span className="text-slate-700 font-medium">{relativeTime(data?.last_synced_at)}</span>
+            </span>
             <button
-              key={p.key}
               type="button"
-              onClick={() => setActive(p.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                isActive
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
+              onClick={handleSync}
+              disabled={syncing}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200 disabled:opacity-50"
             >
-              <Icon size={16} className={isActive ? 'text-white' : p.tone} />
-              {p.label}
+              <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Syncing…' : 'Sync now'}
             </button>
-          )
-        })}
+          </div>
+        )}
       </div>
+
+      {syncMsg && (
+        <div className={`text-sm px-3 py-2 rounded-lg ${syncMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <div>{syncMsg.text}</div>
+          {syncMsg.details && syncMsg.details.length > 0 && (
+            <ul className="mt-1 list-disc list-inside text-xs space-y-0.5 font-mono">
+              {syncMsg.details.map((d, i) => (
+                <li key={i} className="break-all">{d}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="text-sm text-slate-400">{t('common.loading')}</div>

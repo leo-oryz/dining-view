@@ -1,7 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   fetchIGProfile,
-  fetchIGInsights,
+  fetchIGDailyReach,
+  fetchIGTotals,
   fetchIGMedia,
   isIGConfigured,
   type IGConfig,
@@ -130,12 +131,13 @@ export async function syncSocial(options?: {
           const days = syncWindowDays(lastSynced)
           const untilUnix = Math.floor(Date.now() / 1000)
           const sinceUnix = untilUnix - days * 86400
-          const [profile, insights, media] = await Promise.all([
+          const [profile, reachInsights, totals, media] = await Promise.all([
             fetchIGProfile(creds.ig),
-            fetchIGInsights({ sinceUnix, untilUnix }, creds.ig),
+            fetchIGDailyReach({ sinceUnix, untilUnix }, creds.ig),
+            fetchIGTotals({ sinceUnix, untilUnix }, creds.ig),
             fetchIGMedia({ limit: 50 }, creds.ig),
           ])
-          const dailyRows = transformIGDaily(profile, insights, storeId)
+          const dailyRows = transformIGDaily(profile, reachInsights, totals, storeId)
           if (dailyRows.length) {
             const { error } = await supabase
               .from('social_daily_metrics')
