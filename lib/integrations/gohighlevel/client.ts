@@ -77,22 +77,26 @@ function pickList<T>(resp: GHLListResponse<T>): T[] {
   return resp.campaigns ?? resp.data ?? resp.results ?? []
 }
 
+// GHL v2 /campaigns/ rejects unknown query params (422 "property X should not exist").
+// Accepted: locationId (required, added in ghlFetch), limit, skip.
+// Page through with limit/skip; stop when a page comes back shorter than limit.
 export async function fetchCampaigns(override?: GHLConfig): Promise<GHLCampaign[]> {
   const cfg = getConfig(override)
   if (!isConfigured(cfg)) return []
   const out: GHLCampaign[] = []
-  let page: string | number | undefined = 1
+  const limit = 100
+  let skip = 0
   let safety = 0
   while (true) {
     const resp: GHLListResponse<GHLCampaign> = await ghlFetch<GHLListResponse<GHLCampaign>>(
       '/campaigns/',
-      { page },
+      { limit, skip },
       cfg,
     )
-    out.push(...pickList(resp))
-    const next: string | number | null | undefined = resp.meta?.nextPage ?? resp.nextPage ?? null
-    if (!next) break
-    page = next
+    const list = pickList(resp)
+    out.push(...list)
+    if (list.length < limit) break
+    skip += limit
     if (++safety > 50) break
   }
   return out
