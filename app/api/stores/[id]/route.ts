@@ -49,16 +49,15 @@ export async function PUT(
 
       const merged = { ...(existing?.credentials || {}) }
       for (const [provider, creds] of Object.entries(body.credentials)) {
-        if (creds && typeof creds === 'object') {
-          const c = creds as Record<string, string>
-          // Only update if user provided actual values (not empty strings)
-          if (c.email || c.password) {
-            merged[provider] = { ...(merged[provider] || {}), ...c }
-            // Remove empty string values
-            for (const k of Object.keys(merged[provider])) {
-              if (!merged[provider][k]) delete merged[provider][k]
-            }
-          }
+        if (!creds || typeof creds !== 'object') continue
+        const incoming = creds as Record<string, string>
+        // Skip if all fields are empty (no actual update for this provider)
+        const hasAnyValue = Object.values(incoming).some(v => v && String(v).trim())
+        if (!hasAnyValue) continue
+        merged[provider] = { ...(merged[provider] || {}), ...incoming }
+        // Remove empty string values from the merged provider entry
+        for (const k of Object.keys(merged[provider])) {
+          if (!merged[provider][k]) delete merged[provider][k]
         }
       }
       update.credentials = merged
