@@ -1,11 +1,12 @@
 import type {
   FBPageProfile,
   FBInsightsResponse,
+  FBInsightDataPoint,
   FBPost,
   FBPostListResponse,
 } from './types'
 
-const GRAPH_BASE = process.env.FACEBOOK_GRAPH_BASE ?? 'https://graph.facebook.com/v19.0'
+const GRAPH_BASE = process.env.FACEBOOK_GRAPH_BASE ?? 'https://graph.facebook.com/v22.0'
 
 export interface FBConfig {
   accessToken?: string
@@ -58,24 +59,42 @@ export async function fetchFBProfile(override?: FBConfig): Promise<FBPageProfile
   )
 }
 
-// ⚠️ Facebook Graph metric names change frequently — verify the active list
-// against https://developers.facebook.com/docs/graph-api/reference/v19.0/insights
+// Page Insights metric names rotate in/out — Meta deprecated several in Nov 2025
+// and more in June 2026. Fetch one metric at a time so a single invalid name
+// (HTTP 400) doesn't blow up the whole sync.
+const FB_PAGE_METRICS = [
+  'page_impressions_unique', // reach (most stable)
+  'page_impressions',
+  'page_post_engagements',
+  'page_video_views',
+] as const
+
 export async function fetchFBInsights(
   params: { sinceUnix: number; untilUnix: number },
   override?: FBConfig,
 ): Promise<FBInsightsResponse | null> {
   const cfg = getConfig(override)
   if (!isFBConfigured(cfg)) return null
-  return fbFetch<FBInsightsResponse>(
-    `/${cfg.pageId}/insights`,
-    {
-      metric: 'page_impressions,page_impressions_unique,page_views_total',
-      period: 'day',
-      since: params.sinceUnix,
-      until: params.untilUnix,
-    },
-    cfg,
-  )
+
+  const merged: FBInsightDataPoint[] = []
+  for (const metric of FB_PAGE_METRICS) {
+    try {
+      const resp = await fbFetch<FBInsightsResponse>(
+        `/${cfg.pageId}/insights`,
+        {
+          metric,
+          period: 'day',
+          since: params.sinceUnix,
+          until: params.untilUnix,
+        },
+        cfg,
+      )
+      for (const dp of resp.data ?? []) merged.push(dp)
+    } catch (err) {
+      console.warn(`[FB] insights metric ${metric} skipped:`, err instanceof Error ? err.message : err)
+    }
+  }
+  return { data: merged }
 }
 
 export async function fetchFBPosts(

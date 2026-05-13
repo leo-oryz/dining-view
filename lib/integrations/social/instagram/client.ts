@@ -61,22 +61,29 @@ export async function fetchIGProfile(override?: IGConfig): Promise<IGUserProfile
 
 // Daily reach is the only user-level metric that still supports period=day time-series
 // post-v22. Everything else is total_value only — fetched separately via fetchIGTotals.
+// Catches and returns null on 400/permission errors so callers can still write the
+// followers snapshot even when `instagram_manage_insights` scope is missing.
 export async function fetchIGDailyReach(
   params: { sinceUnix: number; untilUnix: number },
   override?: IGConfig,
 ): Promise<IGInsightsResponse | null> {
   const cfg = getConfig(override)
   if (!isIGConfigured(cfg)) return null
-  return igFetch<IGInsightsResponse>(
-    `/${cfg.igUserId}/insights`,
-    {
-      metric: 'reach',
-      period: 'day',
-      since: params.sinceUnix,
-      until: params.untilUnix,
-    },
-    cfg,
-  )
+  try {
+    return await igFetch<IGInsightsResponse>(
+      `/${cfg.igUserId}/insights`,
+      {
+        metric: 'reach',
+        period: 'day',
+        since: params.sinceUnix,
+        until: params.untilUnix,
+      },
+      cfg,
+    )
+  } catch (err) {
+    console.warn('[IG] daily reach insights skipped:', err instanceof Error ? err.message : err)
+    return null
+  }
 }
 
 // Period totals replacing the deprecated daily impressions/profile_views/website_clicks.
