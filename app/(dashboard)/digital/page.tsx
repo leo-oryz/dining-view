@@ -72,7 +72,8 @@ export default function DigitalPage() {
   const [conversionData, setConversionData] = useState<ConversionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error' | 'skipped'>('idle')
+  const [syncDetail, setSyncDetail] = useState<string | null>(null)
   const [activePreset, setActivePreset] = useState<number | null>(30)
 
   const RANGE_OPTIONS = [
@@ -132,20 +133,36 @@ export default function DigitalPage() {
   async function handleSync() {
     setSyncing(true)
     setSyncStatus('idle')
+    setSyncDetail(null)
     try {
       const res = await fetch('/api/google/sync', { method: 'POST' })
       const json = await res.json()
       if (json.success) {
-        setSyncStatus('success')
-        loadData(startDate, endDate)
+        const stores = (json.data ?? {}) as Record<string, Record<string, string>>
+        const entries = Object.entries(stores)
+        const isSkip = (msg?: string) => !!msg && msg.startsWith('skipped')
+        const allSkipped = entries.length > 0 && entries.every(([, r]) => isSkip(r.gsc) && isSkip(r.ga4))
+        if (allSkipped) {
+          setSyncStatus('skipped')
+          setSyncDetail(t('digital.syncSkippedHint'))
+        } else {
+          setSyncStatus('success')
+          const summary = entries
+            .map(([name, r]) => `${name}: GSC ${r.gsc ?? '—'} / GA4 ${r.ga4 ?? '—'}`)
+            .join('\n')
+          setSyncDetail(summary || null)
+          loadData(startDate, endDate)
+        }
       } else {
         setSyncStatus('error')
+        setSyncDetail(json.error ?? null)
       }
-    } catch {
+    } catch (e) {
       setSyncStatus('error')
+      setSyncDetail(e instanceof Error ? e.message : null)
     } finally {
       setSyncing(false)
-      setTimeout(() => setSyncStatus('idle'), 5000)
+      setTimeout(() => { setSyncStatus('idle'); setSyncDetail(null) }, 10000)
     }
   }
 
@@ -222,16 +239,31 @@ export default function DigitalPage() {
           className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors ${
             syncStatus === 'success'
               ? 'bg-green-50 text-green-700 border border-green-200'
+              : syncStatus === 'skipped'
+              ? 'bg-amber-50 text-amber-700 border border-amber-200'
               : syncStatus === 'error'
               ? 'bg-red-50 text-red-700 border border-red-200'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           } disabled:opacity-50`}
         >
           <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-          {syncing ? t('digital.syncing') : syncStatus === 'success' ? t('digital.syncSuccess') : syncStatus === 'error' ? t('digital.syncFailed') : t('digital.syncNow')}
+          {syncing
+            ? t('digital.syncing')
+            : syncStatus === 'success'
+            ? t('digital.syncSuccess')
+            : syncStatus === 'skipped'
+            ? t('digital.syncSkipped')
+            : syncStatus === 'error'
+            ? t('digital.syncFailed')
+            : t('digital.syncNow')}
         </button>
+        {syncDetail && (
+          <p className={`text-xs mt-3 max-w-md whitespace-pre-line ${syncStatus === 'skipped' ? 'text-amber-700' : syncStatus === 'error' ? 'text-red-600' : 'text-slate-500'}`}>
+            {syncDetail}
+          </p>
+        )}
         <p className="text-slate-400 text-xs mt-4">
-          Requires GSC site_url + GA4 property_id configured in Settings per store.
+          {t('digital.noDataHint')}
         </p>
       </div>
     )
@@ -259,13 +291,23 @@ export default function DigitalPage() {
           className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
             syncStatus === 'success'
               ? 'bg-green-50 text-green-700 border border-green-200'
+              : syncStatus === 'skipped'
+              ? 'bg-amber-50 text-amber-700 border border-amber-200'
               : syncStatus === 'error'
               ? 'bg-red-50 text-red-700 border border-red-200'
               : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
           } disabled:opacity-50`}
         >
           <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-          {syncing ? t('digital.syncing') : syncStatus === 'success' ? t('digital.syncSuccess') : syncStatus === 'error' ? t('digital.syncFailed') : t('digital.syncNow')}
+          {syncing
+            ? t('digital.syncing')
+            : syncStatus === 'success'
+            ? t('digital.syncSuccess')
+            : syncStatus === 'skipped'
+            ? t('digital.syncSkipped')
+            : syncStatus === 'error'
+            ? t('digital.syncFailed')
+            : t('digital.syncNow')}
         </button>
       </div>
 

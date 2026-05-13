@@ -291,7 +291,10 @@ const vi = {
   'digital.syncNow': '立即同步',
   'digital.syncing': '同步中...',
   'digital.syncSuccess': '同步完成',
+  'digital.syncSkipped': '尚未設定',
+  'digital.syncSkippedHint': '所有分店都缺少 Google Search Console 或 GA4 設定。請到 Settings 各分店分別填入 GSC site_url 與 GA4 property_id，存檔後再回來同步。',
   'digital.syncFailed': '同步失敗',
+  'digital.noDataHint': '需要先在 Settings 為每家分店設定 GSC site_url 與 GA4 property_id。',
 
   // Ads page
   'ads.title': '廣告管理',

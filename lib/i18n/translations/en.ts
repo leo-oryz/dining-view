@@ -291,7 +291,10 @@ const en = {
   'digital.syncNow': 'Sync Now',
   'digital.syncing': 'Syncing...',
   'digital.syncSuccess': 'Sync complete',
+  'digital.syncSkipped': 'Not configured',
+  'digital.syncSkippedHint': 'No store has GSC or GA4 credentials configured. Go to Settings and fill in GSC site_url and GA4 property_id for each store, then come back to sync.',
   'digital.syncFailed': 'Sync failed',
+  'digital.noDataHint': 'Configure GSC site_url and GA4 property_id per store in Settings before syncing.',
 
   // Ads page
   'ads.title': 'Ad Management',
