@@ -25,13 +25,6 @@ type Ga4Row = {
   sessions: number
 }
 
-type ConversionRow = {
-  date: string
-  ga4_clicks: number
-  new_members: number
-  conversion_rate: number
-}
-
 function KpiCard({ title, value, icon: Icon, change }: {
   title: string
   value: string
@@ -69,7 +62,6 @@ export default function DigitalPage() {
   const { t } = useI18n()
   const [gscData, setGscData] = useState<GscRow[]>([])
   const [ga4Data, setGa4Data] = useState<Ga4Row[]>([])
-  const [conversionData, setConversionData] = useState<ConversionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error' | 'skipped'>('idle')
@@ -92,19 +84,17 @@ export default function DigitalPage() {
 
   const loadData = useCallback(async (sd: string, ed: string) => {
     setLoading(true)
-    const [gscRes, ga4Res, convRes] = await Promise.all([
+    const [gscRes, ga4Res] = await Promise.all([
       fetch(`/api/google/gsc/brand-search?start_date=${sd}&end_date=${ed}`),
       fetch(`/api/google/ga4/events?start_date=${sd}&end_date=${ed}`),
-      fetch(`/api/google/conversion?start_date=${sd}&end_date=${ed}`),
     ])
 
-    const [gscJson, ga4Json, convJson] = await Promise.all([
-      gscRes.json(), ga4Res.json(), convRes.json(),
+    const [gscJson, ga4Json] = await Promise.all([
+      gscRes.json(), ga4Res.json(),
     ])
 
     if (gscJson.success) setGscData(gscJson.data || [])
     if (ga4Json.success) setGa4Data(ga4Json.data || [])
-    if (convJson.success) setConversionData(convJson.data || [])
     setLoading(false)
   }, [])
 
@@ -204,16 +194,6 @@ export default function DigitalPage() {
   const totalImpressions = gscData.reduce((s, r) => s + r.impressions, 0)
   const totalSessions = ga4Data.reduce((s, r) => s + r.sessions, 0)
   const totalNewUsers = ga4Data.reduce((s, r) => s + r.new_users, 0)
-
-  // Conversion chart
-  const convChartData = [...conversionData]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((row) => ({
-      date: row.date.slice(5),
-      clicks: row.ga4_clicks,
-      newMembers: row.new_members,
-      rate: (row.conversion_rate * 100),
-    }))
 
   if (loading) {
     return (
@@ -383,24 +363,6 @@ export default function DigitalPage() {
               <Legend />
               <Bar dataKey="sessions" name={t('digital.sessionsLabel')} fill="#3b82f6" radius={[4, 4, 0, 0]} />
               <Bar dataKey="newUsers" name={t('digital.newUsers')} fill="#10b981" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* Conversion Chart */}
-      {convChartData.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">{t('digital.memberConversion')} (GA4 {t('digital.clicks')} → Ocard {t('digital.newMembers')})</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={convChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#94a3b8" />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="clicks" name={t('digital.ga4Clicks')} fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="newMembers" name={t('digital.newMembers')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
