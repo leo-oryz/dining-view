@@ -707,7 +707,7 @@ const en = {
 
   // HR dashboard
   'hr.notConnected': 'HR not connected',
-  'hr.connectHint': 'Connect BetterHR in Settings to enable HR analytics',
+  'hr.connectHint': 'Upload HR data to enable HR analytics',
   'hr.goToSettings': 'Go to Settings',
   'hr.headcount': 'Headcount Summary',
   'hr.activeStaff': 'Active Staff',

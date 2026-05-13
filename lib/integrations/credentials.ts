@@ -11,7 +11,6 @@ export interface CredentialsSchema {
   line: { channel_access_token: string; channel_secret?: string }
   tablecheck: { api_key: string }
   ipos: { email: string; password: string; brand_uid?: string; company_uid?: string }
-  betterhr: { api_key: string; company_id: string }
   ghl: { api_key: string; location_id?: string }
   instagram: { access_token: string; account_id?: string }
   cloudbeds: { api_key: string; property_id: string }
@@ -27,7 +26,6 @@ const REQUIRED_FIELDS: { [P in Provider]: ReadonlyArray<keyof CredentialsSchema[
   line: ['channel_access_token'],
   tablecheck: ['api_key'],
   ipos: ['email', 'password'],
-  betterhr: ['api_key', 'company_id'],
   ghl: ['api_key'],
   instagram: ['access_token'],
   cloudbeds: ['api_key', 'property_id'],

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Users, Mail, Camera, Music2, CalendarRange,
+  Mail, Camera, Music2, CalendarRange,
   RefreshCw, CheckCircle2, AlertCircle, Clock,
   Megaphone, BarChart3, Search, MessageSquare,
 } from 'lucide-react'
@@ -36,124 +36,6 @@ function MessageBox({ msg }: { msg: Msg }) {
   return (
     <div className={`text-sm px-3 py-2 rounded-lg ${msg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
       {msg.text}
-    </div>
-  )
-}
-
-function BetterHRBlock({ storeId }: { storeId: string }) {
-  const [loading, setLoading] = useState(true)
-  const [info, setInfo] = useState<{ has_api_key: boolean; api_key_last4: string | null; company_id: string | null; env_fallback: boolean } | null>(null)
-  const [apiKey, setApiKey] = useState('')
-  const [companyId, setCompanyId] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [msg, setMsg] = useState<Msg>(null)
-
-  useEffect(() => {
-    setLoading(true)
-    fetch(`/api/settings/betterhr?store_id=${storeId}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success) {
-          setInfo(json.data)
-          setCompanyId(json.data.company_id ?? '')
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [storeId])
-
-  async function refresh() {
-    const res = await fetch(`/api/settings/betterhr?store_id=${storeId}`).then((r) => r.json())
-    if (res.success) setInfo(res.data)
-  }
-
-  async function handleSave() {
-    setSaving(true); setMsg(null)
-    try {
-      const res = await fetch('/api/settings/betterhr', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_id: storeId, api_key: apiKey || undefined, company_id: companyId }),
-      })
-      const json = await res.json()
-      if (json.success) {
-        setMsg({ text: 'Saved', type: 'success' })
-        setApiKey('')
-        await refresh()
-      } else {
-        setMsg({ text: `Save failed: ${json.error}`, type: 'error' })
-      }
-    } catch { setMsg({ text: 'Save failed', type: 'error' }) }
-    setSaving(false)
-  }
-
-  async function handleTest() {
-    setTesting(true); setMsg(null)
-    try {
-      const res = await fetch('/api/integrations/betterhr/test', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_id: storeId, api_key: apiKey || undefined, company_id: companyId || undefined }),
-      })
-      const json = await res.json()
-      if (json.success && json.data?.success) {
-        setMsg({ text: `Connection OK — ${json.data.employeeCount} employees visible`, type: 'success' })
-      } else {
-        setMsg({ text: `Connection failed: ${json.error || json.data?.error || 'unknown'}`, type: 'error' })
-      }
-    } catch (err) {
-      setMsg({ text: `Connection failed: ${err instanceof Error ? err.message : 'unknown'}`, type: 'error' })
-    }
-    setTesting(false)
-  }
-
-  const hasCredentials = (info?.has_api_key && info?.company_id) || info?.env_fallback
-
-  return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50/40">
-      <div className="px-4 py-2.5 border-b border-slate-200 flex items-center gap-2">
-        <Users size={14} className="text-purple-500" />
-        <h5 className="text-xs font-semibold text-slate-900">BetterHR</h5>
-        <StatusBadge ok={!!hasCredentials} />
-      </div>
-      <div className="p-4 space-y-3">
-        {loading ? (
-          <p className="text-xs text-slate-400">Loading…</p>
-        ) : (
-          <>
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                API Key
-                {info?.has_api_key && info.api_key_last4 && (
-                  <span className="ml-2 text-xs text-slate-400">(current: ••••{info.api_key_last4})</span>
-                )}
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={info?.has_api_key ? 'Leave blank to keep current' : 'BetterHR API key'}
-                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Company ID</label>
-              <input
-                type="text"
-                value={companyId}
-                onChange={(e) => setCompanyId(e.target.value)}
-                placeholder="BetterHR company ID"
-                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
-              <button onClick={handleTest} disabled={testing} className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs rounded-lg hover:bg-slate-200 disabled:opacity-50">{testing ? 'Testing…' : 'Test'}</button>
-            </div>
-          </>
-        )}
-        <MessageBox msg={msg} />
-      </div>
     </div>
   )
 }
@@ -906,7 +788,6 @@ export default function StoreIntegrationsPanel({ store, onSaved }: { store: Stor
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-2">Sync now</span>
         {[
-          { label: 'BetterHR', url: '/api/sync/betterhr' },
           { label: 'GoHighLevel', url: '/api/sync/ghl' },
           { label: 'Social', url: '/api/sync/social' },
           { label: 'TableCheck', url: '/api/sync/tablecheck' },
@@ -930,7 +811,6 @@ export default function StoreIntegrationsPanel({ store, onSaved }: { store: Stor
         <GA4Block storeId={store.id} />
         <GSCBlock storeId={store.id} />
         <LineBlock storeId={store.id} />
-        <BetterHRBlock storeId={store.id} />
         <GHLBlock storeId={store.id} />
         <InstagramBlock storeId={store.id} />
         <TikTokBlock storeId={store.id} />

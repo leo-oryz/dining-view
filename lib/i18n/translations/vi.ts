@@ -707,7 +707,7 @@ const vi = {
 
   // HR dashboard
   'hr.notConnected': 'Chưa kết nối HR',
-  'hr.connectHint': 'Kết nối BetterHR trong Cài đặt để bật phân tích nhân sự',
+  'hr.connectHint': 'Tải lên dữ liệu nhân sự để bật phân tích nhân sự',
   'hr.goToSettings': 'Đến Cài đặt',
   'hr.headcount': 'Tổng quan nhân sự',
   'hr.activeStaff': 'Nhân viên đang làm',

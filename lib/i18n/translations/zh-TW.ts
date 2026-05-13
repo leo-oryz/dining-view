@@ -707,7 +707,7 @@ const zhTW = {
 
   // HR dashboard
   'hr.notConnected': '尚未連接 HR',
-  'hr.connectHint': '請至「設定」連接 BetterHR 以啟用人資分析',
+  'hr.connectHint': '請上傳 HR 資料以啟用人資分析',
   'hr.goToSettings': '前往設定',
   'hr.headcount': '人力概況',
   'hr.activeStaff': '在職人數',
