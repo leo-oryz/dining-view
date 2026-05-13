@@ -216,8 +216,22 @@ export default function DigitalPage() {
         </div>
         <h2 className="text-xl font-semibold text-slate-900 mb-2">{t('digital.title')}</h2>
         <p className="text-slate-500 text-sm mb-4">{t('digital.noData')}</p>
-        <p className="text-slate-400 text-xs">
-          Please set up Google Service Account and run POST /api/google/sync
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors ${
+            syncStatus === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : syncStatus === 'error'
+              ? 'bg-red-50 text-red-700 border border-red-200'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          } disabled:opacity-50`}
+        >
+          <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? t('digital.syncing') : syncStatus === 'success' ? t('digital.syncSuccess') : syncStatus === 'error' ? t('digital.syncFailed') : t('digital.syncNow')}
+        </button>
+        <p className="text-slate-400 text-xs mt-4">
+          Requires GSC site_url + GA4 property_id configured in Settings per store.
         </p>
       </div>
     )
