@@ -143,44 +143,68 @@ export class IposScraper {
     log.info(`✓ logged in, landed at ${page.url()}`)
   }
 
-  // Capture the dashboard chrome with the left sidebar EXPANDED so we can read
-  // the real report URLs out of the menu's <a href> attributes. Run 25840233849
-  // showed that the slugs I'd guessed (/bao-cao/tong-quan-doanh-thu etc.) all
-  // 404; the iPOS Fabi sidebar is collapsed by default and doesn't render menu
-  // items in HTML until ☰ is clicked. This dumps both states so the failing
-  // run's artifacts contain the menu DOM for selector calibration.
+  // Discover the iPOS Fabi report URLs by clicking through the Vue sidebar.
+  // The sidebar items don't render as <a href> — they're .list-menu__item
+  // divs with @click handlers that fire $router.push(), so the destination
+  // is invisible in static HTML. We have to click and observe.
+  //
+  // Strategy: click "Báo cáo" (Reports), then click each known report name in
+  // Vietnamese (matching the 4 reports the parser expects), snapshotting after
+  // each so a failing CI run lands the full menu DOM + every report's landing
+  // page in artifacts. URL after each click is logged so we can pin
+  // REPORT_ROUTES to real slugs on the next iteration.
   async exploreDashboardMenu(): Promise<void> {
     const page = this.requirePage()
-    log.step('exploring dashboard menu (sidebar toggle)')
-    await snapshotForce(page, 'A1_dashboard_collapsed')
+    log.step('exploring dashboard menu via clicks')
+    await snapshotForce(page, 'A0_dashboard_initial')
+    log.info(`URL: ${page.url()}`)
 
-    // Try every plausible affordance for the menu toggle. Vue UI libs render
-    // hamburgers in lots of ways; we'll snapshot whatever we find and move on.
-    const toggleSelectors = [
-      'button.hamburger',
-      'button[aria-label*="menu" i]',
-      'button[aria-label*="sidebar" i]',
-      '.sidebar-toggle',
-      '.hamburger-box',
-      'header button:has(svg)',
-      'nav button:has(svg)',
-      'button:has-text("☰")',
+    // 1) Click "Báo cáo" parent.
+    const reportsParent = page.locator('.list-menu__item').filter({ hasText: 'Báo cáo' }).first()
+    if (await reportsParent.count() === 0) {
+      log.warn('no .list-menu__item containing "Báo cáo" found — sidebar markup may have changed')
+      return
+    }
+    await reportsParent.click().catch((e) => log.warn('click Báo cáo failed:', e))
+    await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {})
+    await page.waitForTimeout(500)
+    log.info(`after Báo cáo click, URL: ${page.url()}`)
+    await snapshotForce(page, 'B1_reports_landing')
+
+    // 2) For each of the 4 reports we ultimately want, find a matching link or
+    // menu item by its Vietnamese label and click it; snapshot the landing
+    // page so we can read its URL + DOM out of the artifact.
+    //
+    // Vietnamese labels are best-effort guesses — they're what an iPOS Fabi
+    // restaurant operator would normally read in the menu. If a label miss,
+    // we'll see "no match" in the log and the artifacts will still contain
+    // B1_reports_landing for inspection.
+    const targets: Array<{ key: string; labels: string[] }> = [
+      { key: 'sale_summary',    labels: ['Tổng quan doanh thu', 'Tổng quan', 'Doanh thu theo ngày'] },
+      { key: 'payment_methods', labels: ['Phương thức thanh toán', 'Phương thức TT', 'Hình thức thanh toán'] },
+      { key: 'items',           labels: ['Bán hàng theo món', 'Báo cáo bán hàng theo món', 'Theo món', 'Bán hàng theo mặt hàng'] },
+      { key: 'source',          labels: ['Nguồn đơn hàng', 'Theo nguồn', 'Đơn hàng theo nguồn'] },
     ]
-    let clicked = false
-    for (const sel of toggleSelectors) {
-      const loc = page.locator(sel).first()
-      if ((await loc.count()) > 0 && await loc.isVisible().catch(() => false)) {
-        await loc.click().catch(() => {})
-        clicked = true
-        log.info(`clicked menu toggle: ${sel}`)
-        break
+
+    for (const t of targets) {
+      let clicked = false
+      for (const label of t.labels) {
+        // Try generic clickable elements containing the exact text.
+        const loc = page.locator(`a, button, .menu-item, .list-menu__item, li, div`).filter({ hasText: label }).first()
+        if (await loc.count() > 0 && await loc.isVisible().catch(() => false)) {
+          await loc.click().catch(() => {})
+          await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
+          await page.waitForTimeout(400)
+          log.info(`after click "${label}" (${t.key}), URL: ${page.url()}`)
+          await snapshotForce(page, `B2_${t.key}_landing`)
+          clicked = true
+          break
+        }
+      }
+      if (!clicked) {
+        log.warn(`no menu item matched any label for ${t.key}: ${t.labels.join(' | ')}`)
       }
     }
-    if (!clicked) {
-      log.warn('no menu toggle matched; sidebar may already be open or selector is different')
-    }
-    await page.waitForTimeout(800)
-    await snapshotForce(page, 'A2_dashboard_after_toggle')
   }
 
   // Some accounts have to pick a brand/company after login. If brand/company
