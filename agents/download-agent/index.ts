@@ -46,6 +46,7 @@ async function main() {
 
   log.info('════ summary ════')
   let failed = 0
+  let totalWritten = 0
   for (const r of results) {
     if ('error' in r) {
       log.err(`  store ${r.storeId}: FAILED — ${r.error}`)
@@ -54,10 +55,19 @@ async function main() {
       log.info(`  store ${r.storeId}: daily=${r.written.daily} hourly=${r.written.hourly} products=${r.written.products} parseErr=${r.parseErrors.length} writeErr=${r.writeErrors.length}`)
       if (r.parseErrors.length > 0) log.warn(`    parse errors: ${r.parseErrors.join(' | ')}`)
       if (r.writeErrors.length > 0) log.warn(`    write errors: ${r.writeErrors.join(' | ')}`)
+      totalWritten += r.written.daily + r.written.hourly + r.written.products
     }
   }
   if (failed > 0) {
     log.err(`${failed}/${results.length} store(s) failed`)
+    process.exit(1)
+  }
+  // Even when every store ran to completion without throwing, a "successful"
+  // run that wrote zero rows almost always means the scrape silently failed
+  // (missing date picker, missing export button, etc.). Surface it as a CI
+  // failure so the `if: failure()` artifact upload step actually fires.
+  if (totalWritten === 0) {
+    log.err('no rows written across any store — treating as failure so debug artifacts upload')
     process.exit(1)
   }
 }
