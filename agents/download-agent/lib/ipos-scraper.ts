@@ -90,11 +90,15 @@ export class IposScraper {
     await snapshot(page, '01_login_loaded')
 
     const emailField = await this.findFirstVisible(page, [
+      // Confirmed via CI artifact 25839969145 — fabi.ipos.vn names the email
+      // input `email_input` with no `type` attribute and no placeholder; the
+      // "Tài Khoản" label is rendered separately. Keep generic fallbacks below
+      // in case iPOS swaps frameworks or A/B tests the form.
+      'input[name="email_input"]',
       'input[type="email"]',
       'input[name="email"]',
       'input[name="username"]',
       'input[placeholder*="mail" i]',
-      'input[placeholder*="Email" i]',
       'input[placeholder*="tài khoản" i]',
       'input[autocomplete="username"]',
       'input.email',
