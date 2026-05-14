@@ -143,6 +143,46 @@ export class IposScraper {
     log.info(`✓ logged in, landed at ${page.url()}`)
   }
 
+  // Capture the dashboard chrome with the left sidebar EXPANDED so we can read
+  // the real report URLs out of the menu's <a href> attributes. Run 25840233849
+  // showed that the slugs I'd guessed (/bao-cao/tong-quan-doanh-thu etc.) all
+  // 404; the iPOS Fabi sidebar is collapsed by default and doesn't render menu
+  // items in HTML until ☰ is clicked. This dumps both states so the failing
+  // run's artifacts contain the menu DOM for selector calibration.
+  async exploreDashboardMenu(): Promise<void> {
+    const page = this.requirePage()
+    log.step('exploring dashboard menu (sidebar toggle)')
+    await snapshotForce(page, 'A1_dashboard_collapsed')
+
+    // Try every plausible affordance for the menu toggle. Vue UI libs render
+    // hamburgers in lots of ways; we'll snapshot whatever we find and move on.
+    const toggleSelectors = [
+      'button.hamburger',
+      'button[aria-label*="menu" i]',
+      'button[aria-label*="sidebar" i]',
+      '.sidebar-toggle',
+      '.hamburger-box',
+      'header button:has(svg)',
+      'nav button:has(svg)',
+      'button:has-text("☰")',
+    ]
+    let clicked = false
+    for (const sel of toggleSelectors) {
+      const loc = page.locator(sel).first()
+      if ((await loc.count()) > 0 && await loc.isVisible().catch(() => false)) {
+        await loc.click().catch(() => {})
+        clicked = true
+        log.info(`clicked menu toggle: ${sel}`)
+        break
+      }
+    }
+    if (!clicked) {
+      log.warn('no menu toggle matched; sidebar may already be open or selector is different')
+    }
+    await page.waitForTimeout(800)
+    await snapshotForce(page, 'A2_dashboard_after_toggle')
+  }
+
   // Some accounts have to pick a brand/company after login. If brand/company
   // UIDs are supplied via credentials, try to navigate or click them; otherwise
   // just pause in discovery mode so the user can choose manually.

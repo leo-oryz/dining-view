@@ -16,6 +16,10 @@ async function runForStore(store: StoreCreds): Promise<IngestReport | { error: s
     await scraper.start()
     await scraper.login()
     await scraper.selectBrandIfNeeded()
+    // One-time discovery step until report routes are pinned down. Idempotent;
+    // costs ~1s and produces the dashboard menu DOM as a forced snapshot so
+    // failing CI runs let us read the real /bao-cao/* URLs out of the artifacts.
+    await scraper.exploreDashboardMenu()
     const files = await scraper.downloadAllReports()
     const supabase = getServiceClient()
     const report = await ingestIposDownload(supabase, store.id, files)
