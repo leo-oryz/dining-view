@@ -306,11 +306,16 @@ export class IposScraper {
     return buf
   }
 
-  private async setDateRange(page: Page, start: string, end: string, ctx: string): Promise<void> {
-    // iPOS Fabi uses vue-daterange-picker: the toggle is a .reportrange-text
-    // div showing the current range; clicking opens a popup with two month
-    // calendars and start/end input fields. Confirmed via run 25840645493
-    // artifact for /report/revenue/sale-summary.
+  private async setDateRange(page: Page, _start: string, _end: string, ctx: string): Promise<void> {
+    // iPOS Fabi's date picker is preset-driven, not input-driven. Run
+    // 25840989851 artifact showed clicking .reportrange-text opens a popup
+    // with 5 preset rows (Hôm nay / Hôm qua / 7 ngày trước / Tháng này /
+    // Tháng trước) plus two month calendars. No text inputs to fill.
+    //
+    // For now we click "Tháng trước" (Last Month) — that gives a full 30-day
+    // window of finalized data. Once we have a working pipeline end-to-end
+    // we can extend this to click arbitrary date cells for true 30-day
+    // rolling windows. IPOS_DAYS env is currently ignored (TODO).
     const toggle = page.locator('.reportrange-text').first()
     if (await toggle.count() === 0 || !(await toggle.isVisible().catch(() => false))) {
       log.warn(`could not find .reportrange-text toggle for ${ctx} — leaving default range`)
@@ -321,30 +326,19 @@ export class IposScraper {
     await page.waitForTimeout(500)
     await snapshotForce(page, `dp_open_${ctx}`)
 
-    // After clicking, vue-daterange-picker renders two month grids + typically
-    // start/end inputs. Fill them by placeholder/name and submit.
-    const startInput = page.locator('.daterangepicker input[name="daterangepicker_start"], input[name="daterangepicker_start"], input[placeholder*="bắt đầu" i], input[placeholder*="from" i]').first()
-    const endInput = page.locator('.daterangepicker input[name="daterangepicker_end"], input[name="daterangepicker_end"], input[placeholder*="kết thúc" i], input[placeholder*="to" i]').first()
-
-    if (await startInput.count() > 0) {
-      await startInput.fill(this.formatDateForIpos(start)).catch((e) => log.warn('start input fill failed:', e))
-    } else {
-      log.warn(`no start date input found for ${ctx}`)
+    // Click the "Tháng trước" preset. The preset row is a clickable element
+    // inside the popup that's a sibling of the calendar grid.
+    const preset = page.locator('li, div, button, a').filter({ hasText: /^\s*Tháng trước\s*$/ }).first()
+    if (await preset.count() === 0 || !(await preset.isVisible().catch(() => false))) {
+      log.warn(`no "Tháng trước" preset found for ${ctx}`)
+      await snapshotForce(page, `dp_no_preset_${ctx}`)
+      return
     }
-    if (await endInput.count() > 0) {
-      await endInput.fill(this.formatDateForIpos(end)).catch((e) => log.warn('end input fill failed:', e))
-    } else {
-      log.warn(`no end date input found for ${ctx}`)
-    }
-
-    // Vue daterange-picker confirms via "Áp dụng" button inside the popup.
-    const apply = page.locator('.daterangepicker button:has-text("Áp dụng"), button:has-text("Áp dụng"), button:has-text("Apply"), button:has-text("OK")').first()
-    if (await apply.count() > 0) {
-      await apply.click().catch(() => {})
-      await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
-    } else {
-      log.warn(`no Áp dụng button found for ${ctx}`)
-    }
+    await preset.click().catch((e) => log.warn(`click "Tháng trước" failed: ${e instanceof Error ? e.message : e}`))
+    await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
+    await page.waitForTimeout(800)
+    await snapshotForce(page, `dp_after_preset_${ctx}`)
+    log.info(`applied "Tháng trước" preset on ${ctx}`)
   }
 
   private formatDateForIpos(iso: string): string {
