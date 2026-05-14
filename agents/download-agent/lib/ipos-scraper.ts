@@ -307,47 +307,43 @@ export class IposScraper {
   }
 
   private async setDateRange(page: Page, start: string, end: string, ctx: string): Promise<void> {
-    // iPOS Fabi typically uses a single date-range picker. We try a few common
-    // affordances: input fields, range buttons, etc. The user should verify
-    // in discovery mode and we'll tighten the selectors after first run.
-    const pickerOpeners = [
-      'input[placeholder*="ngày" i]',
-      'input[placeholder*="date" i]',
-      'input.date-range',
-      'div.date-range-picker',
-      'button:has-text("Tùy chỉnh")',
-      'button:has-text("Khoảng thời gian")',
-    ]
-    let opened = false
-    for (const sel of pickerOpeners) {
-      const loc = page.locator(sel).first()
-      if (await loc.count() > 0 && await loc.isVisible().catch(() => false)) {
-        await loc.click().catch(() => {})
-        opened = true
-        break
-      }
-    }
-
-    if (!opened) {
-      log.warn(`could not find date picker for ${ctx} — falling back to whatever default range the page applies`)
+    // iPOS Fabi uses vue-daterange-picker: the toggle is a .reportrange-text
+    // div showing the current range; clicking opens a popup with two month
+    // calendars and start/end input fields. Confirmed via run 25840645493
+    // artifact for /report/revenue/sale-summary.
+    const toggle = page.locator('.reportrange-text').first()
+    if (await toggle.count() === 0 || !(await toggle.isVisible().catch(() => false))) {
+      log.warn(`could not find .reportrange-text toggle for ${ctx} — leaving default range`)
+      await snapshotForce(page, `dp_no_toggle_${ctx}`)
       return
     }
+    await toggle.click().catch(() => {})
+    await page.waitForTimeout(500)
+    await snapshotForce(page, `dp_open_${ctx}`)
 
-    // Try to type values directly into start/end inputs that may have appeared.
-    const startInput = page.locator('input[placeholder*="bắt đầu" i], input[placeholder*="from" i], input[name*="start" i]').first()
-    const endInput = page.locator('input[placeholder*="kết thúc" i], input[placeholder*="to" i], input[name*="end" i]').first()
+    // After clicking, vue-daterange-picker renders two month grids + typically
+    // start/end inputs. Fill them by placeholder/name and submit.
+    const startInput = page.locator('.daterangepicker input[name="daterangepicker_start"], input[name="daterangepicker_start"], input[placeholder*="bắt đầu" i], input[placeholder*="from" i]').first()
+    const endInput = page.locator('.daterangepicker input[name="daterangepicker_end"], input[name="daterangepicker_end"], input[placeholder*="kết thúc" i], input[placeholder*="to" i]').first()
+
     if (await startInput.count() > 0) {
-      await startInput.fill(this.formatDateForIpos(start)).catch(() => {})
+      await startInput.fill(this.formatDateForIpos(start)).catch((e) => log.warn('start input fill failed:', e))
+    } else {
+      log.warn(`no start date input found for ${ctx}`)
     }
     if (await endInput.count() > 0) {
-      await endInput.fill(this.formatDateForIpos(end)).catch(() => {})
+      await endInput.fill(this.formatDateForIpos(end)).catch((e) => log.warn('end input fill failed:', e))
+    } else {
+      log.warn(`no end date input found for ${ctx}`)
     }
 
-    // Confirm — click Apply / Áp dụng / OK.
-    const apply = page.locator('button:has-text("Áp dụng"), button:has-text("Apply"), button:has-text("OK")').first()
+    // Vue daterange-picker confirms via "Áp dụng" button inside the popup.
+    const apply = page.locator('.daterangepicker button:has-text("Áp dụng"), button:has-text("Áp dụng"), button:has-text("Apply"), button:has-text("OK")').first()
     if (await apply.count() > 0) {
       await apply.click().catch(() => {})
-      await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {})
+      await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {})
+    } else {
+      log.warn(`no Áp dụng button found for ${ctx}`)
     }
   }
 
@@ -358,32 +354,49 @@ export class IposScraper {
   }
 
   private async clickExport(page: Page, ctx: string): Promise<Download> {
-    const exportSelectors = [
-      'button:has-text("Xuất Excel")',
-      'button:has-text("Xuất file")',
-      'button:has-text("Xuất")',
-      'button:has-text("Export")',
-      'a:has-text("Xuất Excel")',
-      'button[title*="xuất" i]',
-      'button.export',
-    ]
-
-    let triggerLoc = null
-    for (const sel of exportSelectors) {
-      const loc = page.locator(sel).first()
-      if (await loc.count() > 0 && await loc.isVisible().catch(() => false)) {
-        triggerLoc = loc
-        break
-      }
+    // Two-step: open the "Xuất báo cáo" dropdown, then click the FIRST item
+    // ("Xuất báo cáo theo cửa hàng đã chọn" — export for selected store).
+    // Confirmed via run 25840645493 artifact:
+    //
+    //   <button aria-haspopup="menu" class="btn dropdown-toggle btn-outline-blue ...">
+    //     Xuất báo cáo
+    //     <i class="fal fa-download"></i>
+    //   </button>
+    //   <ul role="menu" class="dropdown-menu ...">
+    //     <li><a class="dropdown-item">Xuất báo cáo theo cửa hàng đã chọn</a></li>
+    //     <li><a class="dropdown-item">Xuất báo cáo tất cả cửa hàng</a></li>
+    //     <li><a class="dropdown-item">Xuất báo cáo so sánh ...</a></li>
+    //     <li><a class="dropdown-item">Xuất báo cáo so sánh ...</a></li>
+    //   </ul>
+    const toggle = page.locator('button.dropdown-toggle', { hasText: 'Xuất báo cáo' }).first()
+    if (await toggle.count() === 0 || !(await toggle.isVisible().catch(() => false))) {
+      await snapshotForce(page, `no_export_toggle_${ctx}`)
+      throw new Error(`No "Xuất báo cáo" dropdown toggle found for ${ctx}`)
     }
+    await toggle.click()
+    await page.waitForTimeout(400) // let dropdown render
+    await snapshotForce(page, `dropdown_open_${ctx}`)
 
-    if (!triggerLoc) {
-      throw new Error(`No export button found for ${ctx}. Tried: ${exportSelectors.join(', ')}`)
+    // First option = export the currently selected store's data, which is
+    // what we want (single-store backend, single-store scrape).
+    const firstOption = page.locator('a.dropdown-item:has-text("Xuất báo cáo theo cửa hàng đã chọn")').first()
+    if (await firstOption.count() === 0 || !(await firstOption.isVisible().catch(() => false))) {
+      // Fall back: any dropdown-item that doesn't include "so sánh" (compare).
+      const fallback = page.locator('ul.dropdown-menu.show a.dropdown-item').filter({ hasNotText: 'so sánh' }).first()
+      if (await fallback.count() === 0) {
+        await snapshotForce(page, `no_dropdown_item_${ctx}`)
+        throw new Error(`No "Xuất báo cáo theo cửa hàng đã chọn" item found for ${ctx}`)
+      }
+      const [download] = await Promise.all([
+        page.waitForEvent('download', { timeout: 90_000 }),
+        fallback.click(),
+      ])
+      return download
     }
 
     const [download] = await Promise.all([
       page.waitForEvent('download', { timeout: 90_000 }),
-      triggerLoc.click(),
+      firstOption.click(),
     ])
     return download
   }
