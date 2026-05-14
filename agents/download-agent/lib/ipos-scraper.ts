@@ -311,13 +311,21 @@ export class IposScraper {
   }
 
   private async findFirstVisible(page: Page, selectors: string[], description: string) {
+    // Use waitFor with a per-selector timeout rather than instantaneous
+    // isVisible() — Vue SPAs like fabi.ipos.vn mount the form structure across
+    // multiple microtask ticks, so the input may exist in DOM during the probe
+    // but report isVisible=false because its bounding box isn't laid out yet.
+    // waitFor auto-polls the visibility state and gives the page enough time
+    // to settle. We split the total budget across selectors so a missing
+    // primary doesn't eat the entire timeout.
+    const perSelectorMs = Math.max(1500, Math.floor(DEFAULT_TIMEOUT / selectors.length))
     for (const sel of selectors) {
       const loc = page.locator(sel).first()
-      const count = await loc.count()
-      if (count === 0) continue
-      const visible = await loc.isVisible().catch(() => false)
-      if (visible) {
+      try {
+        await loc.waitFor({ state: 'visible', timeout: perSelectorMs })
         return loc
+      } catch {
+        // Fall through to next selector.
       }
     }
     // Force the snapshot — we need DOM evidence to figure out the right selector,
