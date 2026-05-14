@@ -3,7 +3,7 @@ import { chromium } from 'playwright'
 import { format, subDays } from 'date-fns'
 import { ENV } from './env'
 import { log } from './log'
-import { snapshot, pauseIfDiscovery } from './debug'
+import { snapshot, snapshotForce, pauseIfDiscovery } from './debug'
 
 export interface IposCredentials {
   email: string
@@ -187,7 +187,7 @@ export class IposScraper {
         out[key] = await this.downloadReport(key, start, end)
       } catch (err) {
         log.err(`failed to download ${key}:`, err instanceof Error ? err.message : err)
-        await snapshot(this.requirePage(), `err_${key}`)
+        await snapshotForce(this.requirePage(), `err_${key}`)
       }
     }
 
@@ -316,7 +316,10 @@ export class IposScraper {
         return loc
       }
     }
-    await snapshot(page, `missing_${description.replace(/\s+/g, '_')}`)
+    // Force the snapshot — we need DOM evidence to figure out the right selector,
+    // and this is exactly the failure mode we keep hitting on first contact with
+    // a new SPA. Without forcing, CI runs are useless for selector discovery.
+    await snapshotForce(page, `missing_${description.replace(/\s+/g, '_')}`)
     throw new Error(`Could not find visible ${description}. Tried: ${selectors.join(', ')}`)
   }
 }

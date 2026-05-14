@@ -7,11 +7,16 @@ import { log } from './log'
 const DEBUG_DIR = resolve(process.cwd(), 'downloads', '_debug')
 mkdirSync(DEBUG_DIR, { recursive: true })
 
-// Save a screenshot + HTML snapshot. Idempotent dir. Tagged so multiple runs
-// don't clobber each other; useful when a step fails on CI and we need to
-// inspect what the page actually looked like.
+// Save a screenshot + HTML snapshot. Discovery-gated so noisy step-by-step
+// captures don't blow up CI disk on every run — but error-path callers should
+// use `snapshotForce()` to capture state regardless of the flag, which is what
+// gets us a working DOM dump when selectors fail in CI.
 export async function snapshot(page: Page, tag: string): Promise<void> {
   if (!ENV.DISCOVERY) return
+  await snapshotForce(page, tag)
+}
+
+export async function snapshotForce(page: Page, tag: string): Promise<void> {
   const ts = new Date().toISOString().replace(/[:.]/g, '-')
   const safe = tag.replace(/[^a-z0-9_-]+/gi, '_')
   const png = resolve(DEBUG_DIR, `${ts}__${safe}.png`)
@@ -29,6 +34,9 @@ export async function snapshot(page: Page, tag: string): Promise<void> {
 
 export async function pauseIfDiscovery(page: Page, hint: string): Promise<void> {
   if (!ENV.DISCOVERY) return
+  // page.pause() blocks waiting for the user to click resume in the headed
+  // browser inspector, which doesn't exist in headless. No-op there.
+  if (!ENV.HEADED) return
   log.warn(`⏸  DISCOVERY pause — ${hint}`)
   log.warn('   Inspect the browser, then run `await page.evaluate(() => 0)` in DevTools or close the inspector to continue.')
   await page.pause()
