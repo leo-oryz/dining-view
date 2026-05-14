@@ -20,19 +20,15 @@ export interface IposDownloadResult {
   range: { start: string; end: string }
 }
 
-// Each iPOS report has its own page within fabi.ipos.vn. The exact slugs depend
-// on the iPOS Fabi build, so we keep them overridable via env in case the user
-// runs against a slightly different deployment. Values reflect what we have
-// confirmed so far; unconfirmed slugs MUST be verified in discovery mode before
-// trusting the data they produce.
-//
-// To discover real paths: run `npm run scrape:discovery`, follow the headed
-// browser to each report, and copy the URL slug here.
+// iPOS Fabi report URLs, confirmed by walking the sidebar's @click handlers and
+// grepping the resulting page's <a href> list (run 25840538034). Path prefix is
+// /report/* — my earlier guesses at /bao-cao/* all 404'd. Env vars are kept as
+// overrides in case a different iPOS deployment uses different slugs.
 const REPORT_ROUTES = {
-  sale_summary:    process.env.IPOS_REPORT_SALE_SUMMARY    || '/bao-cao/tong-quan-doanh-thu',
-  payment_methods: process.env.IPOS_REPORT_PAYMENT_METHODS || '/bao-cao/phuong-thuc-thanh-toan',
-  items:           process.env.IPOS_REPORT_ITEMS           || '/bao-cao/ban-hang-theo-mon',
-  source:          process.env.IPOS_REPORT_SOURCE          || '/bao-cao/nguon-don-hang',
+  sale_summary:    process.env.IPOS_REPORT_SALE_SUMMARY    || '/report/revenue/sale-summary',
+  payment_methods: process.env.IPOS_REPORT_PAYMENT_METHODS || '/report/revenue/categories/payment-method',
+  items:           process.env.IPOS_REPORT_ITEMS           || '/report/revenue/categories/item',
+  source:          process.env.IPOS_REPORT_SOURCE          || '/report/revenue/categories/source',
 } as const
 
 type ReportKey = keyof typeof REPORT_ROUTES

@@ -16,10 +16,13 @@ async function runForStore(store: StoreCreds): Promise<IngestReport | { error: s
     await scraper.start()
     await scraper.login()
     await scraper.selectBrandIfNeeded()
-    // One-time discovery step until report routes are pinned down. Idempotent;
-    // costs ~1s and produces the dashboard menu DOM as a forced snapshot so
-    // failing CI runs let us read the real /bao-cao/* URLs out of the artifacts.
-    await scraper.exploreDashboardMenu()
+    // Discovery step was used to find the real /report/* URLs out of the Vue
+    // sidebar's click-only handlers; URLs are pinned in REPORT_ROUTES now, so
+    // skip by default. Toggle IPOS_EXPLORE=1 to re-snapshot the dashboard +
+    // menu if iPOS Fabi reorganizes its routes.
+    if (process.env.IPOS_EXPLORE === '1') {
+      await scraper.exploreDashboardMenu()
+    }
     const files = await scraper.downloadAllReports()
     const supabase = getServiceClient()
     const report = await ingestIposDownload(supabase, store.id, files)
