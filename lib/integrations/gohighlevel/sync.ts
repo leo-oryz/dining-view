@@ -38,6 +38,20 @@ export interface GHLSyncResult {
   error?: string
 }
 
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message
+  if (typeof err === 'string') return err
+  if (typeof err === 'object' && err !== null) {
+    const obj = err as Record<string, unknown>
+    if (typeof obj.message === 'string') {
+      const extra = [obj.code, obj.details, obj.hint].filter(Boolean).join(' · ')
+      return extra ? `${obj.message} (${extra})` : obj.message
+    }
+    try { return JSON.stringify(err) } catch { /* fall through */ }
+  }
+  return String(err)
+}
+
 export async function syncGHL(options?: {
   storeId?: string
   config?: GHLConfig
@@ -81,7 +95,7 @@ export async function syncGHL(options?: {
       const attribution = await runAttribution(supabase, storeId)
       result.attribution_matches = attribution.matched
     } catch (err) {
-      result.error = err instanceof Error ? err.message : String(err)
+      result.error = errorMessage(err)
     }
 
     results.push(result)
