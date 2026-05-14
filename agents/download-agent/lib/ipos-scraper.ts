@@ -159,16 +159,44 @@ export class IposScraper {
     await snapshotForce(page, 'A0_dashboard_initial')
     log.info(`URL: ${page.url()}`)
 
-    // 1) Click "Báo cáo" parent.
-    const reportsParent = page.locator('.list-menu__item').filter({ hasText: 'Báo cáo' }).first()
-    if (await reportsParent.count() === 0) {
-      log.warn('no .list-menu__item containing "Báo cáo" found — sidebar markup may have changed')
-      return
+    // 1) Click "Báo cáo". Previous run targeted .list-menu__item (the outer
+    // wrapper); URL didn't change because the @click handler is on the inner
+    // .list-menu-item__icon div with cursor-pointer. Try the inner element
+    // first, then fall back to the image and the label.
+    const reportsClickTargets = [
+      // Inner clickable, scoped to the Báo cáo item.
+      page.locator('.list-menu__item', { hasText: 'Báo cáo' }).locator('.list-menu-item__icon, .cursor-pointer').first(),
+      // The icon image is unambiguous via its alt text.
+      page.locator('img[alt="Báo cáo"]'),
+      // The label paragraph might be wired too.
+      page.locator('p.menu-label', { hasText: 'Báo cáo' }).first(),
+      // Last resort — outer div with force: true.
+      page.locator('.list-menu__item', { hasText: 'Báo cáo' }).first(),
+    ]
+    let urlBefore = page.url()
+    let navigated = false
+    for (let i = 0; i < reportsClickTargets.length; i++) {
+      const target = reportsClickTargets[i]
+      if (await target.count() === 0) continue
+      try {
+        await target.click({ timeout: 5_000, force: i === reportsClickTargets.length - 1 })
+      } catch (e) {
+        log.warn(`Báo cáo click attempt ${i} failed: ${e instanceof Error ? e.message : e}`)
+        continue
+      }
+      await page.waitForTimeout(900)
+      await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
+      const urlAfter = page.url()
+      log.info(`Báo cáo click attempt ${i}: ${urlBefore} → ${urlAfter}`)
+      if (urlAfter !== urlBefore || urlAfter !== `${ENV.IPOS_BASE_URL}/dashboard`) {
+        navigated = true
+        break
+      }
+      // No nav; maybe a popout opened. Snapshot the state, then move on.
+      await snapshotForce(page, `B1_popout_attempt_${i}`)
+      urlBefore = urlAfter
     }
-    await reportsParent.click().catch((e) => log.warn('click Báo cáo failed:', e))
-    await page.waitForLoadState('networkidle', { timeout: DEFAULT_TIMEOUT }).catch(() => {})
-    await page.waitForTimeout(500)
-    log.info(`after Báo cáo click, URL: ${page.url()}`)
+    log.info(`after Báo cáo flow, navigated=${navigated} URL=${page.url()}`)
     await snapshotForce(page, 'B1_reports_landing')
 
     // 2) For each of the 4 reports we ultimately want, find a matching link or
